@@ -1,0 +1,83 @@
+# =============================================================================
+# 개발 환경 설정 파일 (application-dev.properties) - 수정된 버전
+# =============================================================================
+
+# =============================================================================
+# 데이터베이스 설정 (개발용) - MySQL만 사용
+# =============================================================================
+spring.datasource.url=jdbc:mysql://localhost:3306/Dormitory_Management_Dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useUnicode=true&zeroDateTimeBehavior=convertToNull
+spring.datasource.username=root
+spring.datasource.password=1234
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# 연결 풀 설정 (개발용)
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=20000
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.max-lifetime=1200000
+
+# =============================================================================
+# JPA 설정 (개발용)
+# =============================================================================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Seoul
+spring.jpa.open-in-view=false
+
+# =============================================================================
+# 로깅 설정 (개발용)
+# =============================================================================
+logging.level.com.dormitory.SpringBoot=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# =============================================================================
+# 개발 도구 설정
+# =============================================================================
+spring.devtools.restart.enabled=true
+spring.devtools.livereload.enabled=true
+
+# H2 콘솔 비활성화 (MySQL 사용하므로)
+spring.h2.console.enabled=false
+
+# =============================================================================
+# API 문서화 설정 (개발용)
+# =============================================================================
+springdoc.api-docs.enabled=true
+springdoc.swagger-ui.enabled=true
+springdoc.swagger-ui.path=/swagger-ui.html
+
+# =============================================================================
+# 보안 설정 (개발용 - 완화된 설정)
+# =============================================================================
+app.security.max-login-attempts=10
+app.security.lockout-duration-minutes=5
+
+# =============================================================================
+# 파일 업로드 설정 (개발용)
+# =============================================================================
+file.upload.base-path=uploads-dev
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# =============================================================================
+# 모니터링 설정 (개발용)
+# =============================================================================
+management.endpoints.web.exposure.include=*
+management.endpoint.health.show-details=always
+
+# =============================================================================
+# 개발 환경 전용 설정
+# =============================================================================
+# 이메일 발송 비활성화 (개발 중)
+spring.mail.enabled=false
+
+# 스케줄링 비활성화 (개발 중)
+spring.task.scheduling.enabled=false
+
+# 캐싱 비활성화 (개발 중)
+spring.cache.type=none
