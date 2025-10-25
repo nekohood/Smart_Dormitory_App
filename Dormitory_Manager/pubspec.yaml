@@ -1,0 +1,44 @@
+name: dormitory_manager
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # 기존 패키지들
+  image_picker: ^1.0.0
+  file_selector: ^1.0.3
+  url_launcher: ^6.2.4
+  http: ^0.13.6
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.8
+  path: any
+  dio: ^5.3.2
+  flutter_secure_storage: ^9.0.0
+
+  # API 연동 및 보안을 위해 추가 필요한 패키지들
+  shared_preferences: ^2.2.2    # 토큰 로컬 저장용
+  provider: ^6.1.1              # 상태 관리 (선택사항)
+  json_annotation: ^4.8.1       # JSON 직렬화 도우미
+  permission_handler: ^11.0.1   # 권한 처리
+
+  http_parser: any
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # 코드 생성 도구들 (JSON 직렬화용)
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
