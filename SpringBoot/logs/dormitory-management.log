@@ -1,22 +1,22 @@
-2025-10-25 22:26:23.665 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 31828 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-10-25 22:26:23.674 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-10-25 22:26:23.676 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-10-25 22:26:23.777 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-10-25 22:26:23.778 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-10-25 22:26:25.638 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-10-25 22:26:25.874 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 216 ms. Found 5 JPA repository interfaces.
-2025-10-25 22:26:28.077 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-10-25 22:26:28.121 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-10-25 22:26:28.122 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-10-25 22:26:28.257 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-10-25 22:26:28.257 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 4479 ms
-2025-10-25 22:26:28.826 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-10-25 22:26:29.008 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-10-25 22:26:29.071 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-10-25 22:26:29.506 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-10-25 22:26:29.551 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-10-25 22:26:29.566 [restartedMain] WARN  o.h.e.j.e.i.JdbcEnvironmentInitiator - HHH000342: Could not obtain connection to query metadata
-java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
+2025-10-27 22:13:30.585 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 21940 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
+2025-10-27 22:13:30.597 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
+2025-10-27 22:13:30.600 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
+2025-10-27 22:13:30.739 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-10-27 22:13:30.740 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-10-27 22:13:32.740 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-10-27 22:13:32.940 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 182 ms. Found 5 JPA repository interfaces.
+2025-10-27 22:13:34.845 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-10-27 22:13:34.898 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-10-27 22:13:34.899 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-10-27 22:13:35.036 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-10-27 22:13:35.036 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 4296 ms
+2025-10-27 22:13:35.656 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-10-27 22:13:35.831 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-10-27 22:13:35.908 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-10-27 22:13:36.307 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-10-27 22:13:36.357 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-10-27 22:13:36.362 [restartedMain] WARN  o.h.e.j.e.i.JdbcEnvironmentInitiator - HHH000342: Could not obtain connection to query metadata
+java.lang.RuntimeException: Driver org.postgresql.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
 	at com.zaxxer.hikari.util.DriverDataSource.<init>(DriverDataSource.java:111)
 	at com.zaxxer.hikari.pool.PoolBase.initializeDataSource(PoolBase.java:331)
 	at com.zaxxer.hikari.pool.PoolBase.<init>(PoolBase.java:116)
@@ -136,25 +136,24 @@ java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
 	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:50)
-2025-10-25 22:26:29.603 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-10-25 22:26:29.605 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-10-25 22:26:29.620 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+2025-10-27 22:13:36.410 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-10-27 22:13:36.430 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (null)']
 	Database driver: undefined/unknown
-	Database version: 8.0
+	Database version: 12.0
 	Autocommit mode: undefined/unknown
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2025-10-25 22:26:30.867 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-10-25 22:26:30.872 [restartedMain] ERROR o.s.o.j.LocalContainerEntityManagerFactoryBean - Failed to initialize JPA EntityManagerFactory: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
-2025-10-25 22:26:30.873 [restartedMain] ERROR o.s.b.w.e.tomcat.TomcatStarter - Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'jwtAuthenticationFilter': Unsatisfied dependency expressed through field 'userRepository': Error creating bean with name 'userRepository' defined in com.dormitory.SpringBoot.repository.UserRepository defined in @EnableJpaRepositories declared on JpaConfig: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
-2025-10-25 22:26:30.909 [restartedMain] INFO  o.a.catalina.core.StandardService - Stopping service [Tomcat]
-2025-10-25 22:26:30.914 [restartedMain] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Unable to start web server
-2025-10-25 22:26:30.933 [restartedMain] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
+2025-10-27 22:13:37.771 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-10-27 22:13:37.775 [restartedMain] ERROR o.s.o.j.LocalContainerEntityManagerFactoryBean - Failed to initialize JPA EntityManagerFactory: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver org.postgresql.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
+2025-10-27 22:13:37.776 [restartedMain] ERROR o.s.b.w.e.tomcat.TomcatStarter - Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'jwtAuthenticationFilter': Unsatisfied dependency expressed through field 'userRepository': Error creating bean with name 'userRepository' defined in com.dormitory.SpringBoot.repository.UserRepository defined in @EnableJpaRepositories declared on JpaConfig: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
+2025-10-27 22:13:37.806 [restartedMain] INFO  o.a.catalina.core.StandardService - Stopping service [Tomcat]
+2025-10-27 22:13:37.813 [restartedMain] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Unable to start web server
+2025-10-27 22:13:37.826 [restartedMain] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2025-10-25 22:26:30.960 [restartedMain] ERROR o.s.boot.SpringApplication - Application run failed
+2025-10-27 22:13:37.852 [restartedMain] ERROR o.s.boot.SpringApplication - Application run failed
 org.springframework.context.ApplicationContextException: Unable to start web server
 	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:170)
 	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:621)
@@ -253,7 +252,7 @@ Caused by: org.springframework.beans.factory.BeanCreationException: Error creati
 	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
 	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365)
 	... 72 common frames omitted
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver org.postgresql.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1826)
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:607)
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
@@ -263,14 +262,14 @@ Caused by: org.springframework.beans.factory.BeanCreationException: Error creati
 	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
 	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365)
 	... 84 common frames omitted
-Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
+Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is java.lang.RuntimeException: Driver org.postgresql.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
 	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.buildNativeEntityManagerFactory(AbstractEntityManagerFactoryBean.java:431)
 	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.afterPropertiesSet(AbstractEntityManagerFactoryBean.java:400)
 	at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.afterPropertiesSet(LocalContainerEntityManagerFactoryBean.java:366)
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1873)
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1822)
 	... 91 common frames omitted
-Caused by: java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
+Caused by: java.lang.RuntimeException: Driver org.postgresql.Driver claims to not accept jdbcUrl, postgresql://smart_dormitory_app_user:7ZZe9hvA0r9tPQmKDb7COxK4MP5gmOzN@dpg-d3ucm78gjchc73a8291g-a/smart_dormitory_app
 	at com.zaxxer.hikari.util.DriverDataSource.<init>(DriverDataSource.java:111)
 	at com.zaxxer.hikari.pool.PoolBase.initializeDataSource(PoolBase.java:331)
 	at com.zaxxer.hikari.pool.PoolBase.<init>(PoolBase.java:116)
@@ -281,13 +280,12 @@ Caused by: java.lang.RuntimeException: Driver com.mysql.cj.jdbc.Driver claims to
 	at org.hibernate.resource.transaction.backend.jdbc.internal.DdlTransactionIsolatorNonJtaImpl.getIsolatedConnection(DdlTransactionIsolatorNonJtaImpl.java:46)
 	at org.hibernate.resource.transaction.backend.jdbc.internal.DdlTransactionIsolatorNonJtaImpl.getIsolatedConnection(DdlTransactionIsolatorNonJtaImpl.java:39)
 	at org.hibernate.tool.schema.internal.exec.ImprovedExtractionContextImpl.getJdbcConnection(ImprovedExtractionContextImpl.java:63)
-	at org.hibernate.tool.schema.internal.exec.ImprovedExtractionContextImpl.getJdbcDatabaseMetaData(ImprovedExtractionContextImpl.java:70)
-	at org.hibernate.tool.schema.extract.internal.InformationExtractorJdbcDatabaseMetaDataImpl.processTableResultSet(InformationExtractorJdbcDatabaseMetaDataImpl.java:65)
-	at org.hibernate.tool.schema.extract.internal.AbstractInformationExtractorImpl.getTables(AbstractInformationExtractorImpl.java:570)
-	at org.hibernate.tool.schema.extract.internal.DatabaseInformationImpl.getTablesInformation(DatabaseInformationImpl.java:122)
-	at org.hibernate.tool.schema.internal.GroupedSchemaMigratorImpl.performTablesMigration(GroupedSchemaMigratorImpl.java:72)
-	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.performMigration(AbstractSchemaMigrator.java:233)
-	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.doMigration(AbstractSchemaMigrator.java:112)
+	at org.hibernate.tool.schema.extract.spi.ExtractionContext.getQueryResults(ExtractionContext.java:43)
+	at org.hibernate.tool.schema.extract.internal.SequenceInformationExtractorLegacyImpl.extractMetadata(SequenceInformationExtractorLegacyImpl.java:39)
+	at org.hibernate.tool.schema.extract.internal.DatabaseInformationImpl.initializeSequences(DatabaseInformationImpl.java:66)
+	at org.hibernate.tool.schema.extract.internal.DatabaseInformationImpl.<init>(DatabaseInformationImpl.java:60)
+	at org.hibernate.tool.schema.internal.Helper.buildDatabaseInformation(Helper.java:185)
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.doMigration(AbstractSchemaMigrator.java:93)
 	at org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator.performDatabaseAction(SchemaManagementToolCoordinator.java:280)
 	at org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator.lambda$process$5(SchemaManagementToolCoordinator.java:144)
 	at java.base/java.util.HashMap.forEach(HashMap.java:1421)
