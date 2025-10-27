@@ -93,7 +93,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     /**
      * 오늘 가입한 사용자 수
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE DATE(u.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(u) FROM User u WHERE FUNCTION('DATE', u.created_at) = CURRENT_DATE")
     long countTodayRegistrations();
 
     /**
