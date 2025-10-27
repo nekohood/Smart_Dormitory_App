@@ -95,7 +95,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     /**
      * 오늘 제출된 민원 개수
      */
-    @Query("SELECT COUNT(c) FROM Complaint c WHERE DATE(c.submittedAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE FUNCTION('DATE', c.createdAt) = CURRENT_DATE")
     long countTodayComplaints();
 
     /**
