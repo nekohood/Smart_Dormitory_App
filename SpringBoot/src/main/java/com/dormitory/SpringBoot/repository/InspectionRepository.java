@@ -85,7 +85,10 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     /**
      * 특정 사용자의 오늘 점호 기록이 있는지 확인
      */
-    @Query("SELECT i FROM Inspection i WHERE i.user.userId = :userId AND FUNCTION('DATE', i.createdAt) = CURRENT_DATE")
+    @Query("SELECT i FROM Inspection i WHERE i.userId = :userId " +
+            "AND DATE(i.inspectionDate) = CURRENT_DATE " +
+            "ORDER BY i.createdAt DESC")
+    // Optional<Inspection>를 List<Inspection>으로 변경합니다.
     List<Inspection> findTodayInspectionByUserId(@Param("userId") String userId);
     /**
      * 재검 점호 기록 조회
