@@ -197,7 +197,7 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
      * 오늘 점호를 완료하지 않은 사용자 목록 (관리자용)
      */
     @Query("SELECT DISTINCT u.id FROM User u WHERE u.isActive = true " +
-            "AND u.id NOT IN (SELECT i.userId FROM Inspection i WHERE DATE(i.inspectionDate) = CURRENT_DATE)")
+            "AND u.id NOT IN (SELECT i.userId FROM Inspection i WHERE FUNCTION('DATE', i.inspectionDate) = CURRENT_DATE)")
     List<String> findUsersWithoutTodayInspection();
 
     /**
