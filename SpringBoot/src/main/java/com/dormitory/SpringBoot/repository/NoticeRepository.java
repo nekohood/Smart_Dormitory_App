@@ -74,7 +74,7 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
     /**
      * 오늘 작성된 공지사항 개수
      */
-    @Query("SELECT COUNT(n) FROM Notice n WHERE FUNCTION('DATE', n.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(n) FROM Notice n WHERE DATE(n.createdAt) = CURRENT_DATE")
     long countTodayNotices();
 
     /**

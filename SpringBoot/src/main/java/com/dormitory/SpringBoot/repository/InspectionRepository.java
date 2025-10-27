@@ -85,7 +85,9 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     /**
      * 특정 사용자의 오늘 점호 기록이 있는지 확인
      */
-    @Query("SELECT i FROM Inspection i WHERE i.user.userId = :userId AND FUNCTION('DATE', i.createdAt) = CURRENT_DATE")
+    @Query("SELECT i FROM Inspection i WHERE i.userId = :userId " +
+            "AND DATE(i.inspectionDate) = CURRENT_DATE " +
+            "ORDER BY i.createdAt DESC")
     List<Inspection> findTodayInspectionByUserId(@Param("userId") String userId);
     /**
      * 재검 점호 기록 조회
@@ -197,7 +199,7 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
      * 오늘 점호를 완료하지 않은 사용자 목록 (관리자용)
      */
     @Query("SELECT DISTINCT u.id FROM User u WHERE u.isActive = true " +
-            "AND u.id NOT IN (SELECT i.userId FROM Inspection i WHERE FUNCTION('DATE', i.inspectionDate) = CURRENT_DATE)")
+            "AND u.id NOT IN (SELECT i.userId FROM Inspection i WHERE DATE(i.inspectionDate) = CURRENT_DATE)")
     List<String> findUsersWithoutTodayInspection();
 
     /**

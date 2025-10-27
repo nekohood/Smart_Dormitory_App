@@ -88,7 +88,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     /**
      * 오늘 제출된 서류 개수
      */
-    @Query("SELECT COUNT(d) FROM Document d WHERE FUNCTION('DATE', d.submittedAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(d) FROM Document d WHERE DATE(d.submittedAt) = CURRENT_DATE")
     long countTodayDocuments();
 
     /**
