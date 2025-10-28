@@ -1,0 +1,18 @@
+# nixpacks.toml
+
+[phases.setup]
+# Nixpacks가 사용할 패키지 (이 경우 Java 필요 없음, Docker가 처리)
+
+[phases.build]
+# 빌드 명령어 대신 Dockerfile 사용 명시
+cmds = ["echo 'Using Dockerfile for build'"] # Nixpacks 빌드 명령 비활성화
+
+[start]
+# 시작 명령어 대신 Dockerfile의 CMD 사용 명시
+cmd = "echo 'Using Dockerfile CMD for start'" # Nixpacks 시작 명령 비활성화
+
+# --- Docker 빌드 설정 ---
+[docker]
+dockerfile = "Dockerfile"  # Dockerfile 경로 지정
+# 만약 Root Directory를 SpringBoot로 설정했다면 아래처럼 시도
+# dockerfile = "Dockerfile"
