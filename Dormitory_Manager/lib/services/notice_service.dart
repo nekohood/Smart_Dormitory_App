@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
 import '../models/notice.dart';
 import '../api/dio_client.dart';
 

@@ -3,7 +3,6 @@ import '../models/user.dart';
 import '../services/user_service.dart';
 import '../api/dio_client.dart';
 import '../utils/storage_helper.dart';
-import '../utils/string_utils.dart';
 
 class UserRepository {
   static User? _currentUser;
