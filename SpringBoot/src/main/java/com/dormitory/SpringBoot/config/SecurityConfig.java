@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Spring Security 설정 클래스 - 캘린더 및 D-Day 기능 추가
+ * Spring Security 설정 클래스 - 최종 수정 버전
  */
 @Configuration
 @EnableWebSecurity
@@ -132,16 +132,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/inspections/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/notices/admin/**").hasRole("ADMIN")
 
-                        // 점호 관련 엔드포인트 - 인증된 사용자 모두 접근 가능
-                        .requestMatchers(HttpMethod.GET, "/api/inspections/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/inspections/**").authenticated()
-
-                        // 민원 관련 엔드포인트 - 인증된 사용자 모두 접근 가능
-                        .requestMatchers(HttpMethod.GET, "/api/complaints/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/complaints").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/complaints/*/status").hasRole("ADMIN") // 상태 변경은 관리자만
-                        .requestMatchers(HttpMethod.DELETE, "/api/complaints/*").hasRole("ADMIN") // 삭제는 관리자만
-
                         // 서류 관련 엔드포인트 - 인증된 사용자 모두 접근 가능
                         .requestMatchers(HttpMethod.GET, "/api/documents/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/documents").authenticated()
@@ -149,23 +139,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/documents/*/status").hasRole("ADMIN") // 상태 변경은 관리자만
                         .requestMatchers(HttpMethod.DELETE, "/api/documents/*").hasRole("ADMIN") // 삭제는 관리자만
 
+                        // 점호 관련 엔드포인트 - 인증된 사용자 모두 접근 가능
+                        .requestMatchers(HttpMethod.GET, "/api/inspections/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/inspections/**").authenticated()
+
                         // 공지사항 관련 엔드포인트 - 조회는 모두, 작성/수정/삭제는 관리자만
                         .requestMatchers(HttpMethod.GET, "/api/notices/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/notices").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/notices/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/notices/**").hasRole("ADMIN")
-
-                        // 캘린더 관련 엔드포인트
-                        .requestMatchers(HttpMethod.GET, "/api/calendar/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/calendar").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/calendar/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/calendar/**").hasRole("ADMIN")
-
-                        // D-Day 관련 엔드포인트
-                        .requestMatchers(HttpMethod.GET, "/api/dday/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/dday").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/dday/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/dday/**").hasRole("ADMIN")
 
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()

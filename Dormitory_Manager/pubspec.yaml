@@ -23,7 +23,6 @@ dependencies:
   path: any
   dio: ^5.3.2
   flutter_secure_storage: ^9.0.0
-  table_calendar: ^3.0.9
 
   # API 연동 및 보안을 위해 추가 필요한 패키지들
   shared_preferences: ^2.2.2    # 토큰 로컬 저장용
