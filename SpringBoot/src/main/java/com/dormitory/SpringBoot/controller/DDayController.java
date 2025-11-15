@@ -2,7 +2,7 @@ package com.dormitory.SpringBoot.controller;
 
 import com.dormitory.SpringBoot.dto.DDayDTO;
 import com.dormitory.SpringBoot.services.DDayService;
-import com.dormitory.SpringBoot.utils.JwtTokenProvider;
+import com.dormitory.SpringBoot.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ public class DDayController {
     private DDayService ddayService;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private JwtUtil jwtUtil;
 
     /**
      * 모든 활성화된 D-Day 조회
@@ -174,7 +174,7 @@ public class DDayController {
         try {
             // 토큰에서 사용자 ID 추출
             String actualToken = token.replace("Bearer ", "");
-            String userId = jwtTokenProvider.getUserIdFromToken(actualToken);
+            String userId = jwtUtil.getUserIdFromToken(actualToken);
             
             DDayDTO createdDDay = ddayService.createDDay(ddayDTO, userId);
             

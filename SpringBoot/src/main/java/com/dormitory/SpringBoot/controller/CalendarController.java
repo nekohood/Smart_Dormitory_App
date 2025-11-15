@@ -2,7 +2,7 @@ package com.dormitory.SpringBoot.controller;
 
 import com.dormitory.SpringBoot.dto.CalendarDTO;
 import com.dormitory.SpringBoot.services.CalendarService;
-import com.dormitory.SpringBoot.utils.JwtTokenProvider;
+import com.dormitory.SpringBoot.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -26,7 +26,7 @@ public class CalendarController {
     private CalendarService calendarService;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private JwtUtil jwtUtil;
 
     /**
      * 모든 일정 조회
@@ -249,7 +249,7 @@ public class CalendarController {
         try {
             // 토큰에서 사용자 ID 추출
             String actualToken = token.replace("Bearer ", "");
-            String userId = jwtTokenProvider.getUserIdFromToken(actualToken);
+            String userId = jwtUtil.getUserIdFromToken(actualToken);
             
             CalendarDTO createdEvent = calendarService.createEvent(calendarDTO, userId);
             
