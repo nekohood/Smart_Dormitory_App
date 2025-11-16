@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:dormitory_manager/models/schedule.dart'; // ⭐ [신규]
-import 'package:dormitory_manager/services/schedule_service.dart'; // ⭐ [신규]
-import 'package:table_calendar/table_calendar.dart'; // ⭐ [신규]
-import 'package:intl/intl.dart'; // ⭐ [신규]
+import 'package:dormitory_manager/models/schedule.dart'; // ⭐ [수정]
+import 'package:dormitory_manager/services/schedule_service.dart'; // ⭐ [수정]
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 
 import '../data/user_repository.dart';
 import '../models/notice.dart';
@@ -14,7 +14,6 @@ import 'document_submit_screen.dart';
 import 'notice_list_screen.dart';
 import 'my_page_screen.dart';
 
-// ⭐ [수정] StatefulWidget으로 변경
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -27,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Notice? latestNotice;
   bool isLoadingNotice = true;
 
-  // ⭐ [신규] 캘린더/D-Day 상태
+  // ⭐ [수정] 캘린더/D-Day 상태
   final ScheduleService _scheduleService = ScheduleService();
   Map<DateTime, List<Schedule>> _events = {};
   DateTime _focusedDay = DateTime.now();
@@ -43,12 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadAllData();
   }
 
-  // ⭐ [신규] 모든 데이터 로드
+  // ⭐ [수정] _loadDDay() 호출 제거
   Future<void> _loadAllData() async {
     await Future.wait([
       _loadLatestNotice(),
-      _loadSchedules(),
-      _loadDDay(),
+      _loadSchedules(), // D-Day 로직이 _loadSchedules로 통합됨
     ]);
   }
 
@@ -71,52 +69,76 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ⭐ [신규] 캘린더용 일정 로드
+  // ⭐ [수정] 캘린더 및 D-Day 로직 통합
   Future<void> _loadSchedules() async {
-    if (!mounted) return;
-    final schedules = await _scheduleService.getAllSchedules();
-    final Map<DateTime, List<Schedule>> events = {};
-
-    for (var schedule in schedules) {
-      final date = DateTime(schedule.eventDate.year, schedule.eventDate.month, schedule.eventDate.day);
-      if (events[date] == null) {
-        events[date] = [];
-      }
-      events[date]!.add(schedule);
-    }
-
-    if (mounted) {
-      setState(() {
-        _events = events;
-      });
-    }
-  }
-
-  // ⭐ [신규] D-Day용 일정 로드
-  Future<void> _loadDDay() async {
     if (!mounted) return;
     setState(() { _isLoadingSchedule = true; });
 
-    final upcoming = await _scheduleService.getUpcomingSchedules();
-    if (upcoming.isNotEmpty && mounted) {
-      final nearest = upcoming.first; // 이미 서비스에서 정렬됨
+    try {
+      // 1. 'getAllSchedules' -> 'getSchedules'로 변경
+      final schedules = await _scheduleService.getSchedules();
+      final Map<DateTime, List<Schedule>> events = {};
+      Schedule? nearest;
       final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-      final eventDate = DateTime(nearest.eventDate.year, nearest.eventDate.month, nearest.eventDate.day);
+      int minDiff = -1; // D-Day 최소값을 찾기 위한 변수
 
-      setState(() {
-        _nearestEvent = nearest;
-        _dDay = eventDate.difference(today).inDays;
-        _isLoadingSchedule = false;
-      });
-    } else if (mounted) {
-      setState(() {
-        _isLoadingSchedule = false;
-      });
+      for (var schedule in schedules) {
+        // 2. 'eventDate' -> 'startDate'로 변경
+        // DB에서 UTC로 온 시간을 Local 시간으로 변경
+        final localStartDate = schedule.startDate.toLocal();
+        final date = DateTime(localStartDate.year, localStartDate.month, localStartDate.day);
+
+        // 이벤트 맵핑
+        if (events[date] == null) {
+          events[date] = [];
+        }
+        events[date]!.add(schedule);
+
+        // D-Day 계산 (오늘이거나 오늘 이후의 일정만 대상)
+        if (date.isAfter(today) || date.isAtSameMomentAs(today)) {
+          final diff = date.difference(today).inDays;
+          if (minDiff == -1 || diff < minDiff) { // 가장 가까운 일정을 찾음
+            minDiff = diff;
+            nearest = schedule;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _events = events;
+          _isLoadingSchedule = false;
+
+          // D-Day 상태 업데이트
+          if (nearest != null) {
+            _nearestEvent = nearest;
+            _dDay = minDiff;
+          } else {
+            // 다가오는 일정이 없을 경우
+            _nearestEvent = null;
+            _dDay = 0;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSchedule = false;
+          _nearestEvent = null; // 에러 발생 시 초기화
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('일정 로드 실패: $e')),
+        );
+      }
     }
   }
 
-  // ⭐ [신규] 캘린더 이벤트 로더
+  // ❌ [삭제] _loadDDay() 함수 전체 삭제
+  // Future<void> _loadDDay() async { ... }
+
+  // ⭐ [수정] 캘린더 이벤트 로더
   List<Schedule> _getEventsForDay(DateTime day) {
+    // TableCalendar가 UTC로 날짜를 비교할 수 있으므로, Localtime의 날짜 부분만 사용
     return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
@@ -156,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 공지사항 배너
                 _buildNoticeBanner(),
 
-                // ⭐ [수정] D-Day 위젯
+                // D-Day 위젯
                 _buildDDayCard(),
 
                 const SizedBox(height: 20),
@@ -176,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ⭐ [수정] 중요 일정 (캘린더)
+                // 중요 일정 (캘린더)
                 _buildCalendarCard(),
               ],
             ),
@@ -382,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ⭐ [신규] D-Day 위젯
+  // ⭐ [수정] D-Day 위젯 (eventDate -> startDate)
   Widget _buildDDayCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -452,7 +474,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // 일정 날짜
           if (!_isLoadingSchedule && _nearestEvent != null)
             Text(
-              DateFormat('yyyy년 MM월 dd일').format(_nearestEvent!.eventDate),
+              // ✅ eventDate -> startDate
+              DateFormat('yyyy년 MM월 dd일').format(_nearestEvent!.startDate),
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -550,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ⭐ [신규] 캘린더 위젯
+  // ⭐ [수정] 캘린더 위젯
   Widget _buildCalendarCard() {
     return Container(
       width: double.infinity,
@@ -614,7 +637,7 @@ class _HomeScreenState extends State<HomeScreen> {
               titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          // 선택된 날짜의 일정 목록 (선택 사항)
+          // 선택된 날짜의 일정 목록
           if (_selectedDay != null && _getEventsForDay(_selectedDay!).isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
@@ -626,6 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
+                  // 선택된 날짜의 모든 이벤트를 리스트로 보여줌
                   ..._getEventsForDay(_selectedDay!).map(
                         (event) => Text(' • ${event.title}'),
                   ),

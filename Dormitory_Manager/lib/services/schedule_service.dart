@@ -1,80 +1,80 @@
+import 'package:dio/dio.dart';
 import 'package:dormitory_manager/api/dio_client.dart';
 import 'package:dormitory_manager/models/schedule.dart';
-import '../api/dio_client.dart'; // DioClient 임포트
 
 class ScheduleService {
-  final DioClient _dioClient;
 
-  ScheduleService() : _dioClient = DioClient();
+  // ✅ DioClient의 static 메서드를 사용하므로 생성자나 멤버 변수 불필요
 
-  // 모든 일정 조회 (캘린더용)
-  Future<List<Schedule>> getAllSchedules() async {
+  /// 모든 일정 조회 (GET /api/schedules)
+  Future<List<Schedule>> getSchedules() async { // ✅ getAllSchedules -> getSchedules
     try {
-      final response = await DioClient.get('/schedule');
-      List<dynamic> data = response.data['data'];
-      return data.map((item) => Schedule.fromJson(item)).toList();
-    } catch (e) {
+      // ✅ DioClient의 static 'get' 메서드 사용
+      final response = await DioClient.get('/schedules');
+
+      if (response.data['success'] == true && response.data['data'] != null) {
+        List<dynamic> dataList = response.data['data'];
+        return dataList.map((item) => Schedule.fromJson(item)).toList();
+      } else {
+        throw Exception(response.data['message'] ?? '일정 불러오기 실패');
+      }
+    } on DioException catch (e) {
       print('Error getting all schedules: $e');
-      return [];
+      throw Exception('일정 조회 실패: ${e.message}');
     }
   }
 
-  // 다가오는 일정 조회 (D-Day용)
-  Future<List<Schedule>> getUpcomingSchedules() async {
-    try {
-      final response = await DioClient.get('/schedule/upcoming');
-      List<dynamic> data = response.data['data'];
-      return data.map((item) => Schedule.fromJson(item)).toList();
-    } catch (e) {
-      print('Error getting upcoming schedules: $e');
-      return [];
-    }
-  }
+  // ❌ getUpcomingSchedules() 함수 삭제
+  // (D-Day 계산은 home_screen에서 getSchedules()로 받은 전체 목록으로 처리)
 
   // --- (관리자 기능용) ---
 
-  // 일정 생성
-  Future<bool> createSchedule(String title, DateTime eventDate) async {
+  // ✅ 매개변수를 Schedule 객체로 받도록 수정
+  Future<Schedule> createSchedule(Schedule schedule) async {
     try {
-      await DioClient.post(
-        '/schedule',
-        data: {
-          'title': title,
-          'eventDate': eventDate.toIso8601String().split('T').first, // "YYYY-MM-DD"
-        },
+      final response = await DioClient.post(
+        '/schedules', // ✅ API 경로 수정
+        data: schedule.toJson(),
       );
-      return true;
-    } catch (e) {
+      if (response.data['success'] == true && response.data['data'] != null) {
+        return Schedule.fromJson(response.data['data']);
+      } else {
+        throw Exception(response.data['message'] ?? '일정 생성 실패');
+      }
+    } on DioException catch (e) {
       print('Error creating schedule: $e');
-      return false;
+      throw Exception('일정 생성 실패: ${e.message}');
     }
   }
 
-  // 일정 수정
-  Future<bool> updateSchedule(int id, String title, DateTime eventDate) async {
+  // ✅ 매개변수를 Schedule 객체로 받도록 수정
+  Future<Schedule> updateSchedule(int id, Schedule schedule) async {
     try {
-      await DioClient.put(
-        '/schedule/$id',
-        data: {
-          'title': title,
-          'eventDate': eventDate.toIso8601String().split('T').first,
-        },
+      final response = await DioClient.put(
+        '/schedules/$id', // ✅ API 경로 수정
+        data: schedule.toJson(),
       );
-      return true;
-    } catch (e) {
+      if (response.data['success'] == true && response.data['data'] != null) {
+        return Schedule.fromJson(response.data['data']);
+      } else {
+        throw Exception(response.data['message'] ?? '일정 수정 실패');
+      }
+    } on DioException catch (e) {
       print('Error updating schedule: $e');
-      return false;
+      throw Exception('일정 수정 실패: ${e.message}');
     }
   }
 
-  // 일정 삭제
-  Future<bool> deleteSchedule(int id) async {
+  // ✅ API 경로 수정
+  Future<void> deleteSchedule(int id) async {
     try {
-      await DioClient.delete('/schedule/$id');
-      return true;
-    } catch (e) {
+      final response = await DioClient.delete('/schedules/$id');
+      if (response.data['success'] != true) {
+        throw Exception(response.data['message'] ?? '일정 삭제 실패');
+      }
+    } on DioException catch (e) {
       print('Error deleting schedule: $e');
-      return false;
+      throw Exception('일정 삭제 실패: ${e.message}');
     }
   }
 }
