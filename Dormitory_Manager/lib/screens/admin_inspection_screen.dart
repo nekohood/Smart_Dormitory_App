@@ -89,8 +89,17 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
   /// 데이터 로드
   Future<void> _loadData() async {
     if (!_isInitialized) {
-      await _initializeAuth();
-      await Future.delayed(Duration(milliseconds: 100));
+      // 재시도 시 토큰을 다시 설정
+      try {
+        await _initializeAuth();
+        await Future.delayed(Duration(milliseconds: 100));
+      } catch (e) {
+        setState(() {
+          _errorMessage = '인증 실패: $e';
+          _isLoading = false;
+        });
+        return;
+      }
     }
 
     try {
@@ -174,6 +183,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
   /// 성공 스낵바
   void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -185,6 +195,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
   /// 에러 스낵바
   void _showErrorSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -257,11 +268,191 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     } catch (e) {
       _showErrorSnackBar('삭제 중 오류가 발생했습니다: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
+
+  // ✅ ================== 수정 기능 추가 ==================
+
+  /// 점호 수정 다이얼로그
+  Future<void> _showEditInspectionDialog(AdminInspectionModel inspection) async {
+    // 폼 관리를 위한 컨트롤러 및 변수
+    final _formKey = GlobalKey<FormState>();
+    int _currentScore = inspection.score;
+    String _currentStatus = inspection.status;
+    bool _isReInspection = inspection.isReInspection;
+    final TextEditingController _adminCommentController = TextEditingController(text: inspection.adminComment);
+    final TextEditingController _geminiFeedbackController = TextEditingController(text: inspection.geminiFeedback);
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // StatefulBuilder를 사용하여 다이얼로그 내부의 상태(점수, 상태)를 관리
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('점호 기록 수정'),
+              content: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('사용자: ${inspection.userName} (${inspection.roomNumber})',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+
+                      // 점수 선택
+                      DropdownButtonFormField<int>(
+                        value: _currentScore,
+                        decoration: InputDecoration(
+                          labelText: '점수 (0-10)',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: List.generate(11, (index) => index)
+                            .map((score) => DropdownMenuItem(
+                          value: score,
+                          child: Text('$score점'),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              _currentScore = value;
+                              // 점수에 따라 상태 자동 변경 (선택적)
+                              // _currentStatus = value >= 6 ? 'PASS' : 'FAIL';
+                            });
+                          }
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // 상태 선택
+                      DropdownButtonFormField<String>(
+                        value: _currentStatus,
+                        decoration: InputDecoration(
+                          labelText: '상태',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: ['PASS', 'FAIL']
+                            .map((status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(status),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              _currentStatus = value;
+                            });
+                          }
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // 재검 여부
+                      SwitchListTile(
+                        title: Text('재검 점호 여부'),
+                        value: _isReInspection,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            _isReInspection = value;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // 관리자 코멘트
+                      TextFormField(
+                        controller: _adminCommentController,
+                        decoration: InputDecoration(
+                          labelText: '관리자 코멘트',
+                          border: OutlineInputBorder(),
+                          hintText: '수정 사항이나 피드백을 입력하세요.',
+                        ),
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 16),
+
+                      // AI 피드백 (수정 가능하게)
+                      TextFormField(
+                        controller: _geminiFeedbackController,
+                        decoration: InputDecoration(
+                          labelText: 'AI 피드백 (수정 가능)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('취소'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      // 1. UpdateRequest 객체 생성
+                      final updateRequest = InspectionUpdateRequest(
+                        score: _currentScore,
+                        status: _currentStatus,
+                        adminComment: _adminCommentController.text,
+                        geminiFeedback: _geminiFeedbackController.text,
+                        isReInspection: _isReInspection,
+                      );
+
+                      // 2. 저장 핸들러 호출
+                      Navigator.of(context).pop();
+                      _handleUpdateInspection(inspection.id, updateRequest);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('저장'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 점호 기록 수정 실행
+  Future<void> _handleUpdateInspection(int inspectionId, InspectionUpdateRequest request) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final updatedInspection = await _inspectionService.updateInspection(inspectionId, request);
+
+      _showSuccessSnackBar('점호 기록(ID: ${updatedInspection.id})이 성공적으로 수정되었습니다.');
+      _refreshData(); // 데이터 새로고침
+
+    } catch (e) {
+      _showErrorSnackBar('수정 중 오류가 발생했습니다: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  // ✅ ======================================================
+
 
   @override
   Widget build(BuildContext context) {
@@ -334,8 +525,8 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.blue,
             tabs: [
-              Tab(text: '전체 점호'),
-              Tab(text: '오늘 점호'),
+              Tab(text: '전체 점호 (${_allInspections.length})'),
+              Tab(text: '오늘 점호 (${_todayInspections.length})'),
               Tab(text: '통계'),
             ],
           ),
@@ -481,9 +672,22 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
                   Text(inspection.adminComment!),
                   SizedBox(height: 8),
                 ],
+                // ✅ 수정된 부분: 수정 버튼 추가
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 간격 조절
                   children: [
+                    // 수정 버튼
+                    ElevatedButton.icon(
+                      onPressed: () => _showEditInspectionDialog(inspection),
+                      icon: Icon(Icons.edit, size: 16),
+                      label: Text('수정'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        minimumSize: Size(120, 36),
+                      ),
+                    ),
+                    // 삭제 버튼
                     ElevatedButton.icon(
                       onPressed: () => _showDeleteConfirmDialog(inspection),
                       icon: Icon(Icons.delete, size: 16),

@@ -1,25 +1,25 @@
-2025-11-16 03:05:53.942 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 29248 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-16 03:05:53.952 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-16 03:05:53.953 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-16 03:05:54.043 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-16 03:05:54.044 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-16 03:05:55.517 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-16 03:05:55.699 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 156 ms. Found 5 JPA repository interfaces.
-2025-11-16 03:05:57.333 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-16 03:05:57.368 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-16 03:05:57.369 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-16 03:05:57.483 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-16 03:05:57.484 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3440 ms
-2025-11-16 03:05:57.913 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-16 03:05:58.078 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-16 03:05:58.133 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-16 03:05:58.619 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-16 03:05:58.658 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-16 03:05:58.892 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@5acd8475
-2025-11-16 03:05:58.894 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-16 03:05:58.943 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-16 03:05:58.944 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-16 03:05:58.965 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+2025-11-17 01:08:04.808 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.17 with PID 32324 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
+2025-11-17 01:08:04.818 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
+2025-11-17 01:08:04.820 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
+2025-11-17 01:08:04.926 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-11-17 01:08:04.927 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-11-17 01:08:06.478 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-17 01:08:06.681 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 175 ms. Found 6 JPA repository interfaces.
+2025-11-17 01:08:08.787 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 01:08:08.821 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 01:08:08.822 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-17 01:08:08.958 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 01:08:08.958 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 4030 ms
+2025-11-17 01:08:09.473 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-17 01:08:09.618 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-17 01:08:09.689 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-17 01:08:10.073 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-17 01:08:10.112 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-17 01:08:10.282 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@7d8ebfd
+2025-11-17 01:08:10.284 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-17 01:08:10.330 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-17 01:08:10.332 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
+2025-11-17 01:08:10.355 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 8.0
@@ -27,264 +27,111 @@
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2025-11-16 03:06:00.162 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-16 03:06:00.486 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-16 03:06:01.744 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-16 03:06:03.597 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
-2025-11-16 03:06:03.643 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+2025-11-17 01:08:11.879 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-17 01:08:12.231 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-17 01:08:13.698 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-17 01:08:16.380 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
+2025-11-17 01:08:16.430 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
 
-Using generated security password: 29db1657-6b54-4382-a1f0-adba78c9a73c
+Using generated security password: 118aed31-24e5-427b-a461-895c6c26ff30
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2025-11-16 03:06:03.657 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2025-11-16 03:06:04.455 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
-2025-11-16 03:06:04.615 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2025-11-16 03:06:04.629 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 11.265 seconds (process running for 12.39)
-2025-11-16 03:06:58.288 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 14016 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-16 03:06:58.292 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-16 03:06:58.293 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-16 03:06:58.376 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-16 03:06:58.377 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-16 03:06:59.641 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-16 03:06:59.780 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 127 ms. Found 5 JPA repository interfaces.
-2025-11-16 03:07:01.490 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-16 03:07:01.529 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-16 03:07:01.529 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-16 03:07:01.642 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-16 03:07:01.642 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3265 ms
-2025-11-16 03:07:02.041 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-16 03:07:02.229 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-16 03:07:02.306 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-16 03:07:02.780 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-16 03:07:02.815 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-16 03:07:02.969 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@38fbc718
-2025-11-16 03:07:02.971 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-16 03:07:03.009 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-16 03:07:03.011 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-16 03:07:03.030 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 8.0
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2025-11-16 03:07:04.059 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-16 03:07:04.439 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-16 03:07:05.348 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-16 03:07:07.101 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
-2025-11-16 03:07:07.148 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
-
-Using generated security password: 5228500d-818a-420b-a14c-68872f248495
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2025-11-16 03:07:07.164 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2025-11-16 03:07:07.666 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
-2025-11-16 03:07:07.817 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2025-11-16 03:07:07.831 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 10.108 seconds (process running for 10.662)
-2025-11-16 03:08:29.286 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 12300 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-16 03:08:29.289 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-16 03:08:29.290 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-16 03:08:29.372 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-16 03:08:29.373 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-16 03:08:30.744 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-16 03:08:30.898 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 141 ms. Found 5 JPA repository interfaces.
-2025-11-16 03:08:32.517 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-16 03:08:32.554 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-16 03:08:32.554 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-16 03:08:32.646 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-16 03:08:32.647 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3273 ms
-2025-11-16 03:08:33.191 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-16 03:08:33.330 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-16 03:08:33.392 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-16 03:08:33.735 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-16 03:08:33.767 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-16 03:08:33.933 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@30c7d7d6
-2025-11-16 03:08:33.935 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-16 03:08:33.974 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-16 03:08:33.975 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-16 03:08:33.999 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 8.0
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2025-11-16 03:08:35.057 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-16 03:08:35.396 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-16 03:08:36.510 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-16 03:08:38.507 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
-2025-11-16 03:08:38.589 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
-
-Using generated security password: b181a590-e1b7-416f-8a7f-c11fbc9d06b4
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2025-11-16 03:08:38.626 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2025-11-16 03:08:39.320 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
-2025-11-16 03:08:39.466 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2025-11-16 03:08:39.481 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 10.806 seconds (process running for 11.349)
-2025-11-16 03:14:41.153 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-11-16 03:14:41.153 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2025-11-16 03:14:41.155 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2025-11-16 03:14:41.242 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-16 03:14:41.249 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-16 03:14:41.402 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
-2025-11-16 03:14:41.403 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
-2025-11-16 03:14:41.418 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
-2025-11-16 03:14:41.800 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Mon Nov 17 03:14:41 KST 2025
-2025-11-16 03:14:41.801 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
-2025-11-16 03:14:41.907 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-16 03:14:41.917 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
-2025-11-16 03:14:42.618 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices/latest Method: GET
-2025-11-16 03:14:42.618 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-16 03:14:42.619 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-16 03:14:42.619 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-16 03:14:42.619 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-16 03:14:42.619 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-16 03:14:42.655 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.655 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.656 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.656 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.657 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-16 03:14:42.657 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-16 03:14:42.669 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-16 03:14:42.669 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-16 03:14:42.672 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-16 03:14:42.674 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-16 03:14:42.680 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-16 03:14:42.692 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-16 03:14:42.748 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-16 Method: GET
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/all Method: GET
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-16 03:14:42.787 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-16 03:14:42.788 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.788 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.788 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.788 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.788 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.789 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-16 03:14:42.789 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-16 03:14:42.789 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-16 03:14:42.790 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-16 03:14:42.798 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-16 03:14:42.798 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-16 03:14:42.798 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-16 03:14:42.806 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.services.InspectionService - 전체 통계 조회 시작
-2025-11-16 03:14:42.807 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.S.services.InspectionService - 전체 점호 기록 조회 시작
-2025-11-16 03:14:42.816 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.services.InspectionService - 날짜별 점호 기록 조회 시작 - 날짜: 2025-11-16
-2025-11-16 03:14:42.828 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.S.services.InspectionService - 전체 점호 기록 조회 완료 - 총 2건
-2025-11-16 03:14:42.838 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-16 03:14:42.841 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.services.InspectionService - 날짜별 점호 기록 조회 완료 - 날짜: 2025-11-16, 총 0건
-2025-11-16 03:14:42.846 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-16 03:14:42.854 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.services.InspectionService - 전체 통계 조회 완료 - 전체: 2, 통과: 2, 실패: 0, 재검: 0
-2025-11-16 03:14:42.859 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-16 23:28:28.798 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.16 with PID 27660 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-16 23:28:28.804 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-16 23:28:28.805 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-16 23:28:28.920 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-16 23:28:28.920 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-16 23:28:30.856 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-16 23:28:31.072 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 186 ms. Found 5 JPA repository interfaces.
-2025-11-16 23:28:33.240 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-16 23:28:33.285 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-16 23:28:33.286 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-16 23:28:33.469 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-16 23:28:33.469 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 4548 ms
-2025-11-16 23:28:34.100 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-16 23:28:34.251 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-16 23:28:34.320 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-16 23:28:34.772 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-16 23:28:34.820 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-16 23:28:35.091 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@37e479a
-2025-11-16 23:28:35.094 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-16 23:28:35.162 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-16 23:28:35.163 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-16 23:28:35.191 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 8.0
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2025-11-16 23:28:36.610 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-16 23:28:36.997 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-16 23:28:38.373 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-16 23:28:39.315 [restartedMain] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'diagnosticController': Unsatisfied dependency expressed through field 'geminiService': Error creating bean with name 'geminiService': Injection of autowired dependencies failed
-2025-11-16 23:28:39.316 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2025-11-16 23:28:39.320 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2025-11-16 23:28:39.324 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2025-11-16 23:28:39.327 [restartedMain] INFO  o.a.catalina.core.StandardService - Stopping service [Tomcat]
-2025-11-16 23:28:39.351 [restartedMain] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
-
-Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2025-11-16 23:28:39.380 [restartedMain] ERROR o.s.boot.SpringApplication - Application run failed
-org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'diagnosticController': Unsatisfied dependency expressed through field 'geminiService': Error creating bean with name 'geminiService': Injection of autowired dependencies failed
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.resolveFieldValue(AutowiredAnnotationBeanPostProcessor.java:788)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.inject(AutowiredAnnotationBeanPostProcessor.java:768)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:509)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1222)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1188)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1123)
-	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:987)
-	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
-	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
-	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:753)
-	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1362)
-	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1351)
-	at com.dormitory.SpringBoot.Application.main(Application.java:11)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
-	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:50)
-Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'geminiService': Injection of autowired dependencies failed
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:515)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1459)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:606)
-	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
-	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1682)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1628)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.resolveFieldValue(AutowiredAnnotationBeanPostProcessor.java:785)
-	... 27 common frames omitted
-Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'GEMINI_API_KEY' in value "${GEMINI_API_KEY}" <-- "${gemini.api.key}"
-	at org.springframework.util.PlaceholderResolutionException.withValue(PlaceholderResolutionException.java:81)
-	at org.springframework.util.PlaceholderParser$ParsedValue.resolve(PlaceholderParser.java:423)
-	at org.springframework.util.PlaceholderParser.replacePlaceholders(PlaceholderParser.java:128)
-	at org.springframework.util.PropertyPlaceholderHelper.parseStringValue(PropertyPlaceholderHelper.java:118)
-	at org.springframework.util.PropertyPlaceholderHelper.replacePlaceholders(PropertyPlaceholderHelper.java:114)
-	at org.springframework.core.env.AbstractPropertyResolver.doResolvePlaceholders(AbstractPropertyResolver.java:293)
-	at org.springframework.core.env.AbstractPropertyResolver.resolveRequiredPlaceholders(AbstractPropertyResolver.java:264)
-	at org.springframework.context.support.PropertySourcesPlaceholderConfigurer.lambda$processProperties$0(PropertySourcesPlaceholderConfigurer.java:185)
-	at org.springframework.beans.factory.support.AbstractBeanFactory.resolveEmbeddedValue(AbstractBeanFactory.java:971)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1650)
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1628)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.resolveFieldValue(AutowiredAnnotationBeanPostProcessor.java:785)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.inject(AutowiredAnnotationBeanPostProcessor.java:768)
-	at org.springframework.beans.factory.annotation.InjectionMetadata.inject(InjectionMetadata.java:146)
-	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:509)
-	... 37 common frames omitted
+2025-11-17 01:08:16.454 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2025-11-17 01:08:17.305 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2025-11-17 01:08:17.494 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 01:08:17.513 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 13.293 seconds (process running for 13.827)
+2025-11-17 01:12:15.428 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 01:12:15.428 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 01:12:15.429 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 01:12:15.506 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-17 01:12:15.515 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-17 01:12:15.671 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
+2025-11-17 01:12:15.671 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
+2025-11-17 01:12:15.689 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
+2025-11-17 01:12:16.081 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Tue Nov 18 01:12:15 KST 2025
+2025-11-17 01:12:16.082 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
+2025-11-17 01:12:16.225 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-17 01:12:16.234 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
+2025-11-17 01:17:04.665 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-17 01:17:04.667 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-17 01:17:04.669 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
+2025-11-17 01:17:04.669 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
+2025-11-17 01:17:04.674 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
+2025-11-17 01:17:04.744 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Tue Nov 18 01:17:04 KST 2025
+2025-11-17 01:17:04.744 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
+2025-11-17 01:17:04.771 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-17 01:17:04.780 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices/latest Method: GET
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedule Method: GET
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.588 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.592 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
+2025-11-17 01:17:05.593 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.593 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.593 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedule/upcoming Method: GET
+2025-11-17 01:17:05.593 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.593 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.638 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.640 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.640 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.640 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.640 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.655 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.655 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.655 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.655 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.658 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
+2025-11-17 01:17:05.661 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-17 01:17:05.669 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
+2025-11-17 01:17:05.672 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.745 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.745 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.750 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.792 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/all Method: GET
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-17 Method: GET
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:05.793 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.794 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:05.795 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.796 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.796 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:05.807 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.807 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.807 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:05.815 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.services.InspectionService - 전체 통계 조회 시작
+2025-11-17 01:17:05.815 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.services.InspectionService - 전체 점호 기록 조회 시작
+2025-11-17 01:17:05.823 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.services.InspectionService - 날짜별 점호 기록 조회 시작 - 날짜: 2025-11-17
+2025-11-17 01:17:05.836 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.services.InspectionService - 전체 점호 기록 조회 완료 - 총 2건
+2025-11-17 01:17:05.837 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.services.InspectionService - 날짜별 점호 기록 조회 완료 - 날짜: 2025-11-17, 총 0건
+2025-11-17 01:17:05.842 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.847 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:05.847 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.services.InspectionService - 전체 통계 조회 완료 - 전체: 2, 통과: 2, 실패: 0, 재검: 0
+2025-11-17 01:17:05.853 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-17 01:17:08.252 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices Method: GET
+2025-11-17 01:17:08.252 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-17 01:17:08.252 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-17 01:17:08.253 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-17 01:17:08.253 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-17 01:17:08.255 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-17 01:17:08.267 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-17 01:17:08.284 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===

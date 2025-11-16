@@ -1,5 +1,6 @@
 import '../models/user.dart';
 import '../api/dio_client.dart';
+import 'package:dio/dio.dart'; // DioException을 사용하기 위해 임포트
 
 class UserService {
   // 로그인
@@ -11,13 +12,30 @@ class UserService {
       });
 
       final responseData = response.data;
-      if (responseData['success'] == true && responseData['token'] != null) {
-        // 토큰 설정은 DioClient와 StorageHelper가 담당
-        await DioClient.setToken(responseData['token']);
-        return User.fromJson(responseData['user']);
+
+      // ✅ 수정된 부분: 'data' 필드 내부를 확인
+      if (responseData['success'] == true && responseData['data'] != null) {
+        final data = responseData['data'];
+        final String? token = data['token'];
+        final Map<String, dynamic>? userData = data['user'];
+
+        if (token != null && userData != null) {
+          // 토큰 설정은 DioClient와 StorageHelper가 담당
+          await DioClient.setToken(token);
+          return User.fromJson(userData);
+        } else {
+          // 'data' 필드는 있으나 token이나 user가 없는 경우
+          throw Exception('서버 응답 데이터가 올바르지 않습니다.');
+        }
       } else {
-        throw Exception(responseData['error'] ?? '로그인에 실패했습니다.');
+        // 백엔드가 success: false 또는 message를 보낸 경우
+        final String message = responseData['message'] ?? (responseData['error']?['message'] ?? '로그인에 실패했습니다.');
+        throw Exception(message);
       }
+    } on DioException catch (e) {
+      // Dio 에러 (401, 500 등) 처리
+      final String errorMessage = e.response?.data?['message'] ?? (e.response?.data?['error']?['message'] ?? e.message ?? '로그인 중 오류 발생');
+      throw Exception('로그인 실패: $errorMessage');
     } catch (e) {
       throw Exception('로그인 실패: $e');
     }
@@ -33,11 +51,26 @@ class UserService {
       });
 
       final responseData = response.data;
-      if (responseData['success'] == true) {
-        return User.fromJson(responseData['user']);
+
+      // ✅ 수정된 부분: 'data' 필드 내부를 확인
+      if (responseData['success'] == true && responseData['data'] != null) {
+        final data = responseData['data'];
+        final Map<String, dynamic>? userData = data['user'];
+
+        if (userData != null) {
+          return User.fromJson(userData);
+        } else {
+          throw Exception('서버 응답 데이터가 올바르지 않습니다.');
+        }
       } else {
-        throw Exception(responseData['error'] ?? '회원가입에 실패했습니다.');
+        // 백엔드가 success: false 또는 message를 보낸 경우
+        final String message = responseData['message'] ?? (responseData['error']?['message'] ?? '회원가입에 실패했습니다.');
+        throw Exception(message);
       }
+    } on DioException catch (e) {
+      // Dio 에러 (400 등) 처리
+      final String errorMessage = e.response?.data?['message'] ?? (e.response?.data?['error']?['message'] ?? e.message ?? '회원가입 중 오류 발생');
+      throw Exception('회원가입 실패: $errorMessage');
     } catch (e) {
       throw Exception('회원가입 실패: $e');
     }
@@ -56,7 +89,7 @@ class UserService {
     }
   }
 
-  // 현재 사용자 정보 조회 (수정된 부분)
+  // 현재 사용자 정보 조회 (기존에 올바르게 수정된 상태)
   static Future<User> getCurrentUser() async {
     try {
       final response = await DioClient.get('/users/me');
@@ -72,7 +105,7 @@ class UserService {
     }
   }
 
-  // 사용자 정보 수정
+  // 사용자 정보 수정 (기존에 올바르게 수정된 상태)
   static Future<User> updateUser(String userId, Map<String, dynamic> userData) async {
     try {
       final response = await DioClient.put('/users/me', data: userData);
@@ -80,7 +113,7 @@ class UserService {
       if (responseData['success'] == true && responseData['data'] != null) {
         return User.fromJson(responseData['data']);
       } else {
-        throw Exception(responseData['error'] ?? '사용자 정보 수정에 실패했습니다.');
+        throw Exception(responseData['error']?['message'] ?? '사용자 정보 수정에 실패했습니다.');
       }
     } catch (e) {
       throw Exception('사용자 정보 수정 실패: $e');

@@ -4,6 +4,9 @@ import '../models/inspection.dart';
 import '../services/inspection_service.dart';
 import '../utils/storage_helper.dart';
 
+// ⭐ [신규] 관리자 일정 화면 임포트
+import 'admin_schedule_screen.dart';
+
 /// 관리자 전용 홈 화면
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -166,7 +169,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             SizedBox(height: 12),
-            _buildQuickActions(),
+            _buildQuickActions(), // ⭐ [수정] 수정된 위젯 호출
             SizedBox(height: 24),
 
             // 최근 점호 기록
@@ -331,34 +334,54 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  /// 빠른 액션 버튼들
+  /// ⭐ [수정] 빠른 액션 버튼들 (Wrap으로 변경 및 '일정 관리' 추가)
   Widget _buildQuickActions() {
-    return Row(
+    // 화면 너비에 맞춰 카드 크기 계산
+    double cardWidth = (MediaQuery.of(context).size.width - 16 * 2 - 12 * 2) / 3;
+    if (cardWidth < 100) cardWidth = (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2; // 좁으면 2줄
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.start,
       children: [
-        Expanded(
+        SizedBox(
+          width: cardWidth,
           child: _buildActionCard(
             '점호 관리',
-            '모든 점호 기록 관리',
+            '점호 기록 관리',
             Icons.assignment_turned_in,
             Colors.blue,
                 () {
-              // 관리자 점호 화면으로 이동 (두 번째 탭)
               Navigator.pushReplacementNamed(context, '/admin_main');
-              // 또는 직접 AdminInspectionScreen으로 이동
-              // Navigator.pushNamed(context, '/admin/inspection');
             },
           ),
         ),
-        SizedBox(width: 12),
-        Expanded(
+        SizedBox(
+          width: cardWidth,
           child: _buildActionCard(
             '통계 보기',
             '자세한 통계 확인',
             Icons.analytics,
             Colors.green,
                 () {
-              // 통계 화면으로 이동
               Navigator.pushNamed(context, '/admin/inspection');
+            },
+          ),
+        ),
+        // ⭐ [신규] 일정 관리 버튼
+        SizedBox(
+          width: cardWidth,
+          child: _buildActionCard(
+            '일정 관리',
+            '캘린더 일정 수정',
+            Icons.calendar_today,
+            Colors.purple,
+                () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminScheduleScreen()),
+              );
             },
           ),
         ),
@@ -379,6 +402,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 32, color: color),
             SizedBox(height: 8),
@@ -389,6 +413,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 4),
             Text(
@@ -404,6 +429,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       ),
     );
   }
+
 
   /// 최근 점호 기록 위젯
   Widget _buildRecentInspections() {

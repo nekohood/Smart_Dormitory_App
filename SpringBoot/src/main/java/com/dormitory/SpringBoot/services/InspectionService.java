@@ -303,7 +303,7 @@ public class InspectionService {
     }
 
     /**
-     * 점호 기록 수정 (관리자용)
+     * 점호 기록 수정 (관리자용) - 수정된 메서드
      *
      * @param inspectionId 수정할 점호 기록 ID
      * @param updateData 수정할 데이터
@@ -350,6 +350,14 @@ public class InspectionService {
                 String newComment = (String) updateData.get("adminComment");
                 inspection.setAdminComment(newComment);
                 logger.info("관리자 코멘트 업데이트");
+                updated = true;
+            }
+
+            // ✅ 수정된 부분: isReInspection 필드 업데이트
+            if (updateData.containsKey("isReInspection")) {
+                Boolean newIsReInspection = (Boolean) updateData.get("isReInspection");
+                inspection.setIsReInspection(newIsReInspection);
+                logger.info("재검 여부 업데이트: {}", newIsReInspection);
                 updated = true;
             }
 
@@ -477,8 +485,8 @@ public class InspectionService {
         try {
             Optional<User> user = userRepository.findById(inspection.getUserId());
             if (user.isPresent()) {
-                // User 엔티티에 name 필드가 있다면 사용, 없다면 ID 사용
-                userName = user.get().getId(); // 또는 user.get().getName() (name 필드가 있을 경우)
+                // ✅ 수정된 부분: User 엔티티에 name 필드가 있다면 사용
+                userName = user.get().getName() != null ? user.get().getName() : user.get().getId();
             }
         } catch (Exception e) {
             logger.warn("사용자 정보 조회 실패 - 사용자 ID: {}, 오류: {}", inspection.getUserId(), e.getMessage());

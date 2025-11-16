@@ -68,6 +68,10 @@ dependencies {
 
 	// ✅ 모니터링
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// ✅ Lombok (롬복) 의존성 추가
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

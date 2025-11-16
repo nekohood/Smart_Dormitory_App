@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:dormitory_manager/models/schedule.dart'; // ⭐ [신규]
+import 'package:dormitory_manager/services/schedule_service.dart'; // ⭐ [신규]
+import 'package:table_calendar/table_calendar.dart'; // ⭐ [신규]
+import 'package:intl/intl.dart'; // ⭐ [신규]
+
 import '../data/user_repository.dart';
 import '../models/notice.dart';
 import '../data/notice_repository.dart';
@@ -6,38 +11,113 @@ import 'admin_complaint_screen.dart';
 import 'admin_document_screen.dart';
 import 'complaint_submit_screen.dart';
 import 'document_submit_screen.dart';
-import 'notice_list_screen.dart'; // 새로운 공지사항 목록 화면
+import 'notice_list_screen.dart';
 import 'my_page_screen.dart';
 
+// ⭐ [수정] StatefulWidget으로 변경
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // 공지사항
   Notice? latestNotice;
   bool isLoadingNotice = true;
+
+  // ⭐ [신규] 캘린더/D-Day 상태
+  final ScheduleService _scheduleService = ScheduleService();
+  Map<DateTime, List<Schedule>> _events = {};
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  Schedule? _nearestEvent;
+  int _dDay = 0;
+  bool _isLoadingSchedule = true;
 
   @override
   void initState() {
     super.initState();
-    _loadLatestNotice();
+    _selectedDay = _focusedDay;
+    _loadAllData();
+  }
+
+  // ⭐ [신규] 모든 데이터 로드
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadLatestNotice(),
+      _loadSchedules(),
+      _loadDDay(),
+    ]);
   }
 
   Future<void> _loadLatestNotice() async {
+    if (!mounted) return;
     try {
       final notice = await NoticeRepository.getLatestNotice();
-      setState(() {
-        latestNotice = notice;
-        isLoadingNotice = false;
-      });
+      if (mounted) {
+        setState(() {
+          latestNotice = notice;
+          isLoadingNotice = false;
+        });
+      }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingNotice = false;
+        });
+      }
+    }
+  }
+
+  // ⭐ [신규] 캘린더용 일정 로드
+  Future<void> _loadSchedules() async {
+    if (!mounted) return;
+    final schedules = await _scheduleService.getAllSchedules();
+    final Map<DateTime, List<Schedule>> events = {};
+
+    for (var schedule in schedules) {
+      final date = DateTime(schedule.eventDate.year, schedule.eventDate.month, schedule.eventDate.day);
+      if (events[date] == null) {
+        events[date] = [];
+      }
+      events[date]!.add(schedule);
+    }
+
+    if (mounted) {
       setState(() {
-        isLoadingNotice = false;
+        _events = events;
       });
     }
+  }
+
+  // ⭐ [신규] D-Day용 일정 로드
+  Future<void> _loadDDay() async {
+    if (!mounted) return;
+    setState(() { _isLoadingSchedule = true; });
+
+    final upcoming = await _scheduleService.getUpcomingSchedules();
+    if (upcoming.isNotEmpty && mounted) {
+      final nearest = upcoming.first; // 이미 서비스에서 정렬됨
+      final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      final eventDate = DateTime(nearest.eventDate.year, nearest.eventDate.month, nearest.eventDate.day);
+
+      setState(() {
+        _nearestEvent = nearest;
+        _dDay = eventDate.difference(today).inDays;
+        _isLoadingSchedule = false;
+      });
+    } else if (mounted) {
+      setState(() {
+        _isLoadingSchedule = false;
+      });
+    }
+  }
+
+  // ⭐ [신규] 캘린더 이벤트 로더
+  List<Schedule> _getEventsForDay(DateTime day) {
+    return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
   String _getTimeDifference(DateTime date) {
@@ -58,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = UserRepository.currentUser;
-    final userName = user?.id ?? '사용자';  // name 대신 id 사용
+    final userName = user?.id ?? '사용자';
     final userStatus = user?.isAdmin == true ? '관리자' : '입사';
 
     return Scaffold(
@@ -71,268 +151,13 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 상단 헤더
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Row(
-                    children: [
-                      // 사용자 정보
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Icon(
-                                    user?.isAdmin == true
-                                        ? Icons.admin_panel_settings
-                                        : Icons.person,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      userName,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      userStatus,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // 프로필 버튼
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyPageScreen(),
-                            ),
-                          );
-                        },
-                        icon: Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey[600],
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeader(userName, userStatus),
 
-                // 공지사항 배너 - 새로운 공지사항 목록 화면으로 연결
-                if (isLoadingNotice)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '공지사항 로딩 중...',
-                          style: TextStyle(
-                            color: Colors.orange,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  GestureDetector(
-                    onTap: () {
-                      // 공지사항 목록 화면으로 이동
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NoticeListScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: latestNotice != null
-                            ? Colors.orange.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: latestNotice != null
-                              ? Colors.orange.withOpacity(0.3)
-                              : Colors.grey.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            latestNotice != null
-                                ? Icons.campaign
-                                : Icons.notifications_off,
-                            color: latestNotice != null
-                                ? Colors.orange
-                                : Colors.grey,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  latestNotice != null
-                                      ? '새로운 공지사항이 있습니다'
-                                      : '등록된 공지사항이 없습니다',
-                                  style: TextStyle(
-                                    color: latestNotice != null
-                                        ? Colors.orange
-                                        : Colors.grey,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (latestNotice != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    latestNotice!.title,
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 13,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _getTimeDifference(latestNotice!.createdAt),
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            color: latestNotice != null
-                                ? Colors.orange
-                                : Colors.grey,
-                            size: 16,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                // 공지사항 배너
+                _buildNoticeBanner(),
 
-                // 입사 체크인
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '입사 체크인',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            '9.4',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'D+441',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '6.20',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // ⭐ [수정] D-Day 위젯
+                _buildDDayCard(),
 
                 const SizedBox(height: 20),
 
@@ -351,134 +176,289 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // 중요 일정
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '중요 일정',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          // 달력
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Column(
-                                children: [
-                                  Text(
-                                    'May 2023',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  // 간단한 달력 표시
-                                  Text(
-                                    '1  2  3  4  5  6  7\n8  9  10 11 12 13 14',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          // 일정 정보
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.black87,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '5',
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'May',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    '20일 수축축',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.yellow,
-                                    ),
-                                  ),
-                                  Text(
-                                    '23일 기숙사 소독',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.yellow,
-                                    ),
-                                  ),
-                                  Text(
-                                    '24일 시설 점검',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                // ⭐ [수정] 중요 일정 (캘린더)
+                _buildCalendarCard(),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // --- 위젯 빌더 분리 ---
+
+  Widget _buildHeader(String userName, String userStatus) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        UserRepository.currentUser?.isAdmin == true
+                            ? Icons.admin_panel_settings
+                            : Icons.person,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          userStatus,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyPageScreen(),
+                ),
+              );
+            },
+            icon: Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey[600],
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoticeBanner() {
+    if (isLoadingNotice) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.orange.withOpacity(0.3),
+          ),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.schedule,
+              color: Colors.orange,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              '공지사항 로딩 중...',
+              style: TextStyle(
+                color: Colors.orange,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const NoticeListScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: latestNotice != null
+              ? Colors.orange.withOpacity(0.1)
+              : Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: latestNotice != null
+                ? Colors.orange.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              latestNotice != null
+                  ? Icons.campaign
+                  : Icons.notifications_off,
+              color: latestNotice != null
+                  ? Colors.orange
+                  : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    latestNotice != null
+                        ? '새로운 공지사항이 있습니다'
+                        : '등록된 공지사항이 없습니다',
+                    style: TextStyle(
+                      color: latestNotice != null
+                          ? Colors.orange
+                          : Colors.grey,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (latestNotice != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      latestNotice!.title,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getTimeDifference(latestNotice!.createdAt),
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: latestNotice != null
+                  ? Colors.orange
+                  : Colors.grey,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ⭐ [신규] D-Day 위젯
+  Widget _buildDDayCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '다가오는 일정',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 일정 제목
+              Flexible(
+                child: Text(
+                  _isLoadingSchedule
+                      ? '로딩 중...'
+                      : _nearestEvent?.title ?? '예정된 일정이 없습니다.',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // D-Day
+              if (!_isLoadingSchedule && _nearestEvent != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _dDay == 0 ? Colors.redAccent : Colors.blue,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _dDay == 0 ? 'D-DAY' : 'D-$_dDay',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 일정 날짜
+          if (!_isLoadingSchedule && _nearestEvent != null)
+            Text(
+              DateFormat('yyyy년 MM월 dd일').format(_nearestEvent!.eventDate),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -489,9 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
 
         if (title == '신고') {
-          // 신고 버튼 클릭 시 사용자/관리자 구분
           if (isAdmin) {
-            // 관리자인 경우 민원 관리 화면으로 이동
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -499,7 +477,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           } else {
-            // 사용자인 경우 민원 신고 화면으로 이동
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -508,9 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
         } else if (title == '문서') {
-          // 문서 버튼 클릭 시 사용자/관리자 구분
           if (isAdmin) {
-            // 관리자인 경우 서류 관리 화면으로 이동
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -518,7 +493,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           } else {
-            // 사용자인 경우 서류 제출 화면으로 이동
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -572,6 +546,93 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ⭐ [신규] 캘린더 위젯
+  Widget _buildCalendarCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12), // 패딩 조정
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+            child: const Text(
+              '중요 일정',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          TableCalendar<Schedule>(
+            locale: 'ko_KR', // 한글
+            focusedDay: _focusedDay,
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            },
+            eventLoader: _getEventsForDay, // 이벤트 로더 연결
+            calendarStyle: const CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.blueAccent,
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              // 일정 마커
+              markerDecoration: BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+            ),
+            headerStyle: const HeaderStyle(
+              titleCentered: true,
+              formatButtonVisible: false, // '2주' 버튼 숨기기
+              titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          // 선택된 날짜의 일정 목록 (선택 사항)
+          if (_selectedDay != null && _getEventsForDay(_selectedDay!).isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('M월 d일 (E)', 'ko_KR').format(_selectedDay!),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._getEventsForDay(_selectedDay!).map(
+                        (event) => Text(' • ${event.title}'),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

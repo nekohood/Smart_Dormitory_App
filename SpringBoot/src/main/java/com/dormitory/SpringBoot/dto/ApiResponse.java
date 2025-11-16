@@ -38,7 +38,7 @@ public class ApiResponse<T> {
     }
 
     // 성공 응답 생성자
-    private ApiResponse(boolean success, String message, T data) {
+    public ApiResponse(boolean success, String message, T data) {
         this();
         this.success = success;
         this.message = message;
