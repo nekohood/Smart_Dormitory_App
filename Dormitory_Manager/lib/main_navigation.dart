@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/admin_home_screen.dart';
 import 'screens/admin_inspection_screen.dart';
 import 'screens/admin_complaint_screen.dart';
-import 'screens/admin_schedule_screen.dart'; // ✅ 1. 새 스크린 임포트
+import 'screens/admin_schedule_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/inspection_screen.dart';
 import 'screens/notice_screen.dart';
@@ -21,18 +21,11 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  // ✅ 1. 'late final' 키워드를 제거합니다. (build 메서드에서 초기화)
   List<Widget> _navScreens = [];
   List<BottomNavigationBarItem> _navItems = [];
 
-  // ❌ 2. initState() 메서드를 삭제합니다.
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   // ... (이 코드가 에러의 원인입니다)
-  // }
-
   void _onItemTapped(int index) {
+    print('[DEBUG] 네비게이션 탭 선택: $index');
     setState(() {
       _selectedIndex = index;
     });
@@ -40,69 +33,89 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ 3. build 메서드 안에서 AuthProvider를 호출합니다.
-    // 이 시점의 context는 AuthProvider에 안전하게 접근할 수 있습니다.
-    final bool isAdmin = Provider.of<AuthProvider>(context, listen: false).isAdmin;
+    // AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final bool isAdmin = authProvider.isAdmin;
 
-    // ✅ 4. 관리자 여부에 따라 내비게이션 아이템과 스크린을 설정합니다.
+    print('[DEBUG] === MainNavigation build ===');
+    print('[DEBUG] 관리자 여부: $isAdmin');
+    print('[DEBUG] 현재 선택된 인덱스: $_selectedIndex');
+
     if (isAdmin) {
+      print('[DEBUG] 관리자 모드로 네비게이션 구성');
       // --- 관리자용 내비게이션 ---
       _navItems = [
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.home_work),
           label: '관리자 홈',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.calendar_month),
           label: '일정 관리',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.checklist),
           label: '점호 관리',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.message),
           label: '민원 관리',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.person),
           label: '마이페이지',
         ),
       ];
+
       _navScreens = [
-        AdminHomeScreen(),
-        AdminScheduleScreen(), // '일정 관리' 스크린 연결
-        AdminInspectionScreen(),
-        AdminComplaintScreen(),
-        MyPageScreen(), // 관리자도 마이페이지 공통 사용
+        const AdminHomeScreen(),
+        const AdminScheduleScreen(),
+        const AdminInspectionScreen(),
+        const AdminComplaintScreen(),
+        const MyPageScreen(),
       ];
+
+      print('[DEBUG] 관리자 화면 개수: ${_navScreens.length}');
     } else {
+      print('[DEBUG] 사용자 모드로 네비게이션 구성');
       // --- 일반 사용자용 내비게이션 ---
       _navItems = [
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.home),
           label: '홈',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.camera_alt),
           label: '점호',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.notifications),
           label: '공지',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.person),
           label: '마이페이지',
         ),
       ];
+
       _navScreens = [
-        HomeScreen(),
-        InspectionScreen(),
-        NoticeScreen(),
-        MyPageScreen(),
+        const HomeScreen(),
+        const InspectionScreen(),
+        const NoticeScreen(),
+        const MyPageScreen(),
       ];
+
+      print('[DEBUG] 사용자 화면 개수: ${_navScreens.length}');
     }
+
+    // 안전성 체크: 선택된 인덱스가 화면 개수를 초과하지 않도록
+    if (_selectedIndex >= _navScreens.length) {
+      print('[WARNING] 선택된 인덱스($_selectedIndex)가 화면 개수(${_navScreens.length})를 초과하여 0으로 리셋');
+      _selectedIndex = 0;
+    }
+
+    print('[DEBUG] 현재 표시할 화면: ${_navScreens[_selectedIndex].runtimeType}');
+    print('[DEBUG] ==============================');
 
     return Scaffold(
       body: IndexedStack(
@@ -113,9 +126,9 @@ class _MainNavigationState extends State<MainNavigation> {
         items: _navItems,
         currentIndex: _selectedIndex,
         selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey, // 선택되지 않은 아이템 색상
+        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed, // 4개 이상일 때 fixed 필요
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }

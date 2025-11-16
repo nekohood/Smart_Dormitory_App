@@ -50,6 +50,10 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       print('[ERROR] AuthProvider: 초기화 실패 - $e');
       await _clearAuthData();
+
+      // ✅ [수정] 실패 시에도 초기화 완료 상태로 변경
+      _isInitialized = true;
+
     } finally {
       _setLoading(false);
     }

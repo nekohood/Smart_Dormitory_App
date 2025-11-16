@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:intl/intl.dart'; // 날짜 포맷을 위해
-import 'package:intl/date_symbol_data_local.dart'; // 한글 로케일
+import 'package:intl/intl.dart';
 import '../models/schedule.dart';
 import '../services/schedule_service.dart';
 
@@ -24,26 +23,32 @@ class _AdminScheduleScreenState extends State<AdminScheduleScreen> {
   Map<DateTime, List<Schedule>> _events = {};
   List<Schedule> _selectedEvents = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    initializeDateFormatting('ko_KR', null); // 한글 로케일 초기화
+    print('[DEBUG] AdminScheduleScreen - initState 시작');
     _selectedDay = _focusedDay;
     _loadSchedules();
   }
 
-  /// 서버에서 모든 일정을 불러와 캘린더 이벤트 맵에 채웁니다.
+  /// 서버에서 모든 일정을 불러옵니다
   Future<void> _loadSchedules() async {
-    setState(() { _isLoading = true; });
+    print('[DEBUG] AdminScheduleScreen - 일정 로딩 시작');
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
       final schedules = await _scheduleService.getSchedules();
+      print('[DEBUG] AdminScheduleScreen - 불러온 일정 개수: ${schedules.length}');
+
       final Map<DateTime, List<Schedule>> events = {};
 
       for (final schedule in schedules) {
-        // DB의 날짜(DateTime)는 UTC 기준이므로, .toLocal()로 변환
         DateTime date = schedule.startDate.toLocal();
-        // 날짜 부분만 (YYYY-MM-DD)을 키로 사용하기 위해 정규화
         DateTime normalizedDate = DateTime(date.year, date.month, date.day);
 
         if (events[normalizedDate] == null) {
@@ -52,37 +57,39 @@ class _AdminScheduleScreenState extends State<AdminScheduleScreen> {
         events[normalizedDate]!.add(schedule);
       }
 
-      setState(() {
-        _events = events;
-        // 선택된 날짜의 이벤트 목록도 새로고침
-        if (_selectedDay != null) {
-          _selectedEvents = _getEventsForDay(_selectedDay!);
-        }
-        _isLoading = false;
-      });
-    } catch (e) {
       if (mounted) {
-        setState(() { _isLoading = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('일정 로드 실패: $e')),
-        );
+        setState(() {
+          _events = events;
+          if (_selectedDay != null) {
+            _selectedEvents = _getEventsForDay(_selectedDay!);
+          }
+          _isLoading = false;
+        });
+      }
+      print('[DEBUG] AdminScheduleScreen - 일정 로딩 완료');
+    } catch (e) {
+      print('[ERROR] AdminScheduleScreen - 일정 로딩 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = '일정을 불러오는데 실패했습니다: $e';
+        });
       }
     }
   }
 
-  /// 특정 날짜의 이벤트 목록을 반환합니다.
+  /// 특정 날짜의 이벤트 목록을 반환합니다
   List<Schedule> _getEventsForDay(DateTime day) {
-    // 날짜 정규화 (시간, 분, 초 제거)
     DateTime normalizedDay = DateTime(day.year, day.month, day.day);
     return _events[normalizedDay] ?? [];
   }
 
-  /// 날짜가 선택되었을 때 호출됩니다.
+  /// 날짜가 선택되었을 때 호출됩니다
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     if (!isSameDay(_selectedDay, selectedDay)) {
       setState(() {
         _selectedDay = selectedDay;
-        _focusedDay = focusedDay; // 포커스도 선택된 날짜로 이동
+        _focusedDay = focusedDay;
         _selectedEvents = _getEventsForDay(selectedDay);
       });
     }
@@ -90,260 +97,423 @@ class _AdminScheduleScreenState extends State<AdminScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('[DEBUG] AdminScheduleScreen - build 호출됨');
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('학사 일정 관리'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        title: const Text(
+          '일정 관리',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _loadSchedules,
+            tooltip: '새로고침',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          TableCalendar<Schedule>(
-            locale: 'ko_KR', // 한글 설정
+      body: _buildBody(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddScheduleDialog,
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: '일정 추가',
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('일정을 불러오는 중...'),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadSchedules,
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 시도'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // 캘린더
+        Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            // 캘린더 헤더 스타일
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false, // '2주', '월' 버튼 숨기기
-              titleCentered: true,
-              titleTextStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-            ),
-            // 캘린더 본체 스타일
-            calendarStyle: CalendarStyle(
-              todayDecoration: BoxDecoration(
-                color: Colors.blue.shade200,
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-            ),
-            // 선택된 날짜 강조
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            calendarFormat: _calendarFormat,
+            locale: 'ko_KR',
+            eventLoader: _getEventsForDay,
             onDaySelected: _onDaySelected,
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
-                setState(() { _calendarFormat = format; });
+                setState(() {
+                  _calendarFormat = format;
+                });
               }
             },
             onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay; // 페이지 넘길 때 포커스 이동
+              _focusedDay = focusedDay;
             },
-            // 캘린더에 이벤트 마커(점) 표시
-            eventLoader: _getEventsForDay,
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              markerDecoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+            ),
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+              titleTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          const SizedBox(height: 8.0),
-          // 선택된 날짜의 이벤트 목록
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _buildEventList(),
-          ),
-        ],
-      ),
-      // 새 일정 추가 버튼
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        tooltip: '새 일정 추가',
-        onPressed: () {
-          // 새 일정을 위해 null 전달 (선택된 날짜를 기본값으로 함)
-          _showScheduleDialog(null, _selectedDay ?? DateTime.now());
-        },
-      ),
+        ),
+
+        // 선택된 날짜의 일정 목록
+        Expanded(
+          child: _buildEventsList(),
+        ),
+      ],
     );
   }
 
-  /// 선택된 날짜의 이벤트 리스트를 빌드합니다.
-  Widget _buildEventList() {
+  Widget _buildEventsList() {
     if (_selectedEvents.isEmpty) {
-      return Center(child: Text('선택된 날짜(${DateFormat('M월 d일').format(_selectedDay!)})에 일정이 없습니다.'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              '선택한 날짜에 일정이 없습니다.',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
     }
+
     return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: _selectedEvents.length,
       itemBuilder: (context, index) {
-        final schedule = _selectedEvents[index];
+        final event = _selectedEvents[index];
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-          child: ListTile(
-            title: Text(schedule.title),
-            subtitle: schedule.content != null && schedule.content!.isNotEmpty
-                ? Text(schedule.content!)
-                : null,
-            trailing: Icon(Icons.edit, color: Colors.blue),
-            onTap: () => _showScheduleDialog(schedule, schedule.startDate), // 수정
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
-      },
-    );
-  }
-
-  /// 일정 생성 또는 수정을 위한 다이얼로그
-  Future<void> _showScheduleDialog(Schedule? schedule, DateTime defaultDate) async {
-    final _formKey = GlobalKey<FormState>();
-    final _titleController = TextEditingController(text: schedule?.title);
-    final _contentController = TextEditingController(text: schedule?.content);
-
-    // 날짜 상태는 StatefulBuilder 내부에서 관리
-    DateTime _startDate = schedule?.startDate.toLocal() ?? defaultDate;
-    DateTime _endDate = schedule?.endDate?.toLocal() ?? _startDate;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        // StatefulBuilder를 사용해야 다이얼로그 내부의 날짜가 setState로 변경됨
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-
-            // 날짜 선택기 헬퍼 함수
-            Future<DateTime?> _pickDate(DateTime initialDate) async {
-              return await showDatePicker(
-                context: context, // 메인 context 사용
-                initialDate: initialDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-              );
-            }
-
-            return AlertDialog(
-              title: Text(schedule == null ? '새 일정 추가' : '일정 수정'),
-              content: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.event, color: Colors.blue),
+            ),
+            title: Text(
+              event.title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (event.content != null && event.content!.isNotEmpty)
+                  Text(event.content!),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('yyyy-MM-dd HH:mm').format(event.startDate),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
+            ),
+            trailing: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _showEditScheduleDialog(event);
+                } else if (value == 'delete') {
+                  _deleteSchedule(event.id);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
                     children: [
-                      TextFormField(
-                        controller: _titleController,
-                        decoration: InputDecoration(labelText: '제목'),
-                        validator: (value) => (value?.isEmpty ?? true) ? '제목을 입력하세요.' : null,
-                      ),
-                      TextFormField(
-                        controller: _contentController,
-                        decoration: InputDecoration(labelText: '내용 (선택)'),
-                      ),
-                      SizedBox(height: 16),
-                      // 시작 날짜
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('시작: ${DateFormat('yyyy-MM-dd').format(_startDate)}'),
-                          IconButton(
-                            icon: Icon(Icons.calendar_today, color: Colors.blue),
-                            onPressed: () async {
-                              final date = await _pickDate(_startDate);
-                              if (date != null) {
-                                setDialogState(() { _startDate = date; });
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      // 종료 날짜 (시작 날짜와 같을 수 있음)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('종료: ${DateFormat('yyyy-MM-dd').format(_endDate)}'),
-                          IconButton(
-                            icon: Icon(Icons.calendar_today, color: Colors.blue),
-                            onPressed: () async {
-                              final date = await _pickDate(_endDate);
-                              if (date != null) {
-                                setDialogState(() { _endDate = date; });
-                              }
-                            },
-                          ),
-                        ],
-                      ),
+                      Icon(Icons.edit, size: 20),
+                      SizedBox(width: 8),
+                      Text('수정'),
                     ],
                   ),
                 ),
-              ),
-              actions: [
-                if (schedule != null) // 수정 시에만 삭제 버튼 표시
-                  TextButton(
-                    child: Text('삭제', style: TextStyle(color: Colors.red)),
-                    onPressed: () => _handleDeleteSchedule(schedule.id, dialogContext),
-                  ),
-                Spacer(), // 버튼을 양쪽으로 밀기
-                TextButton(
-                  child: Text('취소'),
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                ),
-                ElevatedButton(
-                  child: Text('저장'),
-                  onPressed: () => _handleSaveSchedule(
-                      _formKey, schedule,
-                      _titleController.text, _contentController.text,
-                      _startDate, _endDate, dialogContext
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, size: 20, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('삭제', style: TextStyle(color: Colors.red)),
+                    ],
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ),
         );
       },
     );
   }
 
-  /// [저장] 버튼 처리 (생성/수정)
-  Future<void> _handleSaveSchedule(
-      GlobalKey<FormState> formKey,
-      Schedule? existingSchedule,
-      String title, String content,
-      DateTime startDate, DateTime endDate,
-      BuildContext dialogContext // 다이얼로그의 context
-      ) async {
-    if (!formKey.currentState!.validate()) return; // 유효성 검사
+  /// 일정 추가 다이얼로그
+  void _showAddScheduleDialog() {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    DateTime selectedDate = _selectedDay ?? DateTime.now();
 
-    // 날짜를 UTC로 변환하여 서버에 저장
-    final newSchedule = Schedule(
-      id: existingSchedule?.id ?? 0, // id가 0이거나 null이면 새 일정 (id는 서버가 생성)
-      title: title,
-      content: content.isNotEmpty ? content : null,
-      startDate: startDate, // DatePicker는 Local Time을 반환
-      endDate: endDate,     // Service에서 .toUtc() 처리
-      category: 'GENERAL', // 카테고리 (필요시 UI 추가)
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('일정 추가'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: '제목',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contentController,
+                decoration: const InputDecoration(
+                  labelText: '내용',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty) {
+                try {
+                  // Schedule 객체 생성
+                  final newSchedule = Schedule(
+                    id: 0, // 새 일정이므로 ID는 0
+                    title: titleController.text,
+                    content: contentController.text.isEmpty ? null : contentController.text,
+                    startDate: selectedDate,
+                    endDate: selectedDate,
+                    category: 'GENERAL',
+                  );
+
+                  await _scheduleService.createSchedule(newSchedule);
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _loadSchedules();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('일정이 추가되었습니다')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('일정 추가 실패: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('추가'),
+          ),
+        ],
+      ),
     );
-
-    try {
-      if (existingSchedule == null) {
-        // 생성
-        await _scheduleService.createSchedule(newSchedule);
-      } else {
-        // 수정
-        await _scheduleService.updateSchedule(existingSchedule.id, newSchedule);
-      }
-
-      Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-      _loadSchedules(); // 목록 새로고침
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('일정 저장 실패: $e')),
-        );
-      }
-    }
   }
 
-  /// [삭제] 버튼 처리
-  Future<void> _handleDeleteSchedule(int id, BuildContext dialogContext) async {
-    try {
-      await _scheduleService.deleteSchedule(id);
-      Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-      _loadSchedules(); // 목록 새로고침
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('일정 삭제 실패: $e')),
-        );
+  /// 일정 수정 다이얼로그
+  void _showEditScheduleDialog(Schedule schedule) {
+    final titleController = TextEditingController(text: schedule.title);
+    final contentController = TextEditingController(text: schedule.content ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('일정 수정'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: '제목',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contentController,
+                decoration: const InputDecoration(
+                  labelText: '내용',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty) {
+                try {
+                  // Schedule 객체 생성 (기존 일정 정보 유지)
+                  final updatedSchedule = Schedule(
+                    id: schedule.id,
+                    title: titleController.text,
+                    content: contentController.text.isEmpty ? null : contentController.text,
+                    startDate: schedule.startDate,
+                    endDate: schedule.endDate,
+                    category: schedule.category,
+                  );
+
+                  await _scheduleService.updateSchedule(schedule.id, updatedSchedule);
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _loadSchedules();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('일정이 수정되었습니다')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('일정 수정 실패: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('수정'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 일정 삭제
+  Future<void> _deleteSchedule(int scheduleId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('일정 삭제'),
+        content: const Text('이 일정을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('삭제', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _scheduleService.deleteSchedule(scheduleId);
+        if (mounted) {
+          _loadSchedules();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('일정이 삭제되었습니다')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('일정 삭제 실패: $e')),
+          );
+        }
       }
     }
   }
