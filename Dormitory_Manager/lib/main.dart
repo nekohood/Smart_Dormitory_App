@@ -41,63 +41,96 @@ class DormitoryManagerApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthProvider()..initialize(),
+          create: (_) => AuthProvider(),
         ),
       ],
-      child: MaterialApp(
-        title: '기숙사 관리 시스템',
-        debugShowCheckedModeBanner: false, // ⭐ 디버그 배너 제거
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-        ),
+      // ⭐ [중요] AuthProvider 초기화 대기 후 앱 시작
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          // AuthProvider가 아직 초기화되지 않았다면 initialize 호출
+          if (!authProvider.isInitialized) {
+            // 비동기 초기화 시작
+            Future.microtask(() => authProvider.initialize());
 
-        // 로컬라이제이션 설정
-        localizationsDelegates: [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: [
-          Locale('ko', 'KR'), // 한국어
-          Locale('en', 'US'), // 영어 (fallback)
-        ],
-        locale: Locale('ko', 'KR'),
-
-        home: LoginScreen(),
-        routes: {
-          '/login': (context) => LoginScreen(),
-          '/register': (context) => RegisterScreen(),
-          '/home': (context) => HomeScreen(),
-          '/main': (context) => MainNavigation(), // ⭐ MainNavigation 사용
-          '/admin_main': (context) => MainNavigation(), // ⭐ 동일하게 MainNavigation 사용
-          '/notices': (context) => NoticeScreen(),
-          '/documents/submit': (context) => DocumentSubmitScreen(),
-          '/inspection': (context) => InspectionScreen(),
-          '/admin/inspection': (context) => AdminInspectionScreen(),
-        },
-
-        // 알 수 없는 라우트 처리
-        onUnknownRoute: (settings) {
-          return MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(title: Text('오류')),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error, size: 64, color: Colors.red),
-                    SizedBox(height: 16),
-                    Text('페이지를 찾을 수 없습니다.'),
-                    Text('라우트: ${settings.name}'),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                      child: Text('로그인으로 돌아가기'),
-                    ),
-                  ],
+            // 초기화 중에는 로딩 화면 표시
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              home: Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('초기화 중...'),
+                    ],
+                  ),
                 ),
               ),
+            );
+          }
+
+          // 초기화 완료 후 정상 앱 실행
+          return MaterialApp(
+            title: '기숙사 관리 시스템',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              visualDensity: VisualDensity.adaptivePlatformDensity,
             ),
+
+            // 로컬라이제이션 설정
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [
+              Locale('ko', 'KR'), // 한국어
+              Locale('en', 'US'), // 영어 (fallback)
+            ],
+            locale: Locale('ko', 'KR'),
+
+            // ⭐ [수정] 초기 화면을 로그인 상태에 따라 결정
+            home: authProvider.isAuthenticated
+                ? MainNavigation()
+                : LoginScreen(),
+
+            routes: {
+              '/login': (context) => LoginScreen(),
+              '/register': (context) => RegisterScreen(),
+              '/home': (context) => HomeScreen(),
+              '/main': (context) => MainNavigation(),
+              '/admin_main': (context) => MainNavigation(),
+              '/notices': (context) => NoticeScreen(),
+              '/documents/submit': (context) => DocumentSubmitScreen(),
+              '/inspection': (context) => InspectionScreen(),
+              '/admin/inspection': (context) => AdminInspectionScreen(),
+            },
+
+            // 알 수 없는 라우트 처리
+            onUnknownRoute: (settings) {
+              return MaterialPageRoute(
+                builder: (context) => Scaffold(
+                  appBar: AppBar(title: Text('오류')),
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error, size: 64, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text('페이지를 찾을 수 없습니다.'),
+                        Text('라우트: ${settings.name}'),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                          child: Text('로그인으로 돌아가기'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),

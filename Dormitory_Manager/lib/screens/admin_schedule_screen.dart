@@ -125,8 +125,8 @@ class _AdminScheduleScreenState extends State<AdminScheduleScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddScheduleDialog,
         backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
         tooltip: '일정 추가',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

@@ -281,12 +281,12 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
   /// 점호 수정 다이얼로그
   Future<void> _showEditInspectionDialog(AdminInspectionModel inspection) async {
     // 폼 관리를 위한 컨트롤러 및 변수
-    final _formKey = GlobalKey<FormState>();
-    int _currentScore = inspection.score;
-    String _currentStatus = inspection.status;
-    bool _isReInspection = inspection.isReInspection;
-    final TextEditingController _adminCommentController = TextEditingController(text: inspection.adminComment);
-    final TextEditingController _geminiFeedbackController = TextEditingController(text: inspection.geminiFeedback);
+    final formKey = GlobalKey<FormState>();
+    int currentScore = inspection.score;
+    String currentStatus = inspection.status;
+    bool isReInspection = inspection.isReInspection;
+    final TextEditingController adminCommentController = TextEditingController(text: inspection.adminComment);
+    final TextEditingController geminiFeedbackController = TextEditingController(text: inspection.geminiFeedback);
 
     return showDialog<void>(
       context: context,
@@ -298,7 +298,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
             return AlertDialog(
               title: Text('점호 기록 수정'),
               content: Form(
-                key: _formKey,
+                key: formKey,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -310,7 +310,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
                       // 점수 선택
                       DropdownButtonFormField<int>(
-                        value: _currentScore,
+                        value: currentScore,
                         decoration: InputDecoration(
                           labelText: '점수 (0-10)',
                           border: OutlineInputBorder(),
@@ -324,7 +324,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
                         onChanged: (value) {
                           if (value != null) {
                             setDialogState(() {
-                              _currentScore = value;
+                              currentScore = value;
                               // 점수에 따라 상태 자동 변경 (선택적)
                               // _currentStatus = value >= 6 ? 'PASS' : 'FAIL';
                             });
@@ -335,7 +335,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
                       // 상태 선택
                       DropdownButtonFormField<String>(
-                        value: _currentStatus,
+                        value: currentStatus,
                         decoration: InputDecoration(
                           labelText: '상태',
                           border: OutlineInputBorder(),
@@ -349,7 +349,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
                         onChanged: (value) {
                           if (value != null) {
                             setDialogState(() {
-                              _currentStatus = value;
+                              currentStatus = value;
                             });
                           }
                         },
@@ -359,10 +359,10 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
                       // 재검 여부
                       SwitchListTile(
                         title: Text('재검 점호 여부'),
-                        value: _isReInspection,
+                        value: isReInspection,
                         onChanged: (value) {
                           setDialogState(() {
-                            _isReInspection = value;
+                            isReInspection = value;
                           });
                         },
                       ),
@@ -370,7 +370,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
                       // 관리자 코멘트
                       TextFormField(
-                        controller: _adminCommentController,
+                        controller: adminCommentController,
                         decoration: InputDecoration(
                           labelText: '관리자 코멘트',
                           border: OutlineInputBorder(),
@@ -382,7 +382,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
 
                       // AI 피드백 (수정 가능하게)
                       TextFormField(
-                        controller: _geminiFeedbackController,
+                        controller: geminiFeedbackController,
                         decoration: InputDecoration(
                           labelText: 'AI 피드백 (수정 가능)',
                           border: OutlineInputBorder(),
@@ -400,14 +400,14 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
+                    if (formKey.currentState!.validate()) {
                       // 1. UpdateRequest 객체 생성
                       final updateRequest = InspectionUpdateRequest(
-                        score: _currentScore,
-                        status: _currentStatus,
-                        adminComment: _adminCommentController.text,
-                        geminiFeedback: _geminiFeedbackController.text,
-                        isReInspection: _isReInspection,
+                        score: currentScore,
+                        status: currentStatus,
+                        adminComment: adminCommentController.text,
+                        geminiFeedback: geminiFeedbackController.text,
+                        isReInspection: isReInspection,
                       );
 
                       // 2. 저장 핸들러 호출
