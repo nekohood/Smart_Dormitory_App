@@ -66,14 +66,24 @@ class ComplaintService {
   // 모든 민원 목록 조회 (관리자용)
   static Future<List<Complaint>> getAllComplaints() async {
     try {
+      print('[DEBUG] ComplaintService: 전체 민원 목록 조회 시작');
       final response = await DioClient.get('/complaints');
       final responseData = response.data;
+
+      print('[DEBUG] ComplaintService: 응답 구조: ${responseData.keys}');
+      print('[DEBUG] ComplaintService: success = ${responseData['success']}');
+
       if (responseData['success'] == true) {
-        List<dynamic> complaintData = responseData['complaints'];
+        // ⭐ 핵심 수정: ApiResponse 구조에 맞춰 data에서 complaints 추출
+        final data = responseData['data'] ?? responseData;
+        List<dynamic> complaintData = data['complaints'] ?? [];
+
+        print('[DEBUG] ComplaintService: 민원 개수 = ${complaintData.length}');
         return complaintData.map((data) => Complaint.fromJson(data)).toList();
       }
       return [];
     } catch (e) {
+      print('[ERROR] ComplaintService: 전체 민원 목록 조회 실패 - $e');
       throw Exception('전체 민원 목록 조회 실패: $e');
     }
   }

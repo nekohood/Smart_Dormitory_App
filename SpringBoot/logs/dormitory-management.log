@@ -1,25 +1,25 @@
-2025-11-19 01:45:14.166 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.17 with PID 38068 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-19 01:45:14.180 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-19 01:45:14.182 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-19 01:45:14.320 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-19 01:45:14.321 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-19 01:45:16.502 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-19 01:45:16.757 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 231 ms. Found 6 JPA repository interfaces.
-2025-11-19 01:45:19.619 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-19 01:45:19.662 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-19 01:45:19.663 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-19 01:45:19.811 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-19 01:45:19.811 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 5489 ms
-2025-11-19 01:45:20.549 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-19 01:45:20.705 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-19 01:45:20.800 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-19 01:45:21.498 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-19 01:45:21.557 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-19 01:45:21.870 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@1fc52435
-2025-11-19 01:45:21.873 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-19 01:45:21.961 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-19 01:45:21.962 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-19 01:45:21.993 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+2025-11-20 17:32:07.677 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.17 with PID 33844 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
+2025-11-20 17:32:07.688 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
+2025-11-20 17:32:07.689 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
+2025-11-20 17:32:07.805 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-11-20 17:32:07.806 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-11-20 17:32:10.411 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-20 17:32:10.651 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 222 ms. Found 8 JPA repository interfaces.
+2025-11-20 17:32:12.957 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-20 17:32:13.007 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-20 17:32:13.008 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-11-20 17:32:13.145 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-20 17:32:13.146 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 5339 ms
+2025-11-20 17:32:13.741 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-20 17:32:13.961 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-11-20 17:32:14.111 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-11-20 17:32:14.716 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-20 17:32:14.759 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-11-20 17:32:15.016 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@613e5a96
+2025-11-20 17:32:15.020 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-11-20 17:32:15.101 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-20 17:32:15.102 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
+2025-11-20 17:32:15.128 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 8.0
@@ -27,400 +27,146 @@
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2025-11-19 01:45:23.660 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-19 01:45:24.230 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-19 01:45:25.494 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-19 01:45:28.006 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
-2025-11-19 01:45:28.054 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+2025-11-20 17:32:16.985 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-20 17:32:17.507 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-20 17:32:18.880 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-11-20 17:32:21.548 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
+2025-11-20 17:32:21.613 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
 
-Using generated security password: 6a55cf54-e013-43db-a6c1-8fdedbf5b605
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2025-11-19 01:45:28.070 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2025-11-19 01:45:28.762 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
-2025-11-19 01:45:28.962 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2025-11-19 01:45:28.984 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 15.6 seconds (process running for 22.323)
-2025-11-19 02:00:32.435 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-11-19 02:00:32.435 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2025-11-19 02:00:32.438 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 3 ms
-2025-11-19 02:00:32.531 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 02:00:32.540 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 02:00:32.704 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
-2025-11-19 02:00:32.705 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
-2025-11-19 02:00:32.721 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
-2025-11-19 02:00:33.093 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Thu Nov 20 02:00:32 KST 2025
-2025-11-19 02:00:33.093 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
-2025-11-19 02:00:33.218 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 02:00:33.229 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
-2025-11-19 02:00:33.832 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-19 02:00:33.833 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:33.833 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:33.839 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-19 Method: GET
-2025-11-19 02:00:33.839 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:33.839 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:33.844 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:33.845 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:33.869 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-19 02:00:33.870 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:33.869 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-19 Method: GET
-2025-11-19 02:00:33.870 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:33.870 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:33.870 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:33.871 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:33.871 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.046 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 02:00:34.047 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.047 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
-2025-11-19 02:00:34.047 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.047 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.047 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.048 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 02:00:34.048 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.048 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.086 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.088 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.088 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.088 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.103 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.103 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.103 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.105 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-19 02:00:34.108 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
-2025-11-19 02:00:34.108 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 02:00:34.115 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-19 02:00:34.118 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.121 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 02:00:34.122 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.122 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.123 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.123 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.124 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.136 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.137 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-19 02:00:34.139 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 02:00:34.146 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-19 02:00:34.149 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.195 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.196 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.200 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 02:00:34.200 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.200 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.202 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.202 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.203 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
-2025-11-19 02:00:34.203 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:34.203 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:34.204 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.205 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:34.205 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.207 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:34.217 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.218 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:34.225 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
-2025-11-19 02:00:34.232 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:34.241 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:56.964 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 02:00:56.964 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:56.964 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:56.965 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:56.965 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:56.966 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:56.976 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:56.987 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-19 Method: GET
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 02:00:59.643 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 02:00:59.644 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:59.644 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:59.758 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 02:00:59.758 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:59.758 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:59.759 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.760 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.761 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:59.764 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
-2025-11-19 02:00:59.764 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:59.765 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:59.765 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.766 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.768 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:59.768 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 02:00:59.768 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:00:59.768 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 02:00:59.769 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.770 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:00:59.771 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 02:00:59.773 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:59.777 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:59.779 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 02:00:59.781 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-19 02:00:59.781 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
-2025-11-19 02:00:59.783 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:59.784 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 02:00:59.790 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:00:59.790 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-19 02:00:59.792 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:11.693 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 02:01:11.694 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 02:01:11.695 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
-2025-11-19 02:01:11.695 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20201234
-2025-11-19 02:01:11.698 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20201234
-2025-11-19 02:01:11.760 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20201234, 관리자: false, 만료시간: Thu Nov 20 02:01:11 KST 2025
-2025-11-19 02:01:11.760 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20201234
-2025-11-19 02:01:11.785 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20201234
-2025-11-19 02:01:11.791 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
-2025-11-19 02:01:12.150 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/today Method: GET
-2025-11-19 02:01:12.150 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.150 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.151 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.151 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.152 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.160 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.163 [http-nio-0.0.0.0-8080-exec-4] INFO  c.d.S.services.InspectionService - 오늘 점호 조회 시작 - 사용자: 20201234
-2025-11-19 02:01:12.200 [http-nio-0.0.0.0-8080-exec-4] INFO  c.d.S.services.InspectionService - 오늘 점호 조회 완료 - 결과: 없음
-2025-11-19 02:01:12.206 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:12.227 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/my Method: GET
-2025-11-19 02:01:12.227 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.227 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.228 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.228 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.229 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.241 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.245 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.S.services.InspectionService - 사용자 점호 기록 조회 시작 - 사용자: 20201234
-2025-11-19 02:01:12.255 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.S.services.InspectionService - 사용자 점호 기록 조회 완료 - 총 1건
-2025-11-19 02:01:12.261 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:12.301 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 02:01:12.301 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.301 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices/latest Method: GET
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices Method: GET
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.302 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.303 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.303 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.303 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.303 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.303 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.304 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.304 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.307 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 02:01:12.308 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 02:01:12.308 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 02:01:12.309 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.309 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 02:01:12.311 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 02:01:12.312 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.312 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.312 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.320 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 02:01:12.321 [http-nio-0.0.0.0-8080-exec-4] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20201234
-2025-11-19 02:01:12.322 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:12.324 [http-nio-0.0.0.0-8080-exec-4] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20201234
-2025-11-19 02:01:12.331 [http-nio-0.0.0.0-8080-exec-4] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20201234
-2025-11-19 02:01:12.331 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:12.331 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 02:01:12.335 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 21:59:29.941 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Starting Application using Java 17.0.17 with PID 23560 (C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot\build\classes\java\main started by sskt0 in C:\IntelliJCommunityProjects\Smart_Dormitory_App\SpringBoot)
-2025-11-19 21:59:29.945 [restartedMain] DEBUG c.dormitory.SpringBoot.Application - Running with Spring Boot v3.5.0, Spring v6.2.7
-2025-11-19 21:59:29.947 [restartedMain] INFO  c.dormitory.SpringBoot.Application - The following 1 profile is active: "dev"
-2025-11-19 21:59:30.038 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2025-11-19 21:59:30.039 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2025-11-19 21:59:31.440 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-19 21:59:31.700 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 239 ms. Found 8 JPA repository interfaces.
-2025-11-19 21:59:33.967 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2025-11-19 21:59:34.030 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2025-11-19 21:59:34.033 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.41]
-2025-11-19 21:59:34.320 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2025-11-19 21:59:34.322 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 4282 ms
-2025-11-19 21:59:35.007 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-19 21:59:35.216 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.15.Final
-2025-11-19 21:59:35.330 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
-2025-11-19 21:59:35.988 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-19 21:59:36.043 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2025-11-19 21:59:36.340 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@259c0071
-2025-11-19 21:59:36.343 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2025-11-19 21:59:36.435 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-11-19 21:59:36.436 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
-2025-11-19 21:59:36.472 [restartedMain] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 8.0
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2025-11-19 21:59:38.468 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-19 21:59:39.046 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-19 21:59:40.522 [restartedMain] DEBUG c.d.S.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
-2025-11-19 21:59:42.941 [restartedMain] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
-2025-11-19 21:59:42.998 [restartedMain] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
-
-Using generated security password: 5dc39fe2-de42-4e13-85e1-903cddbbb713
+Using generated security password: 9c936b32-95b7-4c9c-90a2-a1cd520a1482
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2025-11-19 21:59:43.010 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2025-11-19 21:59:43.736 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
-2025-11-19 21:59:43.901 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2025-11-19 21:59:43.919 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 14.674 seconds (process running for 16.241)
-2025-11-19 22:20:59.620 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-11-19 22:20:59.621 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2025-11-19 22:20:59.622 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
-2025-11-19 22:20:59.699 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 22:20:59.709 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 22:20:59.867 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
-2025-11-19 22:20:59.867 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
-2025-11-19 22:20:59.880 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
-2025-11-19 22:21:00.209 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Thu Nov 20 22:21:00 KST 2025
-2025-11-19 22:21:00.210 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
-2025-11-19 22:21:00.333 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 22:21:00.343 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
-2025-11-19 22:21:00.976 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-19 22:21:00.976 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 22:21:00.976 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 22:21:00.981 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-19 Method: GET
-2025-11-19 22:21:00.981 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 22:21:00.981 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 22:21:00.987 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:00.987 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-19 Method: GET
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 22:21:01.005 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
-2025-11-19 22:21:01.006 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.006 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.167 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.214 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.215 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.215 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.215 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.228 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.228 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.228 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.232 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-19 22:21:01.235 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 22:21:01.235 [http-nio-0.0.0.0-8080-exec-9] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
-2025-11-19 22:21:01.242 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-19 22:21:01.246 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.248 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 22:21:01.248 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.248 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.249 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.249 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.251 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.262 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.264 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
-2025-11-19 22:21:01.266 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
-2025-11-19 22:21:01.273 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
-2025-11-19 22:21:01.276 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.336 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.338 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.339 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 22:21:01.339 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.339 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.340 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
-2025-11-19 22:21:01.340 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:01.340 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.340 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
-2025-11-19 22:21:01.340 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.341 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.342 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:01.342 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.343 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
-2025-11-19 22:21:01.354 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.356 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
-2025-11-19 22:21:01.361 [http-nio-0.0.0.0-8080-exec-2] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
-2025-11-19 22:21:01.370 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:01.373 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.144 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 22:21:18.145 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
-2025-11-19 22:21:18.146 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
-2025-11-19 22:21:18.146 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20201234
-2025-11-19 22:21:18.150 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20201234
-2025-11-19 22:21:18.214 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20201234, 관리자: false, 만료시간: Thu Nov 20 22:21:18 KST 2025
-2025-11-19 22:21:18.215 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20201234
-2025-11-19 22:21:18.248 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20201234
-2025-11-19 22:21:18.256 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
-2025-11-19 22:21:18.621 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/today Method: GET
-2025-11-19 22:21:18.622 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.622 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.623 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.623 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.625 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.634 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.638 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.services.InspectionService - 오늘 점호 조회 시작 - 사용자: 20201234
-2025-11-19 22:21:18.674 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.services.InspectionService - 오늘 점호 조회 완료 - 결과: 없음
-2025-11-19 22:21:18.679 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.697 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/my Method: GET
-2025-11-19 22:21:18.697 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.697 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.698 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.698 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.699 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.710 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.715 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.services.InspectionService - 사용자 점호 기록 조회 시작 - 사용자: 20201234
-2025-11-19 22:21:18.735 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.services.InspectionService - 사용자 점호 기록 조회 완료 - 총 1건
-2025-11-19 22:21:18.743 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.837 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices Method: GET
-2025-11-19 22:21:18.837 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
-2025-11-19 22:21:18.837 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/notices/latest Method: GET
-2025-11-19 22:21:18.837 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 199
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.839 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
-2025-11-19 22:21:18.840 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.840 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.840 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.840 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20201234, 관리자 여부: false
-2025-11-19 22:21:18.851 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.851 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.851 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.851 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20201234 (권한: ROLE_USER)
-2025-11-19 22:21:18.853 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20201234
-2025-11-19 22:21:18.856 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20201234
-2025-11-19 22:21:18.863 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20201234
-2025-11-19 22:21:18.864 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.864 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.873 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
-2025-11-19 22:21:18.873 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:32:21.625 [restartedMain] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2025-11-20 17:32:22.283 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2025-11-20 17:32:22.440 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-20 17:32:22.460 [restartedMain] INFO  c.dormitory.SpringBoot.Application - Started Application in 15.574 seconds (process running for 21.687)
+2025-11-20 17:37:26.740 [http-nio-0.0.0.0-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-20 17:37:26.740 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-20 17:37:26.742 [http-nio-0.0.0.0-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2025-11-20 17:37:26.829 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-20 17:37:26.839 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 필터 스킵: /api/auth/login
+2025-11-20 17:37:26.997 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 시작 ===
+2025-11-20 17:37:26.997 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - 로그인 시도: 사용자ID=20211912
+2025-11-20 17:37:27.010 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 처리 시작 - 사용자ID: 20211912
+2025-11-20 17:37:27.358 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - JWT 토큰 생성 완료 - 사용자: 20211912, 관리자: true, 만료시간: Fri Nov 21 17:37:27 KST 2025
+2025-11-20 17:37:27.359 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 로그인 완료 - 사용자ID: 20211912
+2025-11-20 17:37:27.470 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-20 17:37:27.480 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.controller.AuthController - === 로그인 요청 완료 ===
+2025-11-20 17:37:28.043 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
+2025-11-20 17:37:28.044 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:37:28.044 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:37:28.047 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-20 Method: GET
+2025-11-20 17:37:28.047 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:37:28.047 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:37:28.055 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.055 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.073 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-20 Method: GET
+2025-11-20 17:37:28.073 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
+2025-11-20 17:37:28.074 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:37:28.074 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:37:28.074 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:37:28.074 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:37:28.075 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.075 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.276 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.276 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
+2025-11-20 17:37:28.278 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.279 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.327 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.327 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.327 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.328 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.328 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.328 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.330 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.330 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.330 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.346 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.346 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.346 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.349 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
+2025-11-20 17:37:28.354 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-20 17:37:28.354 [http-nio-0.0.0.0-8080-exec-7] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
+2025-11-20 17:37:28.363 [http-nio-0.0.0.0-8080-exec-6] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
+2025-11-20 17:37:28.367 [http-nio-0.0.0.0-8080-exec-6] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.370 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
+2025-11-20 17:37:28.370 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.370 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.371 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.371 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.373 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.386 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.388 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
+2025-11-20 17:37:28.391 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-20 17:37:28.411 [http-nio-0.0.0.0-8080-exec-8] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
+2025-11-20 17:37:28.414 [http-nio-0.0.0.0-8080-exec-8] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.469 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.471 [http-nio-0.0.0.0-8080-exec-7] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.473 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
+2025-11-20 17:37:28.473 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.473 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.474 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
+2025-11-20 17:37:28.474 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.475 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:28.475 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.475 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:28.476 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.476 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:28.477 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.478 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:28.488 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.490 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:28.493 [http-nio-0.0.0.0-8080-exec-10] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
+2025-11-20 17:37:28.504 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:28.504 [http-nio-0.0.0.0-8080-exec-9] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:37:44.622 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
+2025-11-20 17:37:44.622 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:37:44.622 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:37:44.623 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:37:44.624 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:37:44.625 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:37:44.637 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:37:44.642 [http-nio-0.0.0.0-8080-exec-1] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
+2025-11-20 17:37:44.652 [http-nio-0.0.0.0-8080-exec-1] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:56:17.535 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/statistics Method: GET
+2025-11-20 17:56:17.535 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/inspections/admin/date/2025-11-20 Method: GET
+2025-11-20 17:56:17.536 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:56:17.536 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: null
+2025-11-20 17:56:17.536 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:56:17.536 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더가 없거나 Bearer 형식이 아님
+2025-11-20 17:56:17.537 [http-nio-0.0.0.0-8080-exec-10] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:56:17.537 [http-nio-0.0.0.0-8080-exec-2] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:56:17.624 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/complaints Method: GET
+2025-11-20 17:56:17.624 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/schedules Method: GET
+2025-11-20 17:56:17.624 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:56:17.624 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:56:17.625 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:56:17.625 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:56:17.625 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.625 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 시작 === Path: /api/users/me Method: GET
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - Authorization 헤더: Bearer ***
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - JWT 토큰 추출 성공, 길이: 198
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.dormitory.SpringBoot.utils.JwtUtil - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 토큰 유효성 검증 성공
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:56:17.626 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:56:17.628 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 사용자 ID: 20211912, 관리자 여부: true
+2025-11-20 17:56:17.637 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:56:17.637 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:56:17.637 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - 인증 설정 완료: 20211912 (권한: ROLE_ADMIN)
+2025-11-20 17:56:17.638 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.UserController - 현재 사용자 정보 조회 요청: 20211912
+2025-11-20 17:56:17.640 [http-nio-0.0.0.0-8080-exec-5] INFO  c.d.S.services.ComplaintService - 모든 민원 조회
+2025-11-20 17:56:17.640 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.SpringBoot.services.UserService - 사용자 정보 조회 - 사용자ID: 20211912
+2025-11-20 17:56:17.645 [http-nio-0.0.0.0-8080-exec-3] INFO  c.d.S.controller.UserController - 사용자 정보 조회 성공: 20211912
+2025-11-20 17:56:17.647 [http-nio-0.0.0.0-8080-exec-5] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:56:17.647 [http-nio-0.0.0.0-8080-exec-3] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
+2025-11-20 17:56:17.647 [http-nio-0.0.0.0-8080-exec-4] DEBUG c.d.S.filter.JwtAuthenticationFilter - === JWT 필터 완료 ===
