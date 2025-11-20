@@ -174,23 +174,6 @@ class AdminInspectionModel {
     };
   }
 
-  // InspectionModel로 변환
-  InspectionModel toInspectionModel() {
-    return InspectionModel(
-      id: id,
-      userId: userId,
-      roomNumber: roomNumber,
-      imagePath: imagePath,
-      score: score,
-      status: status,
-      geminiFeedback: geminiFeedback,
-      adminComment: adminComment,
-      isReInspection: isReInspection,
-      inspectionDate: inspectionDate,
-      createdAt: createdAt,
-    );
-  }
-
   // 편의 메서드들
   bool get isPassed => status == 'PASS';
   bool get isFailed => status == 'FAIL';
@@ -222,7 +205,6 @@ class AdminInspectionModel {
     }
   }
 
-  // 누락되었던 getStatusIcon 메서드 추가
   IconData getStatusIcon() {
     switch (status) {
       case 'PASS':
@@ -236,25 +218,6 @@ class AdminInspectionModel {
     }
   }
 
-  String getFormattedDate() {
-    return DateFormat('MM-dd HH:mm').format(inspectionDate);
-  }
-
-  String getFormattedDateLong() {
-    return DateFormat('yyyy-MM-dd HH:mm:ss').format(inspectionDate);
-  }
-
-  // 점수에 따른 등급 반환
-  String getScoreGrade() {
-    if (score >= 9) return 'A+';
-    if (score >= 8) return 'A';
-    if (score >= 7) return 'B+';
-    if (score >= 6) return 'B';
-    if (score >= 5) return 'C';
-    return 'D';
-  }
-
-  // 재점호 여부에 따른 아이콘
   IconData getReInspectionIcon() {
     return isReInspection ? Icons.refresh : Icons.first_page;
   }
@@ -306,7 +269,7 @@ class InspectionStatistics {
   }
 }
 
-/// 점호 통계 응답 모델 (API 응답용)
+/// 점호 통계 응답 모델 (API 응답용) - ✅ 수정됨
 class InspectionStatisticsResponse {
   final bool success;
   final InspectionStatistics statistics;
@@ -319,9 +282,28 @@ class InspectionStatisticsResponse {
   });
 
   factory InspectionStatisticsResponse.fromJson(Map<String, dynamic> json) {
+    print('[DEBUG] InspectionStatisticsResponse.fromJson 호출됨');
+    print('[DEBUG] 받은 JSON keys: ${json.keys}');
+
+    // ✅ ApiResponse 구조 처리: data 필드에서 통계 추출
+    Map<String, dynamic>? statisticsData;
+
+    if (json.containsKey('data') && json['data'] != null) {
+      print('[DEBUG] data 필드 발견');
+      statisticsData = json['data'] as Map<String, dynamic>;
+    } else if (json.containsKey('statistics') && json['statistics'] != null) {
+      print('[DEBUG] statistics 필드 발견');
+      statisticsData = json['statistics'] as Map<String, dynamic>;
+    } else {
+      print('[ERROR] data 또는 statistics 필드를 찾을 수 없음');
+      throw Exception('통계 데이터를 찾을 수 없습니다');
+    }
+
+    print('[DEBUG] statisticsData: $statisticsData');
+
     return InspectionStatisticsResponse(
       success: json['success'] ?? true,
-      statistics: InspectionStatistics.fromJson(json['statistics']),
+      statistics: InspectionStatistics.fromJson(statisticsData),
       message: json['message'],
     );
   }
@@ -477,10 +459,21 @@ class InspectionListResponse {
     List<AdminInspectionModel> inspectionList = [];
 
     // data 필드에서 추출 (SpringBoot ApiResponse 구조)
-    if (json.containsKey('data') && json['data'] is List) {
-      inspectionList = (json['data'] as List)
-          .map((item) => AdminInspectionModel.fromJson(item))
-          .toList();
+    if (json.containsKey('data') && json['data'] != null) {
+      final data = json['data'];
+
+      // data가 Map이고 inspections 필드를 가진 경우
+      if (data is Map && data.containsKey('inspections') && data['inspections'] is List) {
+        inspectionList = (data['inspections'] as List)
+            .map((item) => AdminInspectionModel.fromJson(item))
+            .toList();
+      }
+      // data가 직접 List인 경우
+      else if (data is List) {
+        inspectionList = data
+            .map((item) => AdminInspectionModel.fromJson(item))
+            .toList();
+      }
     }
     // inspections 필드에서 직접 추출
     else if (json.containsKey('inspections') && json['inspections'] is List) {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // ⭐ Provider 추가
 import '../services/inspection_service.dart';
 import '../models/inspection.dart';
-import '../data/user_repository.dart';
+import '../utils/auth_provider.dart'; // ⭐ AuthProvider 추가
 
 class AdminInspectionScreen extends StatefulWidget {
   const AdminInspectionScreen({super.key});
@@ -18,161 +19,78 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
   InspectionStatistics? _statistics;
 
   bool _isLoading = true;
-  bool _isInitialized = false; // 초기화 상태 추가
+  bool _isInitialized = false;
   String _errorMessage = '';
-
 
   @override
   void initState() {
     super.initState();
-    _initializeAndLoadData();
-  }
-
-  /// 초기화 및 데이터 로드 (순차적 처리)
-  Future<void> _initializeAndLoadData() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = '';
-      });
-
-      // 1. 토큰 초기화를 먼저 수행
-      await _initializeAuth();
-
-      // 2. 토큰 설정 후 잠깐 대기 (비동기 처리 완료 보장)
-      await Future.delayed(Duration(milliseconds: 100));
-
-      // 3. 데이터 로드
-      await _loadData();
-
-      setState(() {
-        _isInitialized = true;
-      });
-
-    } catch (e) {
-      print('[ERROR] 초기화 및 데이터 로드 실패: $e');
-      setState(() {
-        _errorMessage = '데이터 로드 실패: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  /// 인증 토큰 초기화
-  Future<void> _initializeAuth() async {
-    try {
-      final currentUser = UserRepository.currentUser;
-      if (currentUser == null) {
-        throw Exception('로그인이 필요합니다');
-      }
-
-      // 저장된 토큰이 있는지 확인
-      final token = await UserRepository.getStoredToken();
-
-      if (token != null && token.isNotEmpty) {
-        print('[DEBUG] 관리자 화면 토큰 확인: 토큰 존재');
-        print('[DEBUG] 토큰 앞 20자: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
-
-        // InspectionService에 토큰 설정
-        _inspectionService.setAuthToken(token);
-        print('[DEBUG] 관리자 토큰 설정 완료');
-      } else {
-        throw Exception('인증 토큰이 없습니다');
-      }
-
-    } catch (e) {
-      print('[ERROR] 인증 초기화 실패: $e');
-      rethrow;
-    }
+    // ⭐ 초기화 시 바로 데이터 로드 (AuthProvider가 이미 초기화됨)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   /// 데이터 로드
   Future<void> _loadData() async {
-    if (!_isInitialized) {
-      // 재시도 시 토큰을 다시 설정
-      try {
-        await _initializeAuth();
-        await Future.delayed(Duration(milliseconds: 100));
-      } catch (e) {
-        setState(() {
-          _errorMessage = '인증 실패: $e';
-          _isLoading = false;
-        });
-        return;
-      }
-    }
+    // ⭐ AuthProvider에서 사용자 정보 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    try {
+    if (!authProvider.isAuthenticated) {
       setState(() {
-        _isLoading = true;
-        _errorMessage = '';
-      });
-
-      // 모든 API 호출을 순차적으로 처리
-      await Future.wait([
-        _loadAllInspections(),
-        _loadTodayInspections(),
-        _loadStatistics(),
-      ]);
-
-    } catch (e) {
-      print('[ERROR] 데이터 로드 실패: $e');
-      setState(() {
-        _errorMessage = '데이터 로드 실패: $e';
-      });
-    } finally {
-      setState(() {
+        _errorMessage = '로그인이 필요합니다';
         _isLoading = false;
       });
+      return;
     }
-  }
 
-  /// 전체 점호 기록 로드
-  Future<void> _loadAllInspections() async {
-    try {
-      final response = await _inspectionService.getAllInspections();
-      if (response.success) {
-        setState(() {
-          _allInspections = response.inspections;
-        });
-      } else {
-        throw Exception('전체 점호 기록 조회 실패: ${response.message}');
-      }
-    } catch (e) {
-      print('[ERROR] 전체 점호 기록 로드 실패: $e');
-      rethrow;
-    }
-  }
-
-  /// 오늘 점호 기록 로드
-  Future<void> _loadTodayInspections() async {
-    try {
-
-      final response = await _inspectionService.getInspectionsByDate(DateTime.now());
-
-      if (response.success) {
-        setState(() {
-          _todayInspections = response.inspections;
-        });
-      } else {
-        throw Exception('오늘 점호 기록 조회 실패: ${response.message}');
-      }
-    } catch (e) {
-      print('[ERROR] 오늘 점호 기록 로드 실패: $e');
-      rethrow;
-    }
-  }
-
-  /// 통계 로드
-  Future<void> _loadStatistics() async {
-    try {
-      final response = await _inspectionService.getInspectionStatistics();
+    if (!authProvider.isAdmin) {
       setState(() {
-        _statistics = response.statistics; // InspectionStatisticsResponse에서 statistics 필드 추출
+        _errorMessage = '관리자 권한이 필요합니다';
+        _isLoading = false;
       });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      print('[DEBUG] AdminInspectionScreen: 데이터 로드 시작');
+      print('[DEBUG] 현재 사용자: ${authProvider.currentUser?.id}');
+      print('[DEBUG] 관리자 여부: ${authProvider.isAdmin}');
+
+      // 병렬로 데이터 로드
+      final results = await Future.wait([
+        _inspectionService.getAllInspections(),
+        _inspectionService.getInspectionsByDate(DateTime.now()),
+        _inspectionService.getInspectionStatistics(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _allInspections = results[0] as List<AdminInspectionModel>;
+          _todayInspections = results[1] as List<AdminInspectionModel>;
+          _statistics = results[2] as InspectionStatistics;
+          _isLoading = false;
+          _isInitialized = true;
+        });
+
+        print('[DEBUG] 데이터 로드 완료');
+        print('[DEBUG] 전체 점호: ${_allInspections.length}건');
+        print('[DEBUG] 오늘 점호: ${_todayInspections.length}건');
+      }
     } catch (e) {
-      print('[ERROR] 통계 로드 실패: $e');
-      rethrow;
+      print('[ERROR] 데이터 로드 실패: $e');
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = '데이터를 불러오는데 실패했습니다: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -181,302 +99,108 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     await _loadData();
   }
 
-  /// 성공 스낵바
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  /// 에러 스낵바
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
-  /// 점호 삭제 확인 다이얼로그
-  Future<void> _showDeleteConfirmDialog(AdminInspectionModel inspection) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('점호 기록 삭제'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('다음 점호 기록을 삭제하시겠습니까?'),
-              SizedBox(height: 8),
-              Text('사용자: ${inspection.userName}',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('방번호: ${inspection.roomNumber}'),
-              Text('점수: ${inspection.score}점'),
-              SizedBox(height: 8),
-              Text('삭제된 기록은 복구할 수 없으며, 해당 학생은 다시 점호를 제출할 수 있습니다.',
-                  style: TextStyle(color: Colors.red, fontSize: 12)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('취소'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteInspection(inspection.id);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('삭제'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// 점호 기록 삭제 실행
-  Future<void> _deleteInspection(int inspectionId) async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      bool success = await _inspectionService.deleteInspection(inspectionId);
-
-      if (success) {
-        _showSuccessSnackBar('점호 기록이 성공적으로 삭제되었습니다.');
-        _refreshData(); // 데이터 새로고침
-      } else {
-        _showErrorSnackBar('점호 기록 삭제에 실패했습니다.');
-      }
-    } catch (e) {
-      _showErrorSnackBar('삭제 중 오류가 발생했습니다: $e');
-    } finally {
-      if(mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // ✅ ================== 수정 기능 추가 ==================
-
-  /// 점호 수정 다이얼로그
-  Future<void> _showEditInspectionDialog(AdminInspectionModel inspection) async {
-    // 폼 관리를 위한 컨트롤러 및 변수
-    final formKey = GlobalKey<FormState>();
-    int currentScore = inspection.score;
-    String currentStatus = inspection.status;
-    bool isReInspection = inspection.isReInspection;
-    final TextEditingController adminCommentController = TextEditingController(text: inspection.adminComment);
-    final TextEditingController geminiFeedbackController = TextEditingController(text: inspection.geminiFeedback);
-
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // StatefulBuilder를 사용하여 다이얼로그 내부의 상태(점수, 상태)를 관리
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('점호 기록 수정'),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('사용자: ${inspection.userName} (${inspection.roomNumber})',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      SizedBox(height: 16),
-
-                      // 점수 선택
-                      DropdownButtonFormField<int>(
-                        value: currentScore,
-                        decoration: InputDecoration(
-                          labelText: '점수 (0-10)',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: List.generate(11, (index) => index)
-                            .map((score) => DropdownMenuItem(
-                          value: score,
-                          child: Text('$score점'),
-                        ))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() {
-                              currentScore = value;
-                              // 점수에 따라 상태 자동 변경 (선택적)
-                              // _currentStatus = value >= 6 ? 'PASS' : 'FAIL';
-                            });
-                          }
-                        },
-                      ),
-                      SizedBox(height: 16),
-
-                      // 상태 선택
-                      DropdownButtonFormField<String>(
-                        value: currentStatus,
-                        decoration: InputDecoration(
-                          labelText: '상태',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: ['PASS', 'FAIL']
-                            .map((status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status),
-                        ))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() {
-                              currentStatus = value;
-                            });
-                          }
-                        },
-                      ),
-                      SizedBox(height: 16),
-
-                      // 재검 여부
-                      SwitchListTile(
-                        title: Text('재검 점호 여부'),
-                        value: isReInspection,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            isReInspection = value;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 16),
-
-                      // 관리자 코멘트
-                      TextFormField(
-                        controller: adminCommentController,
-                        decoration: InputDecoration(
-                          labelText: '관리자 코멘트',
-                          border: OutlineInputBorder(),
-                          hintText: '수정 사항이나 피드백을 입력하세요.',
-                        ),
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 16),
-
-                      // AI 피드백 (수정 가능하게)
-                      TextFormField(
-                        controller: geminiFeedbackController,
-                        decoration: InputDecoration(
-                          labelText: 'AI 피드백 (수정 가능)',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('취소'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      // 1. UpdateRequest 객체 생성
-                      final updateRequest = InspectionUpdateRequest(
-                        score: currentScore,
-                        status: currentStatus,
-                        adminComment: adminCommentController.text,
-                        geminiFeedback: geminiFeedbackController.text,
-                        isReInspection: isReInspection,
-                      );
-
-                      // 2. 저장 핸들러 호출
-                      Navigator.of(context).pop();
-                      _handleUpdateInspection(inspection.id, updateRequest);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text('저장'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  /// 점호 기록 수정 실행
-  Future<void> _handleUpdateInspection(int inspectionId, InspectionUpdateRequest request) async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final updatedInspection = await _inspectionService.updateInspection(inspectionId, request);
-
-      _showSuccessSnackBar('점호 기록(ID: ${updatedInspection.id})이 성공적으로 수정되었습니다.');
-      _refreshData(); // 데이터 새로고침
-
-    } catch (e) {
-      _showErrorSnackBar('수정 중 오류가 발생했습니다: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-  // ✅ ======================================================
-
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('점호 관리'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _isLoading ? null : _refreshData,
-            tooltip: '새로고침',
+    // ⭐ AuthProvider 감시
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        // 로그인 상태가 아니면 안내 메시지 표시
+        if (!authProvider.isAuthenticated) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F7FA),
+            appBar: AppBar(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              title: const Text('점호 관리'),
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    '로그인이 필요합니다',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // 관리자가 아니면 권한 없음 메시지
+        if (!authProvider.isAdmin) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F7FA),
+            appBar: AppBar(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              title: const Text('점호 관리'),
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.admin_panel_settings_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    '관리자 권한이 필요합니다',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // 정상 화면 표시
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF5F7FA),
+            appBar: AppBar(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              title: const Text(
+                '점호 관리',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              centerTitle: true,
+              elevation: 0,
+              bottom: const TabBar(
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: [
+                  Tab(text: '전체'),
+                  Tab(text: '오늘'),
+                  Tab(text: '통계'),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _isLoading ? null : _refreshData,
+                  tooltip: '새로고침',
+                ),
+              ],
+            ),
+            body: _buildBody(),
           ),
-        ],
-      ),
-      body: _buildBody(),
+        );
+      },
     );
   }
 
   Widget _buildBody() {
-    // 로딩 상태
-    if (_isLoading && !_isInitialized) {
-      return Center(
+    if (_isLoading) {
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -488,7 +212,6 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
       );
     }
 
-    // 에러 상태
     if (_errorMessage.isNotEmpty) {
       return Center(
         child: Column(
@@ -498,12 +221,12 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
             SizedBox(height: 16),
             Text(
               _errorMessage,
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _initializeAndLoadData,
+              onPressed: _refreshData,
               child: Text('다시 시도'),
             ),
           ],
@@ -511,87 +234,16 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
       );
     }
 
-    // 정상 상태 - 탭 기반 UI
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          // 통계 카드
-          if (_statistics != null) _buildStatisticsCard(),
-
-          // 탭 헤더
-          TabBar(
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.blue,
-            tabs: [
-              Tab(text: '전체 점호 (${_allInspections.length})'),
-              Tab(text: '오늘 점호 (${_todayInspections.length})'),
-              Tab(text: '통계'),
-            ],
-          ),
-
-          // 탭 내용
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildAllInspectionsList(),
-                _buildTodayInspectionsList(),
-                _buildStatisticsView(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 통계 카드
-  Widget _buildStatisticsCard() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem('전체', _statistics!.totalInspections.toString(), Colors.blue),
-          _buildStatItem('통과', _statistics!.passedInspections.toString(), Colors.green),
-          _buildStatItem('실패', _statistics!.failedInspections.toString(), Colors.red),
-          _buildStatItem('통과율', '${_statistics!.passRate.toStringAsFixed(1)}%', Colors.orange),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, Color color) {
-    return Column(
+    return TabBarView(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
+        _buildAllInspectionsList(),
+        _buildTodayInspectionsList(),
+        _buildStatisticsTab(),
       ],
     );
   }
 
-  /// 전체 점호 목록
+  // UI 빌드 메서드들
   Widget _buildAllInspectionsList() {
     if (_allInspections.isEmpty) {
       return Center(child: Text('점호 기록이 없습니다.'));
@@ -608,7 +260,6 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     );
   }
 
-  /// 오늘 점호 목록
   Widget _buildTodayInspectionsList() {
     if (_todayInspections.isEmpty) {
       return Center(child: Text('오늘 점호 기록이 없습니다.'));
@@ -625,93 +276,9 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     );
   }
 
-  /// 점호 카드
-  Widget _buildInspectionCard(AdminInspectionModel inspection) {
-    final statusColor = inspection.status == 'PASS' ? Colors.green : Colors.red;
-    final statusText = inspection.status == 'PASS' ? '통과' : '실패';
-
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${inspection.userName} (${inspection.roomNumber})',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                border: Border.all(color: statusColor),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                statusText,
-                style: TextStyle(color: statusColor, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Text('점수: ${inspection.score}점 • ${_formatDateTime(inspection.createdAt)}'),
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (inspection.geminiFeedback != null) ...[
-                  Text('AI 피드백:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(inspection.geminiFeedback!),
-                  SizedBox(height: 8),
-                ],
-                if (inspection.adminComment != null) ...[
-                  Text('관리자 코멘트:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(inspection.adminComment!),
-                  SizedBox(height: 8),
-                ],
-                // ✅ 수정된 부분: 수정 버튼 추가
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 간격 조절
-                  children: [
-                    // 수정 버튼
-                    ElevatedButton.icon(
-                      onPressed: () => _showEditInspectionDialog(inspection),
-                      icon: Icon(Icons.edit, size: 16),
-                      label: Text('수정'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(120, 36),
-                      ),
-                    ),
-                    // 삭제 버튼
-                    ElevatedButton.icon(
-                      onPressed: () => _showDeleteConfirmDialog(inspection),
-                      icon: Icon(Icons.delete, size: 16),
-                      label: Text('삭제'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(120, 36),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 통계 뷰
-  Widget _buildStatisticsView() {
+  Widget _buildStatisticsTab() {
     if (_statistics == null) {
-      return Center(child: Text('통계 데이터를 불러올 수 없습니다.'));
+      return Center(child: Text('통계 정보를 불러올 수 없습니다.'));
     }
 
     return SingleChildScrollView(
@@ -719,27 +286,31 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '점호 통계',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          Text('점호 통계', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
-          _buildDetailedStatistics(),
+          _buildStatisticsCard(),
         ],
       ),
     );
   }
 
-  /// 상세 통계
-  Widget _buildDetailedStatistics() {
-    return Column(
-      children: [
-        _buildStatRow('전체 점호 수', _statistics!.totalInspections.toString()),
-        _buildStatRow('통과한 점호', _statistics!.passedInspections.toString()),
-        _buildStatRow('실패한 점호', _statistics!.failedInspections.toString()),
-        _buildStatRow('재검 점호', _statistics!.reInspections.toString()),
-        _buildStatRow('통과율', '${_statistics!.passRate.toStringAsFixed(2)}%'),
-      ],
+  Widget _buildStatisticsCard() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        children: [
+          _buildStatRow('전체 점호 수', _statistics!.totalInspections.toString()),
+          _buildStatRow('통과한 점호', _statistics!.passedInspections.toString()),
+          _buildStatRow('실패한 점호', _statistics!.failedInspections.toString()),
+          _buildStatRow('재검 점호', _statistics!.reInspections.toString()),
+          _buildStatRow('통과율', '${_statistics!.passRate.toStringAsFixed(2)}%'),
+        ],
+      ),
     );
   }
 
@@ -761,7 +332,30 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     );
   }
 
-  /// 날짜 시간 포맷
+  Widget _buildInspectionCard(AdminInspectionModel inspection) {
+    final statusColor = inspection.status == 'PASS' ? Colors.green : Colors.red;
+    final statusText = inspection.status == 'PASS' ? '통과' : '실패';
+
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: statusColor.withOpacity(0.2),
+          child: Text(
+            inspection.score.toString(),
+            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+        title: Text('${inspection.userName} (${inspection.userId})'),
+        subtitle: Text('방 번호: ${inspection.roomNumber} | $statusText'),
+        trailing: Text(
+          _formatDateTime(inspection.inspectionDate),
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';

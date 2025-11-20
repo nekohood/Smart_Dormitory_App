@@ -1,4 +1,5 @@
 /// 허용 사용자 관련 모델
+library;
 
 class AllowedUser {
   final int id;

@@ -1,97 +1,54 @@
-import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+import 'package:dio/dio.dart';
 import '../models/inspection.dart';
-import '../api/api_config.dart';
+import '../api/dio_client.dart';
 
-/// 점호 관련 API 서비스
+/// 점호 관련 API 서비스 (DioClient 기반)
 class InspectionService {
-  String get baseUrl => ApiConfig.baseUrl;
-
-  String? _authToken;
-
+  /// ⭐ 기존 코드와의 호환성을 위해 남겨둠 (실제로는 사용되지 않음)
+  /// DioClient가 자동으로 토큰을 관리하므로 이 메서드는 아무 동작도 하지 않음
   void setAuthToken(String token) {
-    _authToken = token;
-    print('[DEBUG] InspectionService 토큰 설정: ${token.length > 20 ? '${token.substring(0, 20)}...' : token}');
+    print('[DEBUG] InspectionService.setAuthToken() 호출됨 (DioClient가 자동 관리)');
+    // DioClient가 자동으로 토큰을 헤더에 포함하므로 별도 설정 불필요
   }
 
-  Map<String, String> _getHeaders() {
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    if (_authToken != null) {
-      headers['Authorization'] = 'Bearer $_authToken';
-    }
-    return headers;
-  }
-
-  /// 점호 제출 (수정된 버전)
-  Future<InspectionResponse> submitInspection(String roomNumber, Uint8List imageBytes, String fileName) async {
+  /// 점호 제출 (Uint8List를 MultipartFile로 변환하여 업로드)
+  Future<InspectionResponse> submitInspection(
+      String roomNumber, Uint8List imageBytes, String fileName) async {
     try {
       print('[DEBUG] 점호 제출 시작 - 방번호: $roomNumber, 파일명: $fileName');
 
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/inspections/submit'));
-
-      if (_authToken != null) {
-        request.headers['Authorization'] = 'Bearer $_authToken';
-      }
-      request.fields['roomNumber'] = roomNumber;
-
-      request.files.add(
-          http.MultipartFile.fromBytes(
-            'image',
-            imageBytes,
-            filename: fileName,
-            contentType: MediaType('image', 'jpeg'),
-          )
+      // Uint8List를 MultipartFile로 변환
+      final multipartFile = MultipartFile.fromBytes(
+        imageBytes,
+        filename: fileName,
+        contentType: DioMediaType('image', 'jpeg'),
       );
 
+      // FormData 생성
+      final formData = FormData.fromMap({
+        'roomNumber': roomNumber,
+        'image': multipartFile,
+      });
+
       print('[DEBUG] 서버로 요청 전송 중...');
-      final streamedResponse = await request.send();
-      final responseBody = await streamedResponse.stream.bytesToString();
 
-      print('[DEBUG] 서버 응답 상태: ${streamedResponse.statusCode}');
-      print('[DEBUG] 서버 응답 본문: $responseBody');
+      // ✅ DioClient.post 사용 (uploadFile은 파일 경로가 필요하므로 직접 post 사용)
+      final response = await DioClient.post(
+        '/inspections/submit',
+        data: formData,
+      );
 
-      // 응답 상태 코드 확인
-      if (streamedResponse.statusCode != 200) {
-        print('[ERROR] 서버 오류 응답: ${streamedResponse.statusCode}');
-        return InspectionResponse(
-            success: false,
-            error: '서버 오류 (코드: ${streamedResponse.statusCode})'
-        );
-      }
+      print('[DEBUG] 서버 응답: ${response.data}');
 
-      // JSON 파싱
-      Map<String, dynamic> data;
-      try {
-        data = json.decode(responseBody);
-      } catch (e) {
-        print('[ERROR] JSON 파싱 실패: $e');
-        return InspectionResponse(
-            success: false,
-            error: 'JSON 파싱 실패: $e'
-        );
-      }
-
-      // InspectionResponse 생성
-      final response = InspectionResponse.fromJson(data);
-
-      if (response.success && response.inspection != null) {
-        print('[SUCCESS] 점호 제출 성공 - 점수: ${response.inspection!.score}, 상태: ${response.inspection!.status}');
-      } else {
-        print('[FAILURE] 점호 제출 실패 - 오류: ${response.error}');
-      }
-
-      return response;
+      // InspectionResponse.fromJson이 알아서 파싱
+      return InspectionResponse.fromJson(response.data);
 
     } catch (e) {
       print('[ERROR] 점호 제출 중 예외 발생: $e');
       return InspectionResponse(
-          success: false,
-          error: '점호 제출 중 오류가 발생했습니다: $e'
+        success: false,
+        error: '점호 제출 중 오류가 발생했습니다: $e',
       );
     }
   }
@@ -99,17 +56,12 @@ class InspectionService {
   /// 내 점호 기록 조회
   Future<InspectionListResponse> getMyInspections() async {
     try {
-      print('[DEBUG] 내 점호 기록 조회 시작');
-      final response = await http.get(Uri.parse('$baseUrl/inspections/my'), headers: _getHeaders());
+      print('[DEBUG] 내 점호 기록 조회');
+      final response = await DioClient.get('/inspections/my');
 
-      print('[DEBUG] 내 점호 기록 응답 상태: ${response.statusCode}');
-      print('[DEBUG] 내 점호 기록 응답: ${response.body}');
+      // InspectionListResponse.fromJson이 ApiResponse 구조 처리
+      return InspectionListResponse.fromJson(response.data);
 
-      if (response.statusCode == 200) {
-        return InspectionListResponse.fromJson(json.decode(response.body));
-      } else {
-        throw Exception('내 점호 기록 조회 실패 (코드: ${response.statusCode})');
-      }
     } catch (e) {
       print('[ERROR] 내 점호 기록 조회 실패: $e');
       rethrow;
@@ -119,132 +71,148 @@ class InspectionService {
   /// 오늘 점호 상태 확인
   Future<TodayInspectionResponse> getTodayInspection() async {
     try {
-      print('[DEBUG] 오늘 점호 상태 확인 시작');
-      final response = await http.get(Uri.parse('$baseUrl/inspections/today'), headers: _getHeaders());
+      print('[DEBUG] 오늘 점호 상태 확인');
+      final response = await DioClient.get('/inspections/today');
 
-      print('[DEBUG] 오늘 점호 응답 상태: ${response.statusCode}');
-      print('[DEBUG] 오늘 점호 응답: ${response.body}');
+      // TodayInspectionResponse.fromJson이 ApiResponse 구조 처리
+      return TodayInspectionResponse.fromJson(response.data);
 
-      if (response.statusCode == 200) {
-        return TodayInspectionResponse.fromJson(json.decode(response.body));
-      } else {
-        final errorData = json.decode(response.body);
-        throw Exception(errorData['message'] ?? '오늘 점호 상태 확인 실패 (코드: ${response.statusCode})');
-      }
     } catch (e) {
       print('[ERROR] 오늘 점호 상태 확인 실패: $e');
       rethrow;
     }
   }
 
-  /// 모든 점호 기록 조회 (관리자용)
+  /// 재검 점호 제출
+  Future<InspectionResponse> submitReInspection(
+      String roomNumber, Uint8List imageBytes, String fileName) async {
+    try {
+      print('[DEBUG] 재검 점호 제출 - 방번호: $roomNumber');
+
+      // Uint8List를 MultipartFile로 변환
+      final multipartFile = MultipartFile.fromBytes(
+        imageBytes,
+        filename: fileName,
+        contentType: DioMediaType('image', 'jpeg'),
+      );
+
+      // FormData 생성
+      final formData = FormData.fromMap({
+        'roomNumber': roomNumber,
+        'image': multipartFile,
+      });
+
+      final response = await DioClient.post(
+        '/inspections/reinspect',
+        data: formData,
+      );
+
+      return InspectionResponse.fromJson(response.data);
+
+    } catch (e) {
+      print('[ERROR] 재검 점호 제출 실패: $e');
+      return InspectionResponse(
+        success: false,
+        error: '재검 점호 제출 실패: $e',
+      );
+    }
+  }
+
+  // ==========================================================================
+  // 관리자용 메서드들
+  // ==========================================================================
+
+  /// 모든 점호 기록 조회 (관리자)
   Future<InspectionListResponse> getAllInspections() async {
     try {
-      print('[DEBUG] 전체 점호 기록 조회 시작');
-      final response = await http.get(Uri.parse('$baseUrl/inspections/admin/all'), headers: _getHeaders());
+      print('[DEBUG] 전체 점호 기록 조회 (관리자)');
+      final response = await DioClient.get('/inspections/admin/all');
 
-      print('[DEBUG] 전체 점호 기록 응답 상태: ${response.statusCode}');
+      return InspectionListResponse.fromJson(response.data);
 
-      if (response.statusCode == 200) {
-        return InspectionListResponse.fromJson(json.decode(response.body));
-      } else {
-        throw Exception('전체 점호 기록 조회 실패 (코드: ${response.statusCode})');
-      }
     } catch (e) {
       print('[ERROR] 전체 점호 기록 조회 실패: $e');
       rethrow;
     }
   }
 
-  /// 날짜별 점호 기록 조회 (관리자용)
+  /// 특정 날짜의 점호 기록 조회 (관리자)
   Future<InspectionListResponse> getInspectionsByDate(DateTime date) async {
     try {
-      String dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      print('[DEBUG] 날짜별 점호 기록 조회 시작: $dateStr');
+      String dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      print('[DEBUG] 날짜별 점호 기록 조회: $dateStr');
 
-      final response = await http.get(Uri.parse('$baseUrl/inspections/admin/date/$dateStr'), headers: _getHeaders());
+      final response = await DioClient.get('/inspections/admin/date/$dateStr');
 
-      print('[DEBUG] 날짜별 점호 기록 응답 상태: ${response.statusCode}');
+      return InspectionListResponse.fromJson(response.data);
 
-      if (response.statusCode == 200) {
-        return InspectionListResponse.fromJson(json.decode(response.body));
-      } else {
-        throw Exception('날짜별 점호 기록 조회 실패 (코드: ${response.statusCode})');
-      }
     } catch (e) {
       print('[ERROR] 날짜별 점호 기록 조회 실패: $e');
       rethrow;
     }
   }
 
-  /// 점호 기록 삭제 (관리자용)
-  Future<bool> deleteInspection(int inspectionId) async {
+  /// 점호 기록 수정 (관리자)
+  Future<AdminInspectionModel> updateInspection(
+      int inspectionId, InspectionUpdateRequest updateRequest) async {
     try {
-      print('[DEBUG] 점호 기록 삭제 시작: $inspectionId');
-      final response = await http.delete(Uri.parse('$baseUrl/inspections/admin/$inspectionId'), headers: _getHeaders());
+      print('[DEBUG] 점호 기록 수정: ID $inspectionId');
 
-      print('[DEBUG] 점호 기록 삭제 응답 상태: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        return result['success'] ?? false;
-      } else {
-        throw Exception('점호 기록 삭제 실패 (코드: ${response.statusCode})');
-      }
-    } catch (e) {
-      print('[ERROR] 점호 기록 삭제 실패: $e');
-      rethrow;
-    }
-  }
-
-  /// 점호 기록 수정 (관리자용)
-  Future<AdminInspectionModel> updateInspection(int inspectionId, InspectionUpdateRequest updateRequest) async {
-    try {
-      print('[DEBUG] 점호 기록 수정 시작: $inspectionId');
-      final response = await http.put(
-        Uri.parse('$baseUrl/inspections/admin/$inspectionId'),
-        headers: _getHeaders(),
-        body: json.encode(updateRequest.toJson()),
+      final response = await DioClient.put(
+        '/inspections/admin/$inspectionId',
+        data: updateRequest.toJson(),
       );
 
-      print('[DEBUG] 점호 기록 수정 응답 상태: ${response.statusCode}');
-      print('[DEBUG] 점호 기록 수정 응답: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['inspection'] != null) {
-          return AdminInspectionModel.fromJson(data['inspection']);
-        } else {
-          throw Exception(data['message'] ?? '점호 기록 수정 실패');
+      final data = response.data;
+      if (data['success'] == true) {
+        // data 필드 또는 inspection 필드에서 추출
+        final inspectionData = data['data'] ?? data['inspection'];
+        if (inspectionData != null) {
+          return AdminInspectionModel.fromJson(inspectionData);
         }
-      } else {
-        throw Exception('점호 기록 수정 실패 (코드: ${response.statusCode})');
       }
+
+      throw Exception(data['message'] ?? '점호 기록 수정 실패');
+
     } catch (e) {
       print('[ERROR] 점호 기록 수정 실패: $e');
       rethrow;
     }
   }
 
-  /// 점호 통계 조회
+  /// 점호 기록 삭제 (관리자)
+  Future<bool> deleteInspection(int inspectionId) async {
+    try {
+      print('[DEBUG] 점호 기록 삭제: ID $inspectionId');
+
+      final response = await DioClient.delete('/inspections/admin/$inspectionId');
+      final data = response.data;
+
+      return data['success'] == true;
+
+    } catch (e) {
+      print('[ERROR] 점호 기록 삭제 실패: $e');
+      return false;
+    }
+  }
+
+  /// 점호 통계 조회 (관리자)
   Future<InspectionStatisticsResponse> getInspectionStatistics({DateTime? date}) async {
     try {
-      String url = '$baseUrl/inspections/statistics';
+      String endpoint = '/inspections/statistics';
       if (date != null) {
-        String dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-        url += '?date=$dateStr';
+        String dateStr =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        endpoint += '?date=$dateStr';
       }
 
-      print('[DEBUG] 점호 통계 조회 시작: $url');
-      final response = await http.get(Uri.parse(url), headers: _getHeaders());
+      print('[DEBUG] 점호 통계 조회: $endpoint');
+      final response = await DioClient.get(endpoint);
 
-      print('[DEBUG] 점호 통계 응답 상태: ${response.statusCode}');
+      // InspectionStatisticsResponse.fromJson이 ApiResponse 구조 처리
+      return InspectionStatisticsResponse.fromJson(response.data);
 
-      if (response.statusCode == 200) {
-        return InspectionStatisticsResponse.fromJson(json.decode(response.body));
-      } else {
-        throw Exception('점호 통계 조회 실패 (코드: ${response.statusCode})');
-      }
     } catch (e) {
       print('[ERROR] 점호 통계 조회 실패: $e');
       rethrow;

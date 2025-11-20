@@ -1,4 +1,5 @@
 /// 출석 테이블 관련 모델
+library;
 
 class AttendanceEntry {
   final int id;
