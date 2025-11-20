@@ -31,7 +31,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
     });
   }
 
-  /// 데이터 로드
+  /// 데이터 로드 (✅ 수정됨)
   Future<void> _loadData() async {
     // ⭐ AuthProvider에서 사용자 정보 확인
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -62,18 +62,25 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen> {
       print('[DEBUG] 현재 사용자: ${authProvider.currentUser?.id}');
       print('[DEBUG] 관리자 여부: ${authProvider.isAdmin}');
 
-      // 병렬로 데이터 로드
+      // ✅ 수정: 병렬로 데이터 로드 - 반환 타입 수정
       final results = await Future.wait([
-        _inspectionService.getAllInspections(),
-        _inspectionService.getInspectionsByDate(DateTime.now()),
-        _inspectionService.getInspectionStatistics(),
+        _inspectionService.getAllInspections(),          // InspectionListResponse 반환
+        _inspectionService.getInspectionsByDate(DateTime.now()), // InspectionListResponse 반환
+        _inspectionService.getInspectionStatistics(),    // InspectionStatisticsResponse 반환
       ]);
 
       if (mounted) {
         setState(() {
-          _allInspections = results[0] as List<AdminInspectionModel>;
-          _todayInspections = results[1] as List<AdminInspectionModel>;
-          _statistics = results[2] as InspectionStatistics;
+          // ✅ 수정: InspectionListResponse에서 inspections 리스트 추출
+          final allInspectionsResponse = results[0] as InspectionListResponse;
+          _allInspections = allInspectionsResponse.inspections;
+
+          final todayInspectionsResponse = results[1] as InspectionListResponse;
+          _todayInspections = todayInspectionsResponse.inspections;
+
+          final statisticsResponse = results[2] as InspectionStatisticsResponse;
+          _statistics = statisticsResponse.statistics;
+
           _isLoading = false;
           _isInitialized = true;
         });
