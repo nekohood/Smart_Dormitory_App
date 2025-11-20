@@ -72,6 +72,11 @@ dependencies {
 	// ✅ Lombok (롬복) 의존성 추가
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	implementation 'org.apache.poi:poi:5.2.3'
+	implementation 'org.apache.poi:poi-ooxml:5.2.3'
+	implementation 'org.apache.commons:commons-collections4:4.4'
+	implementation 'org.apache.xmlbeans:xmlbeans:5.1.1'
 }
 
 tasks.named('test') {

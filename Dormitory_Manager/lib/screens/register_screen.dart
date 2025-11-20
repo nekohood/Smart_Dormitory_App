@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../api/api_config.dart'; // ApiConfig 임포트
+import '../services/allowed_user_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,6 +12,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final AllowedUserService _allowedUserService = AllowedUserService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // 텍스트 컨트롤러들
@@ -63,6 +65,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      // ✅ [신규] 일반 사용자인 경우 허용 목록 확인
+      if (!_isAdmin) {
+        print('[DEBUG] 허용 사용자 확인 중...');
+        final isAllowed = await _allowedUserService.checkUserAllowed(_idController.text.trim());
+
+        if (!isAllowed) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('회원가입 불가'),
+              content: Text(
+                  '회원가입이 허용되지 않은 학번입니다.\n\n'
+                      '관리자에게 문의하여 허용 목록에 추가를 요청하세요.'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('확인'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+        print('[DEBUG] 허용된 학번 확인 완료');
+      }
+
+      // 기존 회원가입 로직 계속 진행
       final requestData = {
         "id": _idController.text.trim(),
         "password": _passwordController.text.trim(),

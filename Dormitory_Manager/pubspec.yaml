@@ -26,14 +26,18 @@ dependencies:
 
   # API 연동 및 보안을 위해 추가 필요한 패키지들
   shared_preferences: ^2.2.2    # 토큰 로컬 저장용
-  provider: ^6.1.1              # 상태 관리 (선택사항)
+  provider: ^6.1.1              # 상태 관리
   json_annotation: ^4.8.1       # JSON 직렬화 도우미
   permission_handler: ^11.0.1   # 권한 처리
 
-  # ⭐ [신규] 캘린더 기능
+  # 캘린더 기능
   table_calendar: ^3.1.2
 
+  # ✅ [신규] 파일 선택 기능 (엑셀 업로드용)
+  file_picker: ^8.0.0+1
+
   http_parser: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

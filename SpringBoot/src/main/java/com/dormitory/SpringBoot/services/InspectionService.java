@@ -1,10 +1,10 @@
 package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.Inspection;
+import com.dormitory.SpringBoot.domain.User;
 import com.dormitory.SpringBoot.dto.InspectionRequest;
 import com.dormitory.SpringBoot.repository.InspectionRepository;
 import com.dormitory.SpringBoot.repository.UserRepository;
-import com.dormitory.SpringBoot.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,15 +13,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.Map;
 
 /**
- * 점호 관련 비즈니스 로직을 처리하는 서비스
+ * 점호 관련 비즈니스 로직을 처리하는 서비스 - 출석 테이블 연동 추가
  */
 @Service
 @Transactional
@@ -41,6 +42,9 @@ public class InspectionService {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private AttendanceTableService attendanceTableService; // ✅ 추가
+
     @Value("${inspection.pass.score:6}")
     private int passScore;
 
@@ -48,7 +52,7 @@ public class InspectionService {
     private int failScore;
 
     /**
-     * 점호 제출
+     * 점호 제출 - 출석 테이블 업데이트 기능 추가
      *
      * @param userId 사용자 ID
      * @param roomNumber 방 번호
@@ -59,7 +63,7 @@ public class InspectionService {
         try {
             logger.info("점호 제출 시작 - 사용자: {}, 방번호: {}", userId, roomNumber);
 
-            // 오늘 이미 점호했는지 확인 (수정된 부분)
+            // 오늘 이미 점호했는지 확인
             List<Inspection> todayInspections = inspectionRepository.findTodayInspectionByUserId(userId);
             if (!todayInspections.isEmpty()) {
                 throw new RuntimeException("오늘 이미 점호를 완료했습니다.");
@@ -76,7 +80,7 @@ public class InspectionService {
 
             logger.info("AI 평가 완료 - 점수: {}, 상태: {}", score, status);
 
-            // 점호 기록 생성 및 저장
+            // Inspection 엔티티 생성 (setter 사용)
             Inspection inspection = new Inspection();
             inspection.setUserId(userId);
             inspection.setRoomNumber(roomNumber);
@@ -85,17 +89,34 @@ public class InspectionService {
             inspection.setStatus(status);
             inspection.setGeminiFeedback(geminiFeedback);
             inspection.setInspectionDate(LocalDateTime.now());
-            inspection.setCreatedAt(LocalDateTime.now());
             inspection.setIsReInspection(false);
 
-            inspection = inspectionRepository.save(inspection);
-            logger.info("점호 기록 저장 완료 - ID: {}", inspection.getId());
+            Inspection savedInspection = inspectionRepository.save(inspection);
+            logger.info("점호 제출 완료 - ID: {}, 점수: {}, 상태: {}", savedInspection.getId(), score, status);
 
-            return convertToResponse(inspection);
+            // ✅ [신규] 출석 테이블 업데이트
+            try {
+                LocalDate today = LocalDate.now();
+                attendanceTableService.updateAttendanceOnInspectionSubmit(
+                        userId,
+                        today,
+                        score,
+                        status
+                );
+                logger.info("출석 테이블 업데이트 완료 - 사용자: {}", userId);
+            } catch (Exception e) {
+                // 출석 테이블 업데이트 실패는 점호 제출에 영향을 주지 않음
+                logger.warn("출석 테이블 업데이트 실패 (무시): {}", e.getMessage());
+            }
 
+            return convertToResponse(savedInspection);
+
+        } catch (RuntimeException e) {
+            logger.error("점호 제출 실패 - 사용자: {}, 오류: {}", userId, e.getMessage());
+            throw e;
         } catch (Exception e) {
-            logger.error("점호 제출 중 오류 발생", e);
-            throw new RuntimeException("점호 제출에 실패했습니다: " + e.getMessage());
+            logger.error("점호 제출 중 예기치 않은 오류 발생 - 사용자: {}", userId, e);
+            throw new RuntimeException("점호 제출 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -135,7 +156,6 @@ public class InspectionService {
         try {
             logger.info("오늘 점호 조회 시작 - 사용자: {}", userId);
 
-            // 수정된 부분: List로 받은 후 첫 번째 항목만 사용
             List<Inspection> todayInspections = inspectionRepository.findTodayInspectionByUserId(userId);
             Optional<Inspection> todayInspection = todayInspections.stream().findFirst();
 
@@ -193,70 +213,12 @@ public class InspectionService {
                     .map(this::convertToAdminResponse)
                     .collect(Collectors.toList());
 
-            logger.info("날짜별 점호 기록 조회 완료 - 날짜: {}, 총 {}건", dateStr, result.size());
+            logger.info("날짜별 점호 기록 조회 완료 - 총 {}건", result.size());
             return result;
 
         } catch (Exception e) {
-            logger.error("날짜별 점호 기록 조회 중 오류 발생 - 날짜: {}", dateStr, e);
-            throw new RuntimeException("점호 기록 조회에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 특정 날짜 통계 조회
-     *
-     * @param dateStr 조회할 날짜 (yyyy-MM-dd 형식)
-     * @return 해당 날짜의 점호 통계
-     */
-    @Transactional(readOnly = true)
-    public InspectionRequest.Statistics getStatisticsByDate(String dateStr) {
-        try {
-            logger.info("날짜별 통계 조회 시작 - 날짜: {}", dateStr);
-
-            LocalDateTime date = LocalDateTime.parse(dateStr + " 00:00:00",
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            long total = inspectionRepository.countTotalInspectionsByDate(date);
-            long passed = inspectionRepository.countPassedInspectionsByDate(date);
-            long failed = inspectionRepository.countFailedInspectionsByDate(date);
-            long reInspections = inspectionRepository.countReInspectionsByDate(date);
-
-            InspectionRequest.Statistics result = new InspectionRequest.Statistics(total, passed, failed, reInspections, date);
-
-            logger.info("날짜별 통계 조회 완료 - 날짜: {}, 전체: {}, 통과: {}, 실패: {}",
-                    dateStr, total, passed, failed);
-            return result;
-
-        } catch (Exception e) {
-            logger.error("날짜별 통계 조회 중 오류 발생 - 날짜: {}", dateStr, e);
-            throw new RuntimeException("통계 조회에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 전체 통계 조회
-     *
-     * @return 전체 점호 통계
-     */
-    @Transactional(readOnly = true)
-    public InspectionRequest.Statistics getTotalStatistics() {
-        try {
-            logger.info("전체 통계 조회 시작");
-
-            long total = inspectionRepository.count();
-            long passed = inspectionRepository.findByStatusOrderByCreatedAtDesc("PASS").size();
-            long failed = inspectionRepository.findByStatusOrderByCreatedAtDesc("FAIL").size();
-            long reInspections = inspectionRepository.findByIsReInspectionTrueOrderByCreatedAtDesc().size();
-
-            InspectionRequest.Statistics result = new InspectionRequest.Statistics(total, passed, failed, reInspections, LocalDateTime.now());
-
-            logger.info("전체 통계 조회 완료 - 전체: {}, 통과: {}, 실패: {}, 재검: {}",
-                    total, passed, failed, reInspections);
-            return result;
-
-        } catch (Exception e) {
-            logger.error("전체 통계 조회 중 오류 발생", e);
-            throw new RuntimeException("통계 조회에 실패했습니다: " + e.getMessage());
+            logger.error("날짜별 점호 기록 조회 중 오류 발생", e);
+            throw new RuntimeException("날짜별 점호 기록 조회에 실패했습니다: " + e.getMessage());
         }
     }
 
@@ -270,23 +232,21 @@ public class InspectionService {
         try {
             logger.info("점호 기록 삭제 시작 - ID: {}", inspectionId);
 
-            Optional<Inspection> inspectionOptional = inspectionRepository.findById(inspectionId);
-            if (inspectionOptional.isPresent()) {
-                Inspection inspection = inspectionOptional.get();
-                String imagePath = inspection.getImagePath();
+            Optional<Inspection> optionalInspection = inspectionRepository.findById(inspectionId);
+            if (optionalInspection.isPresent()) {
+                String imagePath = optionalInspection.get().getImagePath();
 
-                // 1. DB에서 점호 기록을 먼저 삭제합니다.
+                // DB 기록 삭제
                 inspectionRepository.deleteById(inspectionId);
                 logger.info("점호 기록 DB 삭제 완료 - ID: {}", inspectionId);
 
-                // 2. 그 후에 관련된 이미지 파일을 삭제합니다.
-                // 파일 삭제가 실패하더라도 DB 기록은 이미 삭제되었으므로 문제가 발생하지 않습니다.
+                // 이미지 파일 삭제
                 if (imagePath != null && !imagePath.isEmpty()) {
                     boolean fileDeleted = fileService.deleteFile(imagePath);
                     if (fileDeleted) {
                         logger.info("관련 이미지 파일 삭제 성공 - 경로: {}", imagePath);
                     } else {
-                        logger.warn("관련 이미지 파일 삭제 실패 - 경로: {}. DB 기록은 정상 삭제되었습니다.", imagePath);
+                        logger.warn("관련 이미지 파일 삭제 실패 - 경로: {}", imagePath);
                     }
                 }
 
@@ -303,7 +263,7 @@ public class InspectionService {
     }
 
     /**
-     * 점호 기록 수정 (관리자용) - 수정된 메서드
+     * 점호 기록 수정 (관리자용)
      *
      * @param inspectionId 수정할 점호 기록 ID
      * @param updateData 수정할 데이터
@@ -353,7 +313,6 @@ public class InspectionService {
                 updated = true;
             }
 
-            // ✅ 수정된 부분: isReInspection 필드 업데이트
             if (updateData.containsKey("isReInspection")) {
                 Boolean newIsReInspection = (Boolean) updateData.get("isReInspection");
                 inspection.setIsReInspection(newIsReInspection);
@@ -396,6 +355,8 @@ public class InspectionService {
             String geminiFeedback = geminiService.getInspectionFeedback(imageFile);
             String status = score >= passScore ? "PASS" : "FAIL";
 
+            logger.info("재검 AI 평가 완료 - 점수: {}, 상태: {}", score, status);
+
             // 재검 점호 기록 생성
             Inspection inspection = new Inspection();
             inspection.setUserId(userId);
@@ -405,8 +366,7 @@ public class InspectionService {
             inspection.setStatus(status);
             inspection.setGeminiFeedback(geminiFeedback);
             inspection.setInspectionDate(LocalDateTime.now());
-            inspection.setCreatedAt(LocalDateTime.now());
-            inspection.setIsReInspection(true); // 재검 여부 설정
+            inspection.setIsReInspection(true);
 
             inspection = inspectionRepository.save(inspection);
             logger.info("재검 점호 기록 저장 완료 - ID: {}", inspection.getId());
@@ -416,6 +376,66 @@ public class InspectionService {
         } catch (Exception e) {
             logger.error("재검 점호 제출 중 오류 발생", e);
             throw new RuntimeException("재검 점호 제출에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 전체 점호 통계 조회
+     *
+     * @return 전체 점호 통계
+     */
+    @Transactional(readOnly = true)
+    public InspectionRequest.Statistics getTotalStatistics() {
+        try {
+            logger.info("전체 통계 조회 시작");
+
+            long total = inspectionRepository.count();
+            long passed = inspectionRepository.countByStatus("PASS");
+            long failed = inspectionRepository.countByStatus("FAIL");
+            long reInspections = inspectionRepository.findByIsReInspectionTrueOrderByCreatedAtDesc().size();
+
+            InspectionRequest.Statistics result = new InspectionRequest.Statistics(
+                    total, passed, failed, reInspections, LocalDateTime.now());
+
+            logger.info("전체 통계 조회 완료 - 전체: {}, 통과: {}, 실패: {}, 재검: {}",
+                    total, passed, failed, reInspections);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("전체 통계 조회 중 오류 발생", e);
+            throw new RuntimeException("통계 조회에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 날짜별 점호 통계 조회
+     *
+     * @param dateStr 조회할 날짜 (yyyy-MM-dd 형식)
+     * @return 해당 날짜의 점호 통계
+     */
+    @Transactional(readOnly = true)
+    public InspectionRequest.Statistics getStatisticsByDate(String dateStr) {
+        try {
+            logger.info("날짜별 통계 조회 시작 - 날짜: {}", dateStr);
+
+            LocalDateTime date = LocalDateTime.parse(dateStr + " 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            long total = inspectionRepository.countTotalInspectionsByDate(date);
+            long passed = inspectionRepository.countPassedInspectionsByDate(date);
+            long failed = inspectionRepository.countFailedInspectionsByDate(date);
+            long reInspections = inspectionRepository.countReInspectionsByDate(date);
+
+            InspectionRequest.Statistics result = new InspectionRequest.Statistics(
+                    total, passed, failed, reInspections, date);
+
+            logger.info("날짜별 통계 조회 완료 - 날짜: {}, 전체: {}, 통과: {}, 실패: {}",
+                    dateStr, total, passed, failed);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("날짜별 통계 조회 중 오류 발생", e);
+            throw new RuntimeException("날짜별 통계 조회에 실패했습니다: " + e.getMessage());
         }
     }
 
@@ -434,16 +454,17 @@ public class InspectionService {
 
             long total = userInspections.size();
             long passed = userInspections.stream()
-                    .mapToLong(i -> "PASS".equals(i.getStatus()) ? 1 : 0)
-                    .sum();
+                    .filter(i -> "PASS".equals(i.getStatus()))
+                    .count();
             long failed = userInspections.stream()
-                    .mapToLong(i -> "FAIL".equals(i.getStatus()) ? 1 : 0)
-                    .sum();
+                    .filter(i -> "FAIL".equals(i.getStatus()))
+                    .count();
             long reInspections = userInspections.stream()
-                    .mapToLong(i -> Boolean.TRUE.equals(i.getIsReInspection()) ? 1 : 0)
-                    .sum();
+                    .filter(i -> Boolean.TRUE.equals(i.getIsReInspection()))
+                    .count();
 
-            InspectionRequest.Statistics result = new InspectionRequest.Statistics(total, passed, failed, reInspections, LocalDateTime.now());
+            InspectionRequest.Statistics result = new InspectionRequest.Statistics(
+                    total, passed, failed, reInspections, LocalDateTime.now());
 
             logger.info("사용자별 통계 조회 완료 - 사용자: {}, 전체: {}, 통과: {}, 실패: {}",
                     userId, total, passed, failed);
@@ -478,20 +499,21 @@ public class InspectionService {
 
     /**
      * Inspection을 AdminResponse DTO로 변환 (사용자 이름 포함)
+     * ✅ 수정: updatedAt 매개변수 제거 (AdminResponse 생성자는 12개 매개변수만 받음)
      */
     private InspectionRequest.AdminResponse convertToAdminResponse(Inspection inspection) {
         String userName = inspection.getUserId(); // 기본값으로 사용자 ID 사용
 
         try {
             Optional<User> user = userRepository.findById(inspection.getUserId());
-            if (user.isPresent()) {
-                // ✅ 수정된 부분: User 엔티티에 name 필드가 있다면 사용
-                userName = user.get().getName() != null ? user.get().getName() : user.get().getId();
+            if (user.isPresent() && user.get().getName() != null) {
+                userName = user.get().getName();
             }
         } catch (Exception e) {
-            logger.warn("사용자 정보 조회 실패 - 사용자 ID: {}, 오류: {}", inspection.getUserId(), e.getMessage());
+            logger.warn("사용자 이름 조회 실패 - 사용자ID: {}", inspection.getUserId());
         }
 
+        // ✅ 12개 매개변수만 전달 (updatedAt 제외)
         return new InspectionRequest.AdminResponse(
                 inspection.getId(),
                 inspection.getUserId(),
@@ -505,51 +527,7 @@ public class InspectionService {
                 inspection.getIsReInspection(),
                 inspection.getInspectionDate(),
                 inspection.getCreatedAt()
+                // updatedAt 제거됨
         );
-    }
-
-    // ===== 유틸리티 메서드들 =====
-
-    /**
-     * 점호 통과율 계산
-     */
-    @Transactional(readOnly = true)
-    public double calculatePassRate() {
-        try {
-            long total = inspectionRepository.count();
-            if (total == 0) {
-                return 0.0;
-            }
-
-            long passed = inspectionRepository.findByStatusOrderByCreatedAtDesc("PASS").size();
-            return (double) passed / total * 100;
-
-        } catch (Exception e) {
-            logger.error("통과율 계산 중 오류 발생", e);
-            return 0.0;
-        }
-    }
-
-    /**
-     * 특정 날짜의 점호 통과율 계산
-     */
-    @Transactional(readOnly = true)
-    public double calculatePassRateByDate(String dateStr) {
-        try {
-            LocalDateTime date = LocalDateTime.parse(dateStr + " 00:00:00",
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            long total = inspectionRepository.countTotalInspectionsByDate(date);
-            if (total == 0) {
-                return 0.0;
-            }
-
-            long passed = inspectionRepository.countPassedInspectionsByDate(date);
-            return (double) passed / total * 100;
-
-        } catch (Exception e) {
-            logger.error("날짜별 통과율 계산 중 오류 발생 - 날짜: {}", dateStr, e);
-            return 0.0;
-        }
     }
 }
