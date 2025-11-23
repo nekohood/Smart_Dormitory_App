@@ -1,9 +1,10 @@
 class User {
   final String id;
-  final String? name; // 이름 (nullable)
-  final String? email; // 이메일 (nullable)
-  final String? phoneNumber; // 전화번호 (nullable)
-  final String? roomNumber; // 방 번호 (nullable)
+  final String? name;
+  final String? email;
+  final String? phoneNumber;
+  final String? dormitoryBuilding; // ✅ 거주 동 추가
+  final String? roomNumber;
   final bool isAdmin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -14,12 +15,12 @@ class User {
   final DateTime? passwordChangedAt;
   final int? loginAttempts;
 
-
   User({
     required this.id,
     this.name,
     this.email,
     this.phoneNumber,
+    this.dormitoryBuilding,
     this.roomNumber,
     required this.isAdmin,
     this.createdAt,
@@ -36,9 +37,10 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? '',
-      name: json['name'], // 서버에서 오는 그대로 받음
+      name: json['name'],
       email: json['email'],
       phoneNumber: json['phoneNumber'],
+      dormitoryBuilding: json['dormitoryBuilding'], // ✅ 거주 동 추가
       roomNumber: json['roomNumber'],
       isAdmin: json['isAdmin'] ?? false,
       createdAt: json['createdAt'] != null
@@ -67,6 +69,7 @@ class User {
       'name': name,
       'email': email,
       'phoneNumber': phoneNumber,
+      'dormitoryBuilding': dormitoryBuilding, // ✅ 거주 동 추가
       'roomNumber': roomNumber,
       'isAdmin': isAdmin,
       'createdAt': createdAt?.toIso8601String(),
@@ -82,6 +85,6 @@ class User {
 
   @override
   String toString() {
-    return 'User{id: $id, name: $name, isAdmin: $isAdmin}';
+    return 'User{id: $id, name: $name, dormitoryBuilding: $dormitoryBuilding, roomNumber: $roomNumber, isAdmin: $isAdmin}';
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../api/api_config.dart'; // ApiConfig 임포트
+import '../api/api_config.dart';
 import '../services/allowed_user_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -20,9 +20,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _dormitoryBuildingController = TextEditingController();
+  final TextEditingController _roomNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _roomNumberController = TextEditingController();
 
   bool _isAdmin = false;
   bool _isLoading = false;
@@ -35,13 +36,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
+    _dormitoryBuildingController.dispose();
+    _roomNumberController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _roomNumberController.dispose();
     super.dispose();
   }
 
-  // 서버 URL 설정 (ApiConfig 사용)
+  // 서버 URL 설정
   String get serverUrl => '${ApiConfig.baseUrl}/auth/register';
 
   // 이메일 형식 검증
@@ -52,6 +54,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // 전화번호 형식 검증
   bool _isValidPhone(String phone) {
     return RegExp(r'^[0-9-]{10,13}$').hasMatch(phone);
+  }
+
+  // 관리자 토글 시 거주 동/방 번호 자동 설정
+  void _toggleAdminMode(bool value) {
+    setState(() {
+      _isAdmin = value;
+
+      if (_isAdmin) {
+        // 관리자로 변경 시 자동으로 "관리실" 설정
+        _dormitoryBuildingController.text = "관리실";
+        _roomNumberController.text = "관리실";
+      } else {
+        // 일반 사용자로 변경 시 필드 초기화
+        _dormitoryBuildingController.clear();
+        _roomNumberController.clear();
+      }
+    });
   }
 
   // 회원가입 처리
@@ -65,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      // ✅ [신규] 일반 사용자인 경우 허용 목록 확인
+      // 일반 사용자인 경우 허용 목록 확인
       if (!_isAdmin) {
         print('[DEBUG] 허용 사용자 확인 중...');
         final isAllowed = await _allowedUserService.checkUserAllowed(_idController.text.trim());
@@ -96,18 +115,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
         print('[DEBUG] 허용된 학번 확인 완료');
       }
 
-      // 기존 회원가입 로직 계속 진행
+      // 회원가입 요청 데이터
       final requestData = {
         "id": _idController.text.trim(),
         "password": _passwordController.text.trim(),
+        "name": _nameController.text.trim(),
         "isAdmin": _isAdmin,
-        "name": _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
-        "email": _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        "phone": _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-        "roomNumber": _roomNumberController.text.trim().isEmpty ? null : _roomNumberController.text.trim(),
       };
 
-      print('🚀 회원가입 요청: ${requestData['id']}');
+      // 관리자가 아닌 경우에만 거주 동/방 번호 추가
+      if (!_isAdmin) {
+        requestData["dormitoryBuilding"] = _dormitoryBuildingController.text.trim();
+        requestData["roomNumber"] = _roomNumberController.text.trim();
+      }
+      // 관리자인 경우 백엔드에서 자동으로 "관리실" 설정됨
+
+      // 선택 정보 (값이 있는 경우에만 추가)
+      if (_emailController.text.trim().isNotEmpty) {
+        requestData["email"] = _emailController.text.trim();
+      }
+      if (_phoneController.text.trim().isNotEmpty) {
+        requestData["phoneNumber"] = _phoneController.text.trim();
+      }
+
+      print('🚀 회원가입 요청: ${requestData['id']} (관리자: $_isAdmin)');
       print('📡 서버 URL: $serverUrl');
 
       final response = await http.post(
@@ -122,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       print('📡 응답 상태: ${response.statusCode}');
       print('📝 응답 내용: ${response.body}');
 
-      if (response.statusCode == 200 || response.statusCode == 201) { // 201 Created도 성공으로 처리
+      if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           // 성공 다이얼로그 표시
           showDialog(
@@ -137,9 +168,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text('환영합니다!'),
                   SizedBox(height: 8),
                   Text(
-                    '${_idController.text.trim()}님의 계정이 성공적으로 생성되었습니다.',
+                    '${_nameController.text.trim()}님의 계정이 성공적으로 생성되었습니다.',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
+                  if (_isAdmin) ...[
+                    SizedBox(height: 8),
+                    Text(
+                      '관리자 계정으로 등록되었습니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange[700], fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ],
               ),
               actions: [
@@ -159,31 +197,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       } else {
-        // 서버에서 온 상세 오류 메시지 처리
+        // 서버 오류 메시지 처리
         final Map<String, dynamic> errorData = jsonDecode(response.body);
-        String errorMessage = "회원가입에 실패했습니다.";
+        String errorMessage = errorData['message'] ?? "회원가입에 실패했습니다.";
 
-        if (errorData.containsKey('error')) {
-          errorMessage = errorData['error'];
-        } else if (errorData.containsKey('message')) {
-          errorMessage = errorData['message'];
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: Icon(Icons.error, color: Colors.red, size: 48),
+              title: Text('회원가입 실패'),
+              content: Text(errorMessage),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('확인'),
+                ),
+              ],
+            ),
+          );
         }
-
-        _showErrorSnackBar(errorMessage);
       }
     } catch (e) {
       print('❌ 회원가입 오류: $e');
-
-      String errorMessage = '회원가입 실패';
-      if (e.toString().contains('Connection refused')) {
-        errorMessage = '서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.';
-      } else if (e.toString().contains('TimeoutException')) {
-        errorMessage = '서버 응답 시간이 초과되었습니다. 다시 시도해주세요.';
-      } else if (e.toString().contains('SocketException')) {
-        errorMessage = '네트워크 연결을 확인하세요.';
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: Icon(Icons.error, color: Colors.red, size: 48),
+            title: Text('오류 발생'),
+            content: Text('회원가입 중 오류가 발생했습니다.\n\n$e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('확인'),
+              ),
+            ],
+          ),
+        );
       }
-
-      _showErrorSnackBar(errorMessage);
     } finally {
       if (mounted) {
         setState(() {
@@ -193,71 +245,89 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // 에러 스낵바 표시
-  void _showErrorSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
-          action: SnackBarAction(
-            label: '확인',
-            textColor: Colors.white,
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
-          ),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // ... (UI 코드는 변경 없음)
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text('회원가입'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        foregroundColor: Colors.black,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 헤더 섹션
-                Icon(
-                  Icons.person_add,
-                  size: 64,
-                  color: Colors.blue,
-                ),
-                SizedBox(height: 16),
+                // 헤더
                 Text(
-                  'DormMate 회원가입',
-                  textAlign: TextAlign.center,
+                  '새 계정 만들기',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
                   ),
                 ),
+                SizedBox(height: 8),
                 Text(
                   '기숙사 관리 시스템에 오신 것을 환영합니다',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 32),
+
+                // 관리자 계정 체크박스 (맨 위로 이동)
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isAdmin ? Colors.orange[50] : Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isAdmin ? Colors.orange[200]! : Colors.blue[200]!,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isAdmin ? Icons.admin_panel_settings : Icons.person,
+                        color: _isAdmin ? Colors.orange : Colors.blue,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isAdmin ? '관리자 계정' : '일반 사용자',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: _isAdmin ? Colors.orange[900] : Colors.blue[900],
+                              ),
+                            ),
+                            Text(
+                              _isAdmin
+                                  ? '거주 호실이 "관리실"로 자동 설정됩니다'
+                                  : '거주 동과 방 번호를 입력해야 합니다',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _isAdmin,
+                        onChanged: _toggleAdminMode,
+                        activeColor: Colors.orange,
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(height: 32),
@@ -266,7 +336,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _buildSectionHeader('필수 정보', Icons.star, Colors.red),
                 SizedBox(height: 16),
 
-                // 학번/아이디
+                // 학번
                 _buildTextFormField(
                   controller: _idController,
                   label: '학번',
@@ -278,6 +348,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     if (value.trim().length < 3) {
                       return '학번은 3자 이상이어야 합니다';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+
+                // 이름
+                _buildTextFormField(
+                  controller: _nameController,
+                  label: '이름',
+                  hint: '실명을 입력하세요',
+                  prefixIcon: Icons.badge,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return '이름을 입력해주세요';
+                    }
+                    if (value.trim().length < 2) {
+                      return '이름은 2자 이상이어야 합니다';
                     }
                     return null;
                   },
@@ -336,25 +424,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 24),
-
-                // 선택 정보 섹션
-                _buildSectionHeader('선택 정보', Icons.info_outline, Colors.blue),
                 SizedBox(height: 16),
 
-                // 이름
+                // 거주 동 이름 (관리자가 아닌 경우에만 필수)
                 _buildTextFormField(
-                  controller: _nameController,
-                  label: '이름',
-                  hint: '실명을 입력하세요 (선택)',
-                  prefixIcon: Icons.badge,
+                  controller: _dormitoryBuildingController,
+                  label: _isAdmin ? '거주 동 (자동 설정)' : '거주 동 이름',
+                  hint: _isAdmin ? '관리실' : '예: A동, B동, 제1기숙사',
+                  prefixIcon: Icons.apartment,
+                  enabled: !_isAdmin, // 관리자는 수정 불가
                   validator: (value) {
-                    if (value != null && value.trim().isNotEmpty && value.trim().length < 2) {
-                      return '이름은 2자 이상이어야 합니다';
+                    if (!_isAdmin && (value == null || value.trim().isEmpty)) {
+                      return '거주 동 이름을 입력해주세요';
                     }
                     return null;
                   },
                 ),
+                SizedBox(height: 16),
+
+                // 방번호 (관리자가 아닌 경우에만 필수)
+                _buildTextFormField(
+                  controller: _roomNumberController,
+                  label: _isAdmin ? '방번호 (자동 설정)' : '방번호',
+                  hint: _isAdmin ? '관리실' : '예: 101호, 203호',
+                  prefixIcon: Icons.home,
+                  enabled: !_isAdmin, // 관리자는 수정 불가
+                  validator: (value) {
+                    if (!_isAdmin && (value == null || value.trim().isEmpty)) {
+                      return '방번호를 입력해주세요';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 24),
+
+                // 선택 정보 섹션
+                _buildSectionHeader('선택 정보', Icons.info_outline, Colors.blue),
                 SizedBox(height: 16),
 
                 // 이메일
@@ -387,69 +492,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 16),
-
-                // 방번호
-                _buildTextFormField(
-                  controller: _roomNumberController,
-                  label: '방번호',
-                  hint: '예: 101호, A동 203호 (선택)',
-                  prefixIcon: Icons.home,
-                ),
-                SizedBox(height: 24),
-
-                // 관리자 계정 체크박스
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.admin_panel_settings, color: Colors.orange),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '관리자 계정',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '관리자 권한이 필요한 경우에만 체크하세요',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: _isAdmin,
-                        onChanged: (value) {
-                          setState(() {
-                            _isAdmin = value;
-                          });
-                        },
-                        activeColor: Colors.orange,
-                      ),
-                    ],
-                  ),
-                ),
                 SizedBox(height: 32),
 
                 // 회원가입 버튼
                 ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: _isAdmin ? Colors.orange : Colors.blue,
                     foregroundColor: Colors.white,
                     minimumSize: Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(
@@ -530,6 +579,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required IconData prefixIcon,
     TextInputType? keyboardType,
     bool obscureText = false,
+    bool enabled = true,
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
@@ -537,12 +587,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      enabled: enabled,
       validator: validator,
+      style: TextStyle(
+        color: enabled ? Colors.black : Colors.grey[600],
+      ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(prefixIcon, color: Colors.grey[600]),
+        prefixIcon: Icon(prefixIcon, color: enabled ? Colors.grey[600] : Colors.grey[400]),
         suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -551,21 +607,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.red),
+          borderSide: BorderSide(color: Colors.red, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.red, width: 2),
         ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

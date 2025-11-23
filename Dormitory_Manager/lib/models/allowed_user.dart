@@ -2,33 +2,36 @@
 library;
 
 class AllowedUser {
-  final int id;
+  final int? id;
   final String userId;
   final String name;
+  final String? dormitoryBuilding; // ✅ 거주 동 추가
   final String? roomNumber;
   final String? phoneNumber;
   final String? email;
   final bool isRegistered;
   final DateTime? registeredAt;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   AllowedUser({
-    required this.id,
+    this.id,
     required this.userId,
     required this.name,
+    this.dormitoryBuilding,
     this.roomNumber,
     this.phoneNumber,
     this.email,
     required this.isRegistered,
     this.registeredAt,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory AllowedUser.fromJson(Map<String, dynamic> json) {
     return AllowedUser(
       id: json['id'],
-      userId: json['userId'],
-      name: json['name'],
+      userId: json['userId'] ?? '',
+      name: json['name'] ?? '',
+      dormitoryBuilding: json['dormitoryBuilding'], // ✅ 거주 동 추가
       roomNumber: json['roomNumber'],
       phoneNumber: json['phoneNumber'],
       email: json['email'],
@@ -36,8 +39,30 @@ class AllowedUser {
       registeredAt: json['registeredAt'] != null
           ? DateTime.parse(json['registeredAt'])
           : null,
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'name': name,
+      'dormitoryBuilding': dormitoryBuilding, // ✅ 거주 동 추가
+      'roomNumber': roomNumber,
+      'phoneNumber': phoneNumber,
+      'email': email,
+      'isRegistered': isRegistered,
+      'registeredAt': registeredAt?.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+
+  @override
+  String toString() {
+    return 'AllowedUser{userId: $userId, name: $name, dormitoryBuilding: $dormitoryBuilding, roomNumber: $roomNumber, isRegistered: $isRegistered}';
   }
 }
 
@@ -56,8 +81,8 @@ class AllowedUserListResponse {
 
   factory AllowedUserListResponse.fromJson(Map<String, dynamic> json) {
     return AllowedUserListResponse(
-      users: (json['users'] as List)
-          .map((e) => AllowedUser.fromJson(e))
+      users: (json['users'] as List<dynamic>)
+          .map((item) => AllowedUser.fromJson(item))
           .toList(),
       totalCount: json['totalCount'] ?? 0,
       registeredCount: json['registeredCount'] ?? 0,

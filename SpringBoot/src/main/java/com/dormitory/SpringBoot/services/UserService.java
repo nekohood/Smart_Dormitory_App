@@ -43,19 +43,21 @@ public class UserService {
 
     /**
      * 사용자 회원가입
+     * 관리자 계정: 거주 동/방 번호 자동으로 "관리실" 설정
+     * 일반 사용자: 입력받은 거주 동/방 번호 사용
      */
     public UserResponse register(RegisterRequest request) {
         try {
-            logger.info("회원가입 처리 시작 - 사용자ID: {}", request.getId());
+            logger.info("회원가입 처리 시작 - 사용자ID: {}, 관리자: {}", request.getId(), request.getIsAdmin());
 
             // 중복 체크
             if (userRepository.existsById(request.getId())) {
                 throw new RuntimeException("이미 존재하는 사용자 ID입니다: " + request.getId());
             }
 
-            // 이메일 중복 체크 (암호화 전 평문으로 체크) - 개선된 로직
+            // 이메일 중복 체크 (암호화 전 평문으로 체크)
             if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
-                String emailHash = SecurityUtils.hashUserId(request.getEmail().trim()); // 이메일을 해시
+                String emailHash = SecurityUtils.hashUserId(request.getEmail().trim());
                 if (userRepository.findByEmailHash(emailHash).isPresent()) {
                     throw new RuntimeException("이미 사용 중인 이메일입니다: " + request.getEmail());
                 }
@@ -70,23 +72,46 @@ public class UserService {
             user.setUpdatedAt(LocalDateTime.now());
             user.setIsActive(true);
 
-            // 개인정보 암호화 (필요한 경우)
+            // ✅ 필수 필드: 이름 암호화 저장
             if (request.getName() != null && !request.getName().trim().isEmpty()) {
                 user.setName(encryptionUtil.encrypt(request.getName()));
             }
+
+            // ✅ 관리자 여부에 따라 거주 동/방 번호 설정
+            if (Boolean.TRUE.equals(request.getIsAdmin())) {
+                // 관리자는 자동으로 "관리실" 설정
+                user.setDormitoryBuilding("관리실");
+                user.setRoomNumber("관리실");
+                logger.info("관리자 계정 - 거주 동/방 번호를 '관리실'로 자동 설정");
+            } else {
+                // 일반 사용자는 입력받은 값 사용 (필수)
+                if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
+                    user.setDormitoryBuilding(request.getDormitoryBuilding());
+                } else {
+                    throw new RuntimeException("일반 사용자는 거주 동을 입력해야 합니다.");
+                }
+
+                if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
+                    user.setRoomNumber(request.getRoomNumber());
+                } else {
+                    throw new RuntimeException("일반 사용자는 방 번호를 입력해야 합니다.");
+                }
+            }
+
+            // 선택 필드: 이메일
             if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
                 user.setEmail(encryptionUtil.encrypt(request.getEmail()));
-                user.setEmailHash(SecurityUtils.hashUserId(request.getEmail().trim())); // 해시값도 저장
+                user.setEmailHash(SecurityUtils.hashUserId(request.getEmail().trim()));
             }
+
+            // 선택 필드: 전화번호
             if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
                 user.setPhoneNumber(encryptionUtil.encrypt(request.getPhoneNumber()));
             }
-            if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
-                user.setRoomNumber(request.getRoomNumber());
-            }
 
             user = userRepository.save(user);
-            logger.info("회원가입 완료 - 사용자ID: {}", user.getId());
+            logger.info("회원가입 완료 - 사용자ID: {}, 거주 동: {}, 방 번호: {}",
+                    user.getId(), user.getDormitoryBuilding(), user.getRoomNumber());
 
             return convertToResponse(user);
 
@@ -161,6 +186,8 @@ public class UserService {
         }
     }
 
+// UserService.java의 updateUser 메서드를 아래 내용으로 교체하세요
+
     /**
      * 사용자 정보 수정
      */
@@ -177,10 +204,14 @@ public class UserService {
             }
             if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
                 user.setEmail(encryptionUtil.encrypt(request.getEmail()));
-                user.setEmailHash(SecurityUtils.hashUserId(request.getEmail().trim())); // 이메일 변경 시 해시도 업데이트
+                user.setEmailHash(SecurityUtils.hashUserId(request.getEmail().trim()));
             }
             if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
                 user.setPhoneNumber(encryptionUtil.encrypt(request.getPhoneNumber()));
+            }
+            // ✅ 거주 동 업데이트 추가
+            if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
+                user.setDormitoryBuilding(request.getDormitoryBuilding());
             }
             if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
                 user.setRoomNumber(request.getRoomNumber());
@@ -300,6 +331,7 @@ public class UserService {
             UserResponse response = new UserResponse();
             response.setId(user.getId());
             response.setIsAdmin(user.getIsAdmin());
+            response.setDormitoryBuilding(user.getDormitoryBuilding()); // ✅ 거주 동 추가
             response.setRoomNumber(user.getRoomNumber());
             response.setProfileImagePath(user.getProfileImagePath());
             response.setIsActive(user.getIsActive());
@@ -330,6 +362,7 @@ public class UserService {
             UserResponse response = new UserResponse();
             response.setId(user.getId());
             response.setIsAdmin(user.getIsAdmin());
+            response.setDormitoryBuilding(user.getDormitoryBuilding()); // ✅ 거주 동 추가
             response.setRoomNumber(user.getRoomNumber());
             response.setIsActive(user.getIsActive());
             response.setCreatedAt(user.getCreatedAt());

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 /**
- * 사용자 정보 응답 DTO - 완성된 버전
+ * 사용자 정보 응답 DTO - dormitoryBuilding 포함
  */
 public class UserResponse {
 
@@ -19,6 +19,9 @@ public class UserResponse {
 
     @JsonProperty("phoneNumber")
     private String phoneNumber;
+
+    @JsonProperty("dormitoryBuilding")
+    private String dormitoryBuilding;
 
     @JsonProperty("roomNumber")
     private String roomNumber;
@@ -54,14 +57,23 @@ public class UserResponse {
     public UserResponse() {}
 
     // 전체 생성자
-    public UserResponse(String id, String name, String email, Boolean isAdmin) {
+    public UserResponse(String id, String name, String email, String phoneNumber,
+                        String dormitoryBuilding, String roomNumber, Boolean isAdmin,
+                        String profileImagePath, Boolean isActive, Boolean isLocked,
+                        LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLoginAt) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.dormitoryBuilding = dormitoryBuilding;
+        this.roomNumber = roomNumber;
         this.isAdmin = isAdmin;
-        this.isActive = true;
-        this.isLocked = false;
-        this.loginAttempts = 0;
+        this.profileImagePath = profileImagePath;
+        this.isActive = isActive;
+        this.isLocked = isLocked;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.lastLoginAt = lastLoginAt;
     }
 
     // Getter/Setter 메서드들
@@ -95,6 +107,14 @@ public class UserResponse {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
     }
 
     public String getRoomNumber() {
@@ -183,6 +203,7 @@ public class UserResponse {
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
                 ", roomNumber='" + roomNumber + '\'' +
                 ", isAdmin=" + isAdmin +
                 ", isActive=" + isActive +

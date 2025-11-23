@@ -16,9 +16,22 @@ public class AllowedUserRequest {
     public static class AddUserRequest {
         private String userId;
         private String name;
+        private String dormitoryBuilding;
         private String roomNumber;
         private String phoneNumber;
         private String email;
+
+        public AddUserRequest() {}
+
+        public AddUserRequest(String userId, String name, String dormitoryBuilding,
+                              String roomNumber, String phoneNumber, String email) {
+            this.userId = userId;
+            this.name = name;
+            this.dormitoryBuilding = dormitoryBuilding;
+            this.roomNumber = roomNumber;
+            this.phoneNumber = phoneNumber;
+            this.email = email;
+        }
 
         public String getUserId() {
             return userId;
@@ -34,6 +47,14 @@ public class AllowedUserRequest {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getDormitoryBuilding() {
+            return dormitoryBuilding;
+        }
+
+        public void setDormitoryBuilding(String dormitoryBuilding) {
+            this.dormitoryBuilding = dormitoryBuilding;
         }
 
         public String getRoomNumber() {
@@ -113,31 +134,33 @@ public class AllowedUserRequest {
     }
 
     /**
-     * 허용된 사용자 응답
+     * 허용 사용자 응답
      */
     public static class AllowedUserResponse {
         private Long id;
         private String userId;
         private String name;
+        private String dormitoryBuilding;
         private String roomNumber;
         private String phoneNumber;
         private String email;
         private Boolean isRegistered;
-        
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime registeredAt;
-        
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime createdAt;
 
         public AllowedUserResponse() {}
 
-        public AllowedUserResponse(Long id, String userId, String name, String roomNumber, 
-                                  String phoneNumber, String email, Boolean isRegistered, 
-                                  LocalDateTime registeredAt, LocalDateTime createdAt) {
+        public AllowedUserResponse(Long id, String userId, String name, String dormitoryBuilding,
+                                   String roomNumber, String phoneNumber, String email,
+                                   Boolean isRegistered, LocalDateTime registeredAt, LocalDateTime createdAt) {
             this.id = id;
             this.userId = userId;
             this.name = name;
+            this.dormitoryBuilding = dormitoryBuilding;
             this.roomNumber = roomNumber;
             this.phoneNumber = phoneNumber;
             this.email = email;
@@ -169,6 +192,14 @@ public class AllowedUserRequest {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getDormitoryBuilding() {
+            return dormitoryBuilding;
+        }
+
+        public void setDormitoryBuilding(String dormitoryBuilding) {
+            this.dormitoryBuilding = dormitoryBuilding;
         }
 
         public String getRoomNumber() {
@@ -221,7 +252,7 @@ public class AllowedUserRequest {
     }
 
     /**
-     * 허용된 사용자 목록 응답
+     * 허용 사용자 목록 응답
      */
     public static class AllowedUserListResponse {
         private List<AllowedUserResponse> users;
@@ -231,8 +262,8 @@ public class AllowedUserRequest {
 
         public AllowedUserListResponse() {}
 
-        public AllowedUserListResponse(List<AllowedUserResponse> users, long totalCount, 
-                                      long registeredCount, long unregisteredCount) {
+        public AllowedUserListResponse(List<AllowedUserResponse> users, long totalCount,
+                                       long registeredCount, long unregisteredCount) {
             this.users = users;
             this.totalCount = totalCount;
             this.registeredCount = registeredCount;

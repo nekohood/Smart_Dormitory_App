@@ -18,6 +18,9 @@ public class UpdateUserRequest {
     @JsonProperty("phoneNumber")
     private String phoneNumber;
 
+    @JsonProperty("dormitoryBuilding")
+    private String dormitoryBuilding;
+
     @JsonProperty("roomNumber")
     private String roomNumber;
 
@@ -49,6 +52,14 @@ public class UpdateUserRequest {
         this.phoneNumber = phoneNumber;
     }
 
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
+    }
+
     public String getRoomNumber() {
         return roomNumber;
     }
@@ -63,6 +74,7 @@ public class UpdateUserRequest {
                 "name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", phoneNumber='" + phoneNumber + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
                 ", roomNumber='" + roomNumber + '\'' +
                 '}';
     }

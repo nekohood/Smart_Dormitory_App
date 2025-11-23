@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,7 +31,7 @@ public class AllowedUserService {
 
     /**
      * 엑셀 파일로부터 허용 사용자 목록 업로드
-     * 예상 엑셀 형식: 학번(userId) | 이름 | 호실 | 전화번호 | 이메일
+     * 예상 엑셀 형식: 학번(userId) | 이름 | 거주 동 | 방 번호 | 전화번호 | 이메일
      */
     public AllowedUserRequest.UploadResponse uploadAllowedUsersFromExcel(MultipartFile file) {
         logger.info("엑셀 파일 업로드 시작 - 파일명: {}", file.getOriginalFilename());
@@ -44,7 +43,7 @@ public class AllowedUserService {
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            
+
             // 첫 번째 행은 헤더이므로 건너뜀
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -53,12 +52,13 @@ public class AllowedUserService {
                 totalCount++;
 
                 try {
-                    // 엑셀에서 데이터 읽기
+                    // 엑셀에서 데이터 읽기 (컬럼 순서: 학번, 이름, 거주 동, 방 번호, 전화번호, 이메일)
                     String userId = getCellValueAsString(row.getCell(0));
                     String name = getCellValueAsString(row.getCell(1));
-                    String roomNumber = getCellValueAsString(row.getCell(2));
-                    String phoneNumber = getCellValueAsString(row.getCell(3));
-                    String email = getCellValueAsString(row.getCell(4));
+                    String dormitoryBuilding = getCellValueAsString(row.getCell(2));
+                    String roomNumber = getCellValueAsString(row.getCell(3));
+                    String phoneNumber = getCellValueAsString(row.getCell(4));
+                    String email = getCellValueAsString(row.getCell(5));
 
                     // 필수 필드 검증
                     if (userId == null || userId.trim().isEmpty()) {
@@ -73,6 +73,18 @@ public class AllowedUserService {
                         continue;
                     }
 
+                    if (dormitoryBuilding == null || dormitoryBuilding.trim().isEmpty()) {
+                        errors.add("행 " + (i + 1) + ": 거주 동이 비어있습니다.");
+                        failCount++;
+                        continue;
+                    }
+
+                    if (roomNumber == null || roomNumber.trim().isEmpty()) {
+                        errors.add("행 " + (i + 1) + ": 방 번호가 비어있습니다.");
+                        failCount++;
+                        continue;
+                    }
+
                     // 중복 확인
                     if (allowedUserRepository.existsByUserId(userId)) {
                         errors.add("행 " + (i + 1) + ": 이미 등록된 학번입니다 - " + userId);
@@ -82,11 +94,12 @@ public class AllowedUserService {
 
                     // AllowedUser 생성 및 저장
                     AllowedUser allowedUser = new AllowedUser(
-                        userId.trim(),
-                        name.trim(),
-                        roomNumber != null ? roomNumber.trim() : null,
-                        phoneNumber != null ? phoneNumber.trim() : null,
-                        email != null ? email.trim() : null
+                            userId.trim(),
+                            name.trim(),
+                            dormitoryBuilding.trim(),
+                            roomNumber.trim(),
+                            phoneNumber != null ? phoneNumber.trim() : null,
+                            email != null ? email.trim() : null
                     );
 
                     allowedUserRepository.save(allowedUser);
@@ -121,11 +134,12 @@ public class AllowedUserService {
         }
 
         AllowedUser allowedUser = new AllowedUser(
-            request.getUserId(),
-            request.getName(),
-            request.getRoomNumber(),
-            request.getPhoneNumber(),
-            request.getEmail()
+                request.getUserId(),
+                request.getName(),
+                request.getDormitoryBuilding(),
+                request.getRoomNumber(),
+                request.getPhoneNumber(),
+                request.getEmail()
         );
 
         AllowedUser saved = allowedUserRepository.save(allowedUser);
@@ -139,20 +153,20 @@ public class AllowedUserService {
      */
     public AllowedUserRequest.AllowedUserListResponse getAllAllowedUsers() {
         List<AllowedUser> users = allowedUserRepository.findAll();
-        
+
         List<AllowedUserRequest.AllowedUserResponse> userResponses = users.stream()
-            .map(this::convertToResponse)
-            .collect(Collectors.toList());
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
 
         long totalCount = allowedUserRepository.count();
         long registeredCount = allowedUserRepository.countByIsRegisteredTrue();
         long unregisteredCount = allowedUserRepository.countByIsRegisteredFalse();
 
         return new AllowedUserRequest.AllowedUserListResponse(
-            userResponses,
-            totalCount,
-            registeredCount,
-            unregisteredCount
+                userResponses,
+                totalCount,
+                registeredCount,
+                unregisteredCount
         );
     }
 
@@ -161,8 +175,8 @@ public class AllowedUserService {
      */
     public AllowedUserRequest.AllowedUserResponse getAllowedUser(String userId) {
         AllowedUser user = allowedUserRepository.findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
-        
+                .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
+
         return convertToResponse(user);
     }
 
@@ -181,7 +195,7 @@ public class AllowedUserService {
         logger.info("사용자 등록 완료 처리 - 학번: {}", userId);
 
         AllowedUser user = allowedUserRepository.findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
+                .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
 
         user.markAsRegistered();
         allowedUserRepository.save(user);
@@ -194,7 +208,7 @@ public class AllowedUserService {
         logger.info("허용 사용자 삭제 - 학번: {}", userId);
 
         AllowedUser user = allowedUserRepository.findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
+                .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
 
         // 이미 등록된 사용자는 삭제 불가
         if (user.getIsRegistered()) {
@@ -210,15 +224,16 @@ public class AllowedUserService {
      */
     private AllowedUserRequest.AllowedUserResponse convertToResponse(AllowedUser user) {
         return new AllowedUserRequest.AllowedUserResponse(
-            user.getId(),
-            user.getUserId(),
-            user.getName(),
-            user.getRoomNumber(),
-            user.getPhoneNumber(),
-            user.getEmail(),
-            user.getIsRegistered(),
-            user.getRegisteredAt(),
-            user.getCreatedAt()
+                user.getId(),
+                user.getUserId(),
+                user.getName(),
+                user.getDormitoryBuilding(),
+                user.getRoomNumber(),
+                user.getPhoneNumber(),
+                user.getEmail(),
+                user.getIsRegistered(),
+                user.getRegisteredAt(),
+                user.getCreatedAt()
         );
     }
 

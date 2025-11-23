@@ -8,7 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 사용자 정보를 저장하는 엔티티 - DB 스키마 완전 동기화 버전
+ * 사용자 정보를 저장하는 엔티티 - 거주 동 필드 추가
  */
 @Entity
 @Table(name = "users")
@@ -34,7 +34,10 @@ public class User {
     @Column(name = "phone_encrypted", length = 255)
     private String phoneNumber;
 
-    @Column(name = "room_number", length = 20) // DB에 room_number_encrypted가 있지만, 코드는 room_number를 사용중이므로 우선 유지
+    @Column(name = "dormitory_building", length = 50)
+    private String dormitoryBuilding;
+
+    @Column(name = "room_number", length = 20)
     private String roomNumber;
 
     @Column(name = "is_admin", nullable = false)
@@ -84,8 +87,6 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // ... (이하 Getter, Setter 및 다른 메서드들은 변경 없음) ...
-
     // 기본 생성자
     public User() {}
 
@@ -98,12 +99,13 @@ public class User {
 
     // 전체 생성자
     public User(String id, String password, String name, String email,
-                String phoneNumber, String roomNumber, Boolean isAdmin) {
+                String phoneNumber, String dormitoryBuilding, String roomNumber, Boolean isAdmin) {
         this.id = id;
         this.password = password;
         this.name = name;
         this.email = email;
         this.phoneNumber = phoneNumber;
+        this.dormitoryBuilding = dormitoryBuilding;
         this.roomNumber = roomNumber;
         this.isAdmin = isAdmin != null ? isAdmin : false;
     }
@@ -156,6 +158,14 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
     }
 
     public String getRoomNumber() {
@@ -294,7 +304,7 @@ public class User {
     }
 
     /**
-     * 로그인 성공 시 호출 - 에러 해결을 위해 추가
+     * 로그인 성공 시 호출
      */
     public void onLoginSuccess() {
         this.lastLoginAt = LocalDateTime.now();
@@ -304,7 +314,7 @@ public class User {
     }
 
     /**
-     * 로그인 시도 횟수 초기화 (기존 메서드)
+     * 로그인 시도 횟수 초기화
      */
     public void resetLoginAttempts() {
         this.loginAttempts = 0;
@@ -314,7 +324,7 @@ public class User {
     }
 
     /**
-     * 계정이 잠겨있는지 확인 - 에러 해결을 위해 추가
+     * 계정이 잠겨있는지 확인
      */
     public boolean isAccountLocked() {
         if (!Boolean.TRUE.equals(this.isLocked)) {
@@ -349,7 +359,7 @@ public class User {
     }
 
     /**
-     * 계정이 현재 잠겨있는지 확인 (기존 메서드)
+     * 계정이 현재 잠겨있는지 확인
      */
     public boolean isCurrentlyLocked() {
         return isAccountLocked();
@@ -371,8 +381,8 @@ public class User {
     public String toString() {
         return "User{" +
                 "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
+                ", name='" + (name != null ? "[암호화됨]" : "null") + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
                 ", roomNumber='" + roomNumber + '\'' +
                 ", isAdmin=" + isAdmin +
                 ", isActive=" + isActive +

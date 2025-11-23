@@ -26,6 +26,9 @@ public class AllowedUser {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Column(name = "dormitory_building", length = 50)
+    private String dormitoryBuilding;
+
     @Column(name = "room_number", length = 20)
     private String roomNumber;
 
@@ -53,9 +56,10 @@ public class AllowedUser {
     public AllowedUser() {}
 
     // 전체 생성자
-    public AllowedUser(String userId, String name, String roomNumber, String phoneNumber, String email) {
+    public AllowedUser(String userId, String name, String dormitoryBuilding, String roomNumber, String phoneNumber, String email) {
         this.userId = userId;
         this.name = name;
+        this.dormitoryBuilding = dormitoryBuilding;
         this.roomNumber = roomNumber;
         this.phoneNumber = phoneNumber;
         this.email = email;
@@ -85,6 +89,14 @@ public class AllowedUser {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
     }
 
     public String getRoomNumber() {
@@ -144,10 +156,22 @@ public class AllowedUser {
     }
 
     /**
-     * 사용자 등록 완료 처리
+     * 회원가입 완료 처리
      */
     public void markAsRegistered() {
         this.isRegistered = true;
         this.registeredAt = LocalDateTime.now();
+    }
+
+    @Override
+    public String toString() {
+        return "AllowedUser{" +
+                "id=" + id +
+                ", userId='" + userId + '\'' +
+                ", name='" + name + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
+                ", roomNumber='" + roomNumber + '\'' +
+                ", isRegistered=" + isRegistered +
+                '}';
     }
 }
