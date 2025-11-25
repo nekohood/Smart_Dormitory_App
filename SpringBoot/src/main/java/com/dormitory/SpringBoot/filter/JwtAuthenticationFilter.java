@@ -136,6 +136,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/uploads") ||
+                path.startsWith("/api/allowed-users/check/") ||  // ✅ 학번 허용 확인 (회원가입 시)
                 path.equals("/favicon.ico");
 
         if (shouldSkip) {

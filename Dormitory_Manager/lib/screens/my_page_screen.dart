@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../api/dio_client.dart';
 import '../data/user_repository.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
+import '../services/allowed_user_service.dart';
+import 'admin_allowed_users_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -13,6 +16,7 @@ class MyPageScreen extends StatefulWidget {
 
 class _MyPageScreenState extends State<MyPageScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final AllowedUserService _allowedUserService = AllowedUserService();
 
   // 사용자 정보 수정용 컨트롤러들
   final TextEditingController _nameController = TextEditingController();
@@ -32,6 +36,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isUploadingExcel = false;
 
   @override
   void initState() {
@@ -62,8 +67,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
       if (mounted) {
         setState(() {
           _user = user;
-          // User 모델이 개인정보를 포함하도록 확장되었다고 가정
-          // 만약 User 모델에 해당 필드가 없다면, User.fromJson을 수정해야 합니다.
           _nameController.text = user.name ?? '';
           _emailController.text = user.email ?? '';
           _phoneController.text = user.phoneNumber ?? '';
@@ -103,11 +106,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
       if (mounted) {
         setState(() {
-          _user = updatedUser; // 업데이트된 정보로 교체
+          _user = updatedUser;
           _isEditing = false;
         });
         _showSuccessSnackBar('개인정보가 성공적으로 업데이트되었습니다.');
-        await _loadUserInfo(); // 화면 데이터 새로고침
+        await _loadUserInfo();
       }
     } catch (e) {
       if (mounted) {
@@ -138,7 +141,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
       _isLoading = true;
     });
     try {
-      // DioClient를 직접 사용하여 비밀번호 변경 API 호출
       await DioClient.put(
         '/users/me/password',
         data: {
@@ -198,6 +200,267 @@ class _MyPageScreenState extends State<MyPageScreen> {
     }
   }
 
+  // ===============================================
+  // 관리자 전용: 엑셀 파일 업로드
+  // ===============================================
+  Future<void> _uploadStudentExcel() async {
+    try {
+      // 파일 선택
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+
+      if (result == null) return;
+
+      setState(() {
+        _isUploadingExcel = true;
+      });
+
+      // 파일 업로드
+      final uploadResult = await _allowedUserService.uploadExcelFile(result.files.first);
+
+      // 결과 다이얼로그 표시
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('업로드 결과'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildUploadResultRow('전체', uploadResult.totalCount, Colors.blue),
+                SizedBox(height: 8),
+                _buildUploadResultRow('성공', uploadResult.successCount, Colors.green),
+                SizedBox(height: 8),
+                _buildUploadResultRow('실패', uploadResult.failCount, Colors.red),
+                if (uploadResult.errors.isNotEmpty) ...[
+                  SizedBox(height: 16),
+                  Text('오류 내역:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: uploadResult.errors.map((error) =>
+                            Padding(
+                              padding: EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '• $error',
+                                style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                              ),
+                            )
+                        ).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
+
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('엑셀 파일 업로드 실패: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingExcel = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildUploadResultRow(String label, int count, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(fontSize: 16)),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '$count건',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 엑셀 양식 안내 다이얼로그
+  void _showExcelFormatGuide() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('엑셀 양식 안내'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '엑셀 파일(.xlsx)의 첫 번째 시트에 다음 형식으로 데이터를 입력해주세요:',
+                style: TextStyle(fontSize: 14),
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('컬럼 순서:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    _buildColumnInfo('A열', '학번 *', '필수'),
+                    _buildColumnInfo('B열', '이름 *', '필수'),
+                    _buildColumnInfo('C열', '거주 동', '선택'),
+                    _buildColumnInfo('D열', '호실 번호', '선택'),
+                    _buildColumnInfo('E열', '전화번호', '선택'),
+                    _buildColumnInfo('F열', '이메일', '선택'),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '첫 번째 행은 헤더로 인식되어 건너뜁니다.',
+                        style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '예시:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.blue.withOpacity(0.1)),
+                  columnSpacing: 12,
+                  columns: [
+                    DataColumn(label: Text('학번', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('이름', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('거주동', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('호실', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('전화번호', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('이메일', style: TextStyle(fontSize: 12))),
+                  ],
+                  rows: [
+                    DataRow(cells: [
+                      DataCell(Text('20231234', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('홍길동', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('A동', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('101', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('010-1234-5678', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('hong@univ.ac.kr', style: TextStyle(fontSize: 11))),
+                    ]),
+                    DataRow(cells: [
+                      DataCell(Text('20235678', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('김철수', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('B동', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('205', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('010-8765-4321', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('kim@univ.ac.kr', style: TextStyle(fontSize: 11))),
+                    ]),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColumnInfo(String column, String name, String required) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            child: Text(column, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+          Expanded(child: Text(name, style: TextStyle(fontSize: 13))),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: required == '필수' ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              required,
+              style: TextStyle(
+                fontSize: 10,
+                color: required == '필수' ? Colors.red : Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
   }
@@ -212,6 +475,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   bool _isValidPhone(String phone) {
     return RegExp(r'^[0-9-]{10,13}$').hasMatch(phone);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -283,6 +550,90 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
             ),
             SizedBox(height: 24),
+
+            // ===============================================
+            // 관리자 전용: 학생 관리 섹션
+            // ===============================================
+            if (_user!.isAdmin) ...[
+              _buildSectionCard(
+                title: '학생 관리',
+                icon: Icons.people_outline,
+                iconColor: Colors.purple,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '학생 명단을 엑셀 파일로 업로드하여 가입 허용 목록을 관리할 수 있습니다.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    SizedBox(height: 16),
+
+                    // 엑셀 업로드 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isUploadingExcel ? null : _uploadStudentExcel,
+                        icon: _isUploadingExcel
+                            ? SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                        )
+                            : Icon(Icons.upload_file),
+                        label: Text(_isUploadingExcel ? '업로드 중...' : '학생 명단 엑셀 업로드'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    // 양식 안내 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _showExcelFormatGuide,
+                        icon: Icon(Icons.info_outline),
+                        label: Text('엑셀 양식 안내'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.purple,
+                          side: BorderSide(color: Colors.purple),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    // 허용 사용자 관리 화면으로 이동
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AdminAllowedUsersScreen()),
+                          );
+                        },
+                        icon: Icon(Icons.manage_accounts),
+                        label: Text('허용 사용자 목록 관리'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.purple,
+                          side: BorderSide(color: Colors.purple),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+            ],
+
             // 개인정보 섹션
             _buildSectionCard(
               title: '개인정보',
@@ -362,7 +713,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   // 섹션 카드 위젯
-  Widget _buildSectionCard({required String title, required IconData icon, required Widget child}) {
+  Widget _buildSectionCard({required String title, required IconData icon, required Widget child, Color? iconColor}) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20),
@@ -376,7 +727,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: Colors.blue),
+              Icon(icon, size: 20, color: iconColor ?? Colors.blue),
               SizedBox(width: 8),
               Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             ],
@@ -403,7 +754,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue, width: 2)),
         disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
         filled: true,
-        fillColor: enabled ? Colors.white : Colors.grey[50],
+        fillColor: enabled ? Colors.white : Colors.grey[100],
       ),
     );
   }
@@ -416,32 +767,24 @@ class _MyPageScreenState extends State<MyPageScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
-        suffixIcon: IconButton(
-          icon: Icon(obscureText ? Icons.visibility : Icons.visibility_off),
-          onPressed: onToggleVisibility,
-        ),
+        suffixIcon: IconButton(icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.grey[600]), onPressed: onToggleVisibility),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue, width: 2)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.orange, width: 2)),
         filled: true,
         fillColor: Colors.white,
       ),
     );
   }
 
-  // 정보 행 위젯
+  // 정보 표시 행
   Widget _buildInfoRow(String label, String value) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SizedBox(width: 100, child: Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14))),
-        Expanded(child: Text(value, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       ],
     );
-  }
-
-  // 날짜 포맷팅
-  String _formatDate(DateTime date) {
-    return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 }

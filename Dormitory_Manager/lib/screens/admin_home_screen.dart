@@ -3,8 +3,11 @@ import 'package:intl/intl.dart';
 import '../models/inspection.dart';
 import '../services/inspection_service.dart';
 
-// ⭐ [신규] 관리자 일정 화면 임포트
+// ✅ 화면 임포트
 import 'admin_schedule_screen.dart';
+import 'admin_inspection_screen.dart';
+import 'admin_complaint_screen.dart';
+import 'admin_document_screen.dart';
 
 /// 관리자 전용 홈 화면
 class AdminHomeScreen extends StatefulWidget {
@@ -24,13 +27,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // DioClient가 자동으로 토큰을 관리하므로 _initializeService() 제거
     _loadDashboardData();
   }
 
-  /// 대시보드 데이터 로드 (✅ 수정됨)
+  /// 대시보드 데이터 로드
   Future<void> _loadDashboardData() async {
-    if (!mounted) return; // ✅ mounted 체크
+    if (!mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -39,7 +41,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     try {
       print('[DEBUG] 관리자 대시보드: 데이터 로드 시작');
 
-      // ✅ 수정: InspectionStatisticsResponse와 InspectionListResponse 반환
       final statsResponse = await _inspectionService.getInspectionStatistics(
         date: DateTime.now(),
       );
@@ -48,15 +49,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         DateTime.now(),
       );
 
-      if (!mounted) return; // ✅ 비동기 작업 후 mounted 체크
+      if (!mounted) return;
 
       setState(() {
-        // InspectionStatisticsResponse에서 statistics 추출
         if (statsResponse.success) {
           _todayStats = statsResponse.statistics;
         }
 
-        // ✅ InspectionListResponse에서 inspections 리스트 추출
         if (todayResponse.success) {
           _recentInspections = todayResponse.inspections.take(5).toList();
         }
@@ -70,7 +69,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     } catch (e) {
       print('[ERROR] 관리자 대시보드 데이터 로드 실패: $e');
 
-      if (mounted) { // ✅ mounted 체크
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -101,16 +100,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ],
       ),
       body: _isLoading
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('데이터를 불러오는 중...'),
-          ],
-        ),
-      )
+          ? Center(child: CircularProgressIndicator())
           : RefreshIndicator(
         onRefresh: _loadDashboardData,
         child: SingleChildScrollView(
@@ -119,13 +109,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWelcomeCard(),
-              SizedBox(height: 16),
               _buildTodayStatsCard(),
               SizedBox(height: 16),
-              _buildRecentInspectionsCard(),
-              SizedBox(height: 16),
               _buildQuickActionsCard(),
+              SizedBox(height: 16),
+              _buildRecentInspectionsCard(),
             ],
           ),
         ),
@@ -133,64 +121,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  /// 환영 카드
-  Widget _buildWelcomeCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue, Colors.blue.shade700],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
-                SizedBox(width: 12),
-                Text(
-                  '관리자 대시보드',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR').format(DateTime.now()),
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 오늘 통계 카드
+  /// 오늘의 통계 카드
   Widget _buildTodayStatsCard() {
     if (_todayStats == null) {
       return Card(
         elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(24),
           child: Center(
-            child: Text('통계 정보를 불러올 수 없습니다.'),
+            child: Text(
+              '통계 데이터가 없습니다.',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           ),
         ),
       );
@@ -311,8 +256,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // 전체 점호 목록으로 이동
-                    // Navigator.pushNamed(context, '/admin/inspections');
+                    // ✅ 점호 관리 화면으로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminInspectionScreen(),
+                      ),
+                    );
                   },
                   child: Text('전체보기'),
                 ),
@@ -429,30 +379,49 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               crossAxisSpacing: 12,
               childAspectRatio: 2.5,
               children: [
+                // ✅ 점호 관리 버튼 - 연결됨
                 _buildQuickActionButton(
                   '점호 관리',
                   Icons.assignment_turned_in,
                   Colors.blue,
                       () {
-                    // Navigator.pushNamed(context, '/admin/inspections');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminInspectionScreen(),
+                      ),
+                    );
                   },
                 ),
+                // ✅ 민원 현황 버튼 - 연결됨
                 _buildQuickActionButton(
                   '민원 현황',
                   Icons.report_problem,
                   Colors.orange,
                       () {
-                    // Navigator.pushNamed(context, '/admin/complaints');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminComplaintScreen(),
+                      ),
+                    );
                   },
                 ),
+                // ✅ 서류 관리 버튼 - 연결됨
                 _buildQuickActionButton(
                   '서류 관리',
                   Icons.description,
                   Colors.green,
                       () {
-                    // Navigator.pushNamed(context, '/admin/documents');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminDocumentScreen(),
+                      ),
+                    );
                   },
                 ),
+                // ✅ 일정 관리 버튼 - 이미 연결됨
                 _buildQuickActionButton(
                   '일정 관리',
                   Icons.calendar_today,

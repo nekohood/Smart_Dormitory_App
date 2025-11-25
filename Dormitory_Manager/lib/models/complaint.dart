@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../api/api_config.dart'; // ApiConfig 임포트
+import '../api/api_config.dart';
 
+/// 민원 모델 클래스
 class Complaint {
   final int id;
   final String title;
@@ -8,10 +9,10 @@ class Complaint {
   final String category;
   final String writerId;
   final String? writerName;
-  final String? dormitoryBuilding; // ✅ 기숙사 거주 동 (자동 기입)
-  final String? roomNumber; // ✅ 방 번호 (자동 기입)
+  final String? dormitoryBuilding;
+  final String? roomNumber;
   final String? imagePath;
-  final String status; // 대기, 처리중, 완료, 반려
+  final String status;
   final String? adminComment;
   final DateTime submittedAt;
   final DateTime? processedAt;
@@ -40,11 +41,11 @@ class Complaint {
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      category: json['category'] ?? '',
+      category: json['category'] ?? '기타',
       writerId: json['writerId'] ?? '',
       writerName: json['writerName'],
-      dormitoryBuilding: json['dormitoryBuilding'], // ✅ 거주 동 파싱
-      roomNumber: json['roomNumber'], // ✅ 방 번호 파싱
+      dormitoryBuilding: json['dormitoryBuilding'],
+      roomNumber: json['roomNumber'],
       imagePath: json['imagePath'],
       status: json['status'] ?? '대기',
       adminComment: json['adminComment'],
@@ -69,8 +70,8 @@ class Complaint {
       'category': category,
       'writerId': writerId,
       'writerName': writerName,
-      'dormitoryBuilding': dormitoryBuilding, // ✅ 거주 동 직렬화
-      'roomNumber': roomNumber, // ✅ 방 번호 직렬화
+      'dormitoryBuilding': dormitoryBuilding,
+      'roomNumber': roomNumber,
       'imagePath': imagePath,
       'status': status,
       'adminComment': adminComment,
@@ -81,7 +82,7 @@ class Complaint {
   }
 
   // =============================================================================
-  // Getter 메서드들 (기존 프로젝트와 호환)
+  // Getter 메서드들
   // =============================================================================
 
   // 상태별 색상 반환
@@ -116,13 +117,26 @@ class Complaint {
     }
   }
 
-  // 이미지 URL 생성 (ApiConfig 사용)
+  // ✅ 이미지 URL 생성 (개선된 버전)
   String? get imageUrl {
-    if (imagePath == null || imagePath!.isEmpty) return null;
+    if (imagePath == null || imagePath!.isEmpty) {
+      print('[DEBUG] Complaint imageUrl: imagePath is null or empty');
+      return null;
+    }
+
     // ApiConfig.baseUrl에서 '/api' 부분을 제거하여 순수 호스트 주소를 만듭니다.
     final hostUrl = ApiConfig.baseUrl.replaceAll('/api', '');
-    // 서버의 상대 경로를 절대 URL로 변환합니다.
-    return '$hostUrl/$imagePath';
+
+    // imagePath가 이미 '/'로 시작하면 그대로 사용, 아니면 '/' 추가
+    String normalizedPath = imagePath!;
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/$normalizedPath';
+    }
+
+    final fullUrl = '$hostUrl$normalizedPath';
+    print('[DEBUG] Complaint imageUrl: imagePath=$imagePath, fullUrl=$fullUrl');
+
+    return fullUrl;
   }
 
   // 제출일로부터 경과 시간 문자열
@@ -164,10 +178,10 @@ class Complaint {
     return status == '완료' || status == '반려';
   }
 
-  // ✅ 거주 정보 존재 여부 확인
+  // 거주 정보 존재 여부 확인
   bool get hasLocationInfo => dormitoryBuilding != null && roomNumber != null;
 
-  // ✅ 거주 정보 포맷팅 (예: "A동 301호")
+  // 거주 정보 포맷팅 (예: "A동 301호")
   String? get formattedLocation {
     if (dormitoryBuilding != null && roomNumber != null) {
       return '$dormitoryBuilding $roomNumber호';
@@ -212,7 +226,7 @@ class Complaint {
 
   @override
   String toString() {
-    return 'Complaint{id: $id, title: $title, writerId: $writerId, status: $status, dormitoryBuilding: $dormitoryBuilding, roomNumber: $roomNumber}';
+    return 'Complaint{id: $id, title: $title, status: $status, imagePath: $imagePath}';
   }
 
   @override

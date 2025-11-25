@@ -12,6 +12,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 
 // CORS 관련 클래스 임포트
 import org.springframework.web.cors.CorsConfiguration;
@@ -34,6 +38,26 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * ✅ 역할 계층 설정 - ADMIN은 USER의 모든 권한을 자동으로 포함
+     * Spring Security 6.x 권장 방식 사용
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        // ROLE_ADMIN은 ROLE_USER의 모든 권한을 상속받음
+        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_USER");
+    }
+
+    /**
+     * ✅ 메서드 보안 표현식 핸들러 - 역할 계층 적용
+     */
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
     }
 
     /**
@@ -87,11 +111,17 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()  // Swagger
                         .requestMatchers("/uploads/**").permitAll()  // 파일 업로드
 
+                        // ✅ 학번 허용 여부 확인 (회원가입 시 사용 - 인증 불필요)
+                        .requestMatchers("/api/allowed-users/check/**").permitAll()
+
                         // ✅ 민원 제출 허용 (JWT 필터에서 인증 확인, 컨트롤러에서 권한 확인)
                         .requestMatchers("/api/complaints").permitAll()
 
                         // ✅ 서류 제출 허용 (JWT 필터에서 인증 확인, 컨트롤러에서 권한 확인)
                         .requestMatchers("/api/documents").permitAll()
+
+                        // ✅ 관리자는 모든 API에 접근 가능
+                        .requestMatchers("/api/**").hasAnyRole("ADMIN", "USER")
 
                         // 기타 모든 요청은 인증 필요
                         .anyRequest().authenticated()
