@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/complaint.dart';
 import '../data/complaint_repository.dart';
-import '../data/user_repository.dart';
+import '../utils/auth_provider.dart';
 
 class ComplaintDetailScreen extends StatefulWidget {
   final Complaint complaint;
@@ -40,7 +41,9 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   /// 관리자가 대기 상태의 민원을 열면 자동으로 '검토중'으로 변경
   Future<void> _autoUpdateStatusIfNeeded() async {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
 
     if (isAdmin && currentComplaint.status == '대기' && !_hasAutoUpdatedStatus) {
       _hasAutoUpdatedStatus = true;
@@ -48,7 +51,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
       try {
         final updatedComplaint = await ComplaintRepository.updateComplaintStatus(
           complaintId: currentComplaint.id,
-          status: '검토중',
+          status: '처리중',
           adminComment: null,
         );
 
@@ -59,7 +62,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('민원이 검토중 상태로 변경되었습니다.'),
+              content: Text('민원이 처리중 상태로 변경되었습니다.'),
               backgroundColor: Colors.blue,
               duration: Duration(seconds: 2),
             ),
@@ -163,9 +166,10 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateStatus('완료', comment: _commentController.text.trim().isNotEmpty
-                  ? _commentController.text.trim()
-                  : null);
+              _updateStatus('완료',
+                  comment: _commentController.text.trim().isNotEmpty
+                      ? _commentController.text.trim()
+                      : null);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -255,7 +259,10 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   /// 상태 변경 다이얼로그 (기존 호환)
   void _showStatusUpdateDialog() {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
+
     if (!isAdmin) return;
 
     showDialog(
@@ -334,8 +341,16 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
     final canProcess = isAdmin && !currentComplaint.isCompleted;
+
+    // 디버그 로그 추가
+    print('[DEBUG] ComplaintDetailScreen - isAdmin: $isAdmin');
+    print('[DEBUG] ComplaintDetailScreen - isCompleted: ${currentComplaint.isCompleted}');
+    print('[DEBUG] ComplaintDetailScreen - canProcess: $canProcess');
+    print('[DEBUG] ComplaintDetailScreen - status: ${currentComplaint.status}');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -403,7 +418,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(currentComplaint.status).withOpacity(0.1),
+                                  color: _getStatusColor(currentComplaint.status),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -411,14 +426,14 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                                   children: [
                                     Icon(
                                       _getStatusIcon(currentComplaint.status),
+                                      color: Colors.white,
                                       size: 14,
-                                      color: _getStatusColor(currentComplaint.status),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       currentComplaint.status,
-                                      style: TextStyle(
-                                        color: _getStatusColor(currentComplaint.status),
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),
@@ -470,8 +485,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                               Text(
                                 currentComplaint.writerName ?? currentComplaint.writerId,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
                                   fontSize: 14,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -480,8 +495,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                               Text(
                                 currentComplaint.formattedDateTime,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
                                   fontSize: 14,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -495,10 +510,10 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                                 Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
                                 Text(
-                                  currentComplaint.formattedLocation!,
+                                  currentComplaint.formattedLocation ?? '',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
                                     fontSize: 14,
+                                    color: Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -568,19 +583,9 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(
-                                              Icons.broken_image,
-                                              size: 48,
-                                              color: Colors.grey,
-                                            ),
+                                            Icon(Icons.broken_image, size: 48, color: Colors.grey),
                                             SizedBox(height: 8),
-                                            Text(
-                                              '이미지를 불러올 수 없습니다',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 14,
-                                              ),
-                                            ),
+                                            Text('이미지를 불러올 수 없습니다'),
                                           ],
                                         ),
                                       ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/document.dart';
 import '../data/document_repository.dart';
-import '../data/user_repository.dart';
+import '../utils/auth_provider.dart';
 
 class DocumentDetailScreen extends StatefulWidget {
   final Document document;
@@ -40,7 +41,9 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
 
   /// 관리자가 대기 상태의 서류를 열면 자동으로 '검토중'으로 변경
   Future<void> _autoUpdateStatusIfNeeded() async {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
 
     if (isAdmin && currentDocument.status == '대기' && !_hasAutoUpdatedStatus) {
       _hasAutoUpdatedStatus = true;
@@ -163,9 +166,10 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateStatus('승인', comment: _commentController.text.trim().isNotEmpty
-                  ? _commentController.text.trim()
-                  : null);
+              _updateStatus('승인',
+                  comment: _commentController.text.trim().isNotEmpty
+                      ? _commentController.text.trim()
+                      : null);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -255,7 +259,10 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
 
   /// 상태 변경 다이얼로그
   void _showStatusUpdateDialog() {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
+
     if (!isAdmin) return;
 
     showDialog(
@@ -334,8 +341,16 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
     final canProcess = isAdmin && !currentDocument.isCompleted;
+
+    // 디버그 로그 추가
+    print('[DEBUG] DocumentDetailScreen - isAdmin: $isAdmin');
+    print('[DEBUG] DocumentDetailScreen - isCompleted: ${currentDocument.isCompleted}');
+    print('[DEBUG] DocumentDetailScreen - canProcess: $canProcess');
+    print('[DEBUG] DocumentDetailScreen - status: ${currentDocument.status}');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -403,7 +418,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(currentDocument.status).withOpacity(0.1),
+                                  color: _getStatusColor(currentDocument.status),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -411,14 +426,14 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                                   children: [
                                     Icon(
                                       _getStatusIcon(currentDocument.status),
+                                      color: Colors.white,
                                       size: 14,
-                                      color: _getStatusColor(currentDocument.status),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       currentDocument.status,
-                                      style: TextStyle(
-                                        color: _getStatusColor(currentDocument.status),
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),
@@ -470,8 +485,8 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                               Text(
                                 currentDocument.writerName ?? currentDocument.writerId,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
                                   fontSize: 14,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -480,8 +495,8 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                               Text(
                                 currentDocument.formattedDateTime,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
                                   fontSize: 14,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -495,10 +510,10 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                                 Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
                                 Text(
-                                  currentDocument.formattedLocation!,
+                                  currentDocument.formattedLocation ?? '',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
                                     fontSize: 14,
+                                    color: Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -568,19 +583,9 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(
-                                              Icons.broken_image,
-                                              size: 48,
-                                              color: Colors.grey,
-                                            ),
+                                            Icon(Icons.broken_image, size: 48, color: Colors.grey),
                                             SizedBox(height: 8),
-                                            Text(
-                                              '이미지를 불러올 수 없습니다',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 14,
-                                              ),
-                                            ),
+                                            Text('이미지를 불러올 수 없습니다'),
                                           ],
                                         ),
                                       ),

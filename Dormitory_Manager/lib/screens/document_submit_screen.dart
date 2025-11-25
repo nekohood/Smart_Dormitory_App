@@ -17,7 +17,7 @@ class _DocumentSubmitScreenState extends State<DocumentSubmitScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
-  String _selectedCategory = '외박신청';
+  String _selectedCategory = '외박 신청';
   File? _selectedImage;
   bool _isSubmitting = false;
 

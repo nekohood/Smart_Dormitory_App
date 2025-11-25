@@ -218,7 +218,7 @@ class ComplaintService {
   static List<String> getStatusList() {
     return [
       '대기',
-      '검토중',
+      '처리중',
       '완료',
       '반려',
     ];
