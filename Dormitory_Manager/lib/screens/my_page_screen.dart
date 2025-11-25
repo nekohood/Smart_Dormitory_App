@@ -436,7 +436,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
       padding: EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Container(
+          SizedBox(
             width: 40,
             child: Text(column, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),

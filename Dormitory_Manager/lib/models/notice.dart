@@ -82,11 +82,32 @@ class Notice {
     );
   }
 
-  // 이미지 URL 생성 (ApiConfig 사용하도록 수정)
+  // ✅ 이미지 URL 생성 (개선된 버전 - uploads 접두사 추가)
   String? get imageUrl {
-    if (imagePath == null || imagePath!.isEmpty) return null;
+    if (imagePath == null || imagePath!.isEmpty) {
+      print('[DEBUG] Notice imageUrl: imagePath is null or empty');
+      return null;
+    }
+
+    // ApiConfig.baseUrl에서 '/api' 부분을 제거하여 순수 호스트 주소를 만듭니다.
     final hostUrl = ApiConfig.baseUrl.replaceAll('/api', '');
-    return '$hostUrl/$imagePath';
+
+    // imagePath가 이미 'uploads/'로 시작하는지 확인
+    String normalizedPath = imagePath!;
+    if (!normalizedPath.startsWith('uploads/') && !normalizedPath.startsWith('/uploads/')) {
+      // uploads/ 접두사 추가
+      normalizedPath = 'uploads/$normalizedPath';
+    }
+
+    // 경로가 '/'로 시작하지 않으면 추가
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/$normalizedPath';
+    }
+
+    final fullUrl = '$hostUrl$normalizedPath';
+    print('[DEBUG] Notice imageUrl: imagePath=$imagePath, fullUrl=$fullUrl');
+
+    return fullUrl;
   }
 
   // 공지사항이 새로운지 확인 (3일 이내)

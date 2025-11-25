@@ -122,18 +122,29 @@ class ComplaintService {
     }
   }
 
-  // 민원 상태 업데이트 (관리자용)
+  /// ✅ 민원 상태 업데이트 (관리자용) - @RequestParam 방식으로 수정
   static Future<Complaint> updateComplaintStatus({
     required int complaintId,
     required String status,
     String? adminComment,
   }) async {
     try {
-      final response = await DioClient.put('/complaints/$complaintId/status', data: {
-        'status': status,
-        if (adminComment != null) 'adminComment': adminComment,
-        'processedAt': DateTime.now().toIso8601String(),
-      });
+      print('[DEBUG] ComplaintService: 민원 상태 업데이트 시작');
+      print('[DEBUG] - complaintId: $complaintId');
+      print('[DEBUG] - status: $status');
+      print('[DEBUG] - adminComment: $adminComment');
+
+      // ✅ Spring Boot @RequestParam 방식으로 URL 쿼리 파라미터 사용
+      String url = '/complaints/$complaintId/status?status=${Uri.encodeComponent(status)}';
+      if (adminComment != null && adminComment.isNotEmpty) {
+        url += '&adminComment=${Uri.encodeComponent(adminComment)}';
+      }
+
+      print('[DEBUG] ComplaintService: 요청 URL = $url');
+
+      final response = await DioClient.put(url);
+
+      print('[DEBUG] ComplaintService: 응답 데이터 = ${response.data}');
 
       final responseData = response.data;
 
@@ -141,6 +152,7 @@ class ComplaintService {
         // ✅ ApiResponse 구조: data 필드에서 민원 데이터 추출
         final complaintData = responseData['data'];
         if (complaintData != null) {
+          print('[DEBUG] ComplaintService: 상태 업데이트 성공');
           return Complaint.fromJson(complaintData);
         } else {
           throw Exception('민원 상태 업데이트에 실패했습니다.');
@@ -149,6 +161,7 @@ class ComplaintService {
         throw Exception(responseData['message'] ?? '민원 상태 업데이트에 실패했습니다.');
       }
     } catch (e) {
+      print('[ERROR] ComplaintService: 민원 상태 업데이트 실패 - $e');
       throw Exception('민원 상태 업데이트 실패: $e');
     }
   }
@@ -201,11 +214,11 @@ class ComplaintService {
     ];
   }
 
-  // 상태 목록 (관리자용)
+  // ✅ 상태 목록 (관리자용) - '검토중' 추가
   static List<String> getStatusList() {
     return [
       '대기',
-      '처리중',
+      '검토중',
       '완료',
       '반려',
     ];

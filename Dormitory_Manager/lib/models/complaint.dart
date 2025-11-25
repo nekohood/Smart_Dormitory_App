@@ -127,8 +127,14 @@ class Complaint {
     // ApiConfig.baseUrl에서 '/api' 부분을 제거하여 순수 호스트 주소를 만듭니다.
     final hostUrl = ApiConfig.baseUrl.replaceAll('/api', '');
 
-    // imagePath가 이미 '/'로 시작하면 그대로 사용, 아니면 '/' 추가
+    // imagePath가 이미 'uploads/'로 시작하는지 확인
     String normalizedPath = imagePath!;
+    if (!normalizedPath.startsWith('uploads/') && !normalizedPath.startsWith('/uploads/')) {
+      // uploads/ 접두사 추가
+      normalizedPath = 'uploads/$normalizedPath';
+    }
+
+    // 경로가 '/'로 시작하지 않으면 추가
     if (!normalizedPath.startsWith('/')) {
       normalizedPath = '/$normalizedPath';
     }

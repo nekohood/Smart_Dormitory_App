@@ -18,12 +18,18 @@ class DocumentDetailScreen extends StatefulWidget {
 class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
   late Document currentDocument;
   bool isLoading = false;
+  bool _hasAutoUpdatedStatus = false; // 자동 상태 업데이트 여부
   final _commentController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     currentDocument = widget.document;
+
+    // 관리자가 '대기' 상태의 서류를 열면 자동으로 '검토중'으로 변경
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoUpdateStatusIfNeeded();
+    });
   }
 
   @override
@@ -32,7 +38,40 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
     super.dispose();
   }
 
-  Future<void> _updateStatus(String newStatus) async {
+  /// 관리자가 대기 상태의 서류를 열면 자동으로 '검토중'으로 변경
+  Future<void> _autoUpdateStatusIfNeeded() async {
+    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+
+    if (isAdmin && currentDocument.status == '대기' && !_hasAutoUpdatedStatus) {
+      _hasAutoUpdatedStatus = true;
+
+      try {
+        final updatedDocument = await DocumentRepository.updateDocumentStatus(
+          documentId: currentDocument.id,
+          status: '검토중',
+          adminComment: null,
+        );
+
+        if (mounted) {
+          setState(() {
+            currentDocument = updatedDocument;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('서류가 검토중 상태로 변경되었습니다.'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('[ERROR] 자동 상태 업데이트 실패: $e');
+      }
+    }
+  }
+
+  Future<void> _updateStatus(String newStatus, {String? comment}) async {
     setState(() {
       isLoading = true;
     });
@@ -41,9 +80,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       final updatedDocument = await DocumentRepository.updateDocumentStatus(
         documentId: currentDocument.id,
         status: newStatus,
-        adminComment: _commentController.text.trim().isNotEmpty 
-            ? _commentController.text.trim() 
-            : null,
+        adminComment: comment,
       );
 
       setState(() {
@@ -75,64 +112,44 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
     }
   }
 
-  void _showStatusUpdateDialog() {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
-    if (!isAdmin) return;
+  /// 승인 처리 다이얼로그
+  void _showApproveDialog() {
+    _commentController.clear();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('서류 상태 변경'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            const Text('변경할 상태를 선택하세요:'),
-            const SizedBox(height: 16),
-            ...DocumentRepository.getStatusList().map((status) => 
-              RadioListTile<String>(
-                title: Text(status),
-                value: status,
-                groupValue: currentDocument.status,
-                onChanged: (value) {
-                  Navigator.pop(context);
-                  if (value != null && value != currentDocument.status) {
-                    _showCommentDialog(value);
-                  }
-                },
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: const Icon(Icons.check_circle, color: Colors.green),
             ),
+            const SizedBox(width: 12),
+            const Text('서류 승인 처리'),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCommentDialog(String newStatus) {
-    _commentController.clear();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$newStatus 처리'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('서류를 "$newStatus" 상태로 변경합니다.'),
+            const Text('이 서류를 승인 처리하시겠습니까?'),
             const SizedBox(height: 16),
             TextField(
               controller: _commentController,
-              decoration: const InputDecoration(
-                labelText: '관리자 의견 (선택)',
-                hintText: '처리 결과나 추가 안내사항을 입력하세요',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: '승인 의견 (선택)',
+                hintText: '승인 내용을 입력하세요',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
               maxLines: 3,
             ),
@@ -146,28 +163,184 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateStatus(newStatus);
+              _updateStatus('승인', comment: _commentController.text.trim().isNotEmpty
+                  ? _commentController.text.trim()
+                  : null);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.green,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('확인'),
+            child: const Text('승인'),
           ),
         ],
       ),
     );
   }
 
+  /// 반려 처리 다이얼로그
+  void _showRejectDialog() {
+    _commentController.clear();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.cancel, color: Colors.red),
+            ),
+            const SizedBox(width: 12),
+            const Text('서류 반려 처리'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('이 서류를 반려 처리하시겠습니까?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                labelText: '반려 사유 (필수)',
+                hintText: '반려 사유를 입력하세요',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_commentController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('반려 사유를 입력해주세요.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              _updateStatus('반려', comment: _commentController.text.trim());
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('반려'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 상태 변경 다이얼로그
+  void _showStatusUpdateDialog() {
+    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    if (!isAdmin) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('서류 상태 변경'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('변경할 상태를 선택하세요:'),
+            const SizedBox(height: 16),
+            ...DocumentRepository.getStatusList().map((status) =>
+                RadioListTile<String>(
+                  title: Text(status),
+                  value: status,
+                  groupValue: currentDocument.status,
+                  onChanged: (value) {
+                    Navigator.pop(context);
+                    if (value != null && value != currentDocument.status) {
+                      if (value == '승인') {
+                        _showApproveDialog();
+                      } else if (value == '반려') {
+                        _showRejectDialog();
+                      } else {
+                        _updateStatus(value);
+                      }
+                    }
+                  },
+                ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 상태별 색상
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case '대기':
+        return Colors.orange;
+      case '검토중':
+        return Colors.blue;
+      case '승인':
+        return Colors.green;
+      case '반려':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// 상태별 아이콘
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case '대기':
+        return Icons.schedule;
+      case '검토중':
+        return Icons.search;
+      case '승인':
+        return Icons.check_circle;
+      case '반려':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
-
+    final canProcess = isAdmin && !currentDocument.isCompleted;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         title: const Text(
           '서류 상세',
@@ -178,23 +351,26 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
         ),
         centerTitle: true,
         elevation: 0,
-        actions: isAdmin && !currentDocument.isCompleted
+        actions: canProcess
             ? [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: _showStatusUpdateDialog,
-                  tooltip: '상태 변경',
-                ),
-              ]
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: _showStatusUpdateDialog,
+            tooltip: '상태 변경',
+          ),
+        ]
             : null,
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
-            )
-          : SingleChildScrollView(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+        ),
+      )
+          : Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -227,69 +403,48 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: currentDocument.statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: _getStatusColor(currentDocument.status).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      currentDocument.statusIcon,
-                                      size: 16,
-                                      color: currentDocument.statusColor,
+                                      _getStatusIcon(currentDocument.status),
+                                      size: 14,
+                                      color: _getStatusColor(currentDocument.status),
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 4),
                                     Text(
                                       currentDocument.status,
                                       style: TextStyle(
-                                        color: currentDocument.statusColor,
-                                        fontSize: 14,
+                                        color: _getStatusColor(currentDocument.status),
                                         fontWeight: FontWeight.w600,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.teal.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
                                   currentDocument.category,
                                   style: const TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    color: Colors.teal,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
-                              if (currentDocument.isNew) ...[
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    'NEW',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
 
@@ -302,114 +457,58 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
-                              height: 1.3,
                             ),
                           ),
 
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
 
-                          // 메타 정보
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[50],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
+                          // 작성자 정보
+                          Row(
+                            children: [
+                              Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Text(
+                                currentDocument.writerName ?? currentDocument.writerId,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Text(
+                                currentDocument.formattedDateTime,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // 거주 정보 (있는 경우)
+                          if (currentDocument.hasLocationInfo) ...[
+                            const SizedBox(height: 8),
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.person,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '신청자',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      currentDocument.writerName ?? currentDocument.writerId,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '제출일',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      currentDocument.formattedDateTime,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (currentDocument.processedAt != null) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.done,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '처리일',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Text(
-                                        '${currentDocument.processedAt!.year}.${currentDocument.processedAt!.month.toString().padLeft(2, '0')}.${currentDocument.processedAt!.day.toString().padLeft(2, '0')} ${currentDocument.processedAt!.hour.toString().padLeft(2, '0')}:${currentDocument.processedAt!.minute.toString().padLeft(2, '0')}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  currentDocument.formattedLocation!,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
                                   ),
-                                ],
+                                ),
                               ],
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
                     // 서류 내용
                     Container(
@@ -430,7 +529,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            '서류 상세 내용',
+                            '서류 내용',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -438,7 +537,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // 첨부 이미지
                           if (currentDocument.imageUrl != null) ...[
                             Container(
@@ -518,24 +617,20 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
 
                     // 관리자 의견 (있는 경우)
                     if (currentDocument.adminComment != null) ...[
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: currentDocument.status == '반려'
+                              ? Colors.red.withOpacity(0.05)
+                              : Colors.green.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: currentDocument.statusColor.withOpacity(0.3),
-                            width: 1,
+                            color: currentDocument.status == '반려'
+                                ? Colors.red.withOpacity(0.3)
+                                : Colors.green.withOpacity(0.3),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,17 +638,25 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                             Row(
                               children: [
                                 Icon(
-                                  Icons.admin_panel_settings,
-                                  color: currentDocument.statusColor,
+                                  currentDocument.status == '반려'
+                                      ? Icons.warning
+                                      : Icons.admin_panel_settings,
+                                  color: currentDocument.status == '반려'
+                                      ? Colors.red
+                                      : Colors.green,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '관리자 의견',
+                                  currentDocument.status == '반려'
+                                      ? '반려 사유'
+                                      : '관리자 의견',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: currentDocument.statusColor,
+                                    color: currentDocument.status == '반려'
+                                        ? Colors.red
+                                        : Colors.green,
                                   ),
                                 ),
                               ],
@@ -561,22 +664,96 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                             const SizedBox(height: 12),
                             Text(
                               currentDocument.adminComment!,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Colors.black87,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[800],
                                 height: 1.5,
                               ),
                             ),
+                            if (currentDocument.processedAt != null) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                '처리일시: ${_formatDateTime(currentDocument.processedAt!)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ],
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 100), // 하단 버튼 공간 확보
                   ],
                 ),
               ),
             ),
+          ),
+
+          // 관리자 처리 버튼 (하단 고정)
+          if (canProcess)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    // 반려 버튼
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _showRejectDialog,
+                        icon: const Icon(Icons.cancel),
+                        label: const Text('반려'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // 승인 버튼
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _showApproveDialog,
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('승인'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

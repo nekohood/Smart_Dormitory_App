@@ -214,28 +214,39 @@ class DocumentService {
     }
   }
 
-  /// 서류 상태 업데이트 (관리자용)
+  /// ✅ 서류 상태 업데이트 (관리자용) - @RequestParam 방식으로 수정
   static Future<Document> updateDocumentStatus({
     required int documentId,
     required String status,
     String? adminComment,
   }) async {
     try {
-      print('[DEBUG] 서류 상태 업데이트: ID $documentId, 상태: $status');
-      final response = await DioClient.put('/documents/$documentId/status', data: {
-        'status': status,
-        if (adminComment != null) 'adminComment': adminComment,
-        'processedAt': DateTime.now().toIso8601String(),
-      });
+      print('[DEBUG] DocumentService: 서류 상태 업데이트 시작');
+      print('[DEBUG] - documentId: $documentId');
+      print('[DEBUG] - status: $status');
+      print('[DEBUG] - adminComment: $adminComment');
+
+      // ✅ Spring Boot @RequestParam 방식으로 URL 쿼리 파라미터 사용
+      String url = '/documents/$documentId/status?status=${Uri.encodeComponent(status)}';
+      if (adminComment != null && adminComment.isNotEmpty) {
+        url += '&adminComment=${Uri.encodeComponent(adminComment)}';
+      }
+
+      print('[DEBUG] DocumentService: 요청 URL = $url');
+
+      final response = await DioClient.put(url);
+
+      print('[DEBUG] DocumentService: 응답 데이터 = ${response.data}');
 
       final responseData = response.data;
       if (responseData['success'] == true && responseData['document'] != null) {
+        print('[DEBUG] DocumentService: 상태 업데이트 성공');
         return Document.fromJson(responseData['document']);
       } else {
         throw Exception(responseData['message'] ?? '서류 상태 업데이트에 실패했습니다.');
       }
     } catch (e) {
-      print('[ERROR] 서류 상태 업데이트 실패: $e');
+      print('[ERROR] DocumentService: 서류 상태 업데이트 실패 - $e');
       throw Exception('서류 상태 업데이트 실패: $e');
     }
   }
@@ -275,20 +286,16 @@ class DocumentService {
   /// 서류 카테고리 목록
   static List<String> getDocumentCategories() {
     return [
-      '외박신청',
-      '조기퇴실',
-      '휴학신청',
-      '복학신청',
-      '전과신청',
-      '생활기록부 발급',
-      '재학증명서',
-      '성적증명서',
-      '기타 증명서',
+      '외박 신청',
+      '퇴사 신청',
+      '호실 변경',
+      '시설 수리',
+      '분실물 신고',
       '기타',
     ];
   }
 
-  /// 상태 목록 (관리자용)
+  /// ✅ 상태 목록 (관리자용) - '검토중' 추가
   static List<String> getStatusList() {
     return [
       '대기',
@@ -296,60 +303,5 @@ class DocumentService {
       '승인',
       '반려',
     ];
-  }
-
-  /// 토큰 검증 및 갱신
-  static Future<bool> validateAndRefreshToken() async {
-    try {
-      print('[DEBUG] 토큰 검증 시작');
-      final token = await StorageHelper.getToken();
-
-      if (token == null) {
-        print('[DEBUG] 토큰이 없음');
-        return false;
-      }
-
-      // 토큰 만료 확인
-      if (await StorageHelper.isTokenExpired(token)) {
-        print('[DEBUG] 토큰이 만료됨');
-        await StorageHelper.removeToken();
-        return false;
-      }
-
-      // 서버에서 토큰 유효성 확인
-      final response = await DioClient.post('/auth/validate');
-      final isValid = response.data['valid'] == true;
-
-      print('[DEBUG] 토큰 유효성: $isValid');
-
-      if (!isValid) {
-        await StorageHelper.removeToken();
-      }
-
-      return isValid;
-    } catch (e) {
-      print('[ERROR] 토큰 검증 실패: $e');
-      await StorageHelper.removeToken();
-      return false;
-    }
-  }
-
-  /// 에러 핸들링 헬퍼
-  static String _handleApiError(dynamic error) {
-    if (error is DioException) {
-      switch (error.response?.statusCode) {
-        case 401:
-          return '인증이 필요합니다. 다시 로그인해주세요.';
-        case 403:
-          return '접근 권한이 없습니다.';
-        case 404:
-          return '요청한 리소스를 찾을 수 없습니다.';
-        case 500:
-          return '서버 내부 오류가 발생했습니다.';
-        default:
-          return error.response?.data['message'] ?? '알 수 없는 오류가 발생했습니다.';
-      }
-    }
-    return error.toString();
   }
 }
