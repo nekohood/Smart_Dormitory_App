@@ -8,7 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 공공서류 정보를 저장하는 엔티티 - created_at 필드 추가 버전
+ * 공공서류 정보를 저장하는 엔티티 - 거주 동/방 번호 자동 기입 기능 포함
  */
 @Entity
 @Table(name = "documents")
@@ -34,11 +34,18 @@ public class Document {
     @Column(name = "writer_name", length = 100)
     private String writerName;
 
+    // ✅ 거주 정보 자동 기입 필드 추가
+    @Column(name = "dormitory_building", length = 50)
+    private String dormitoryBuilding; // 기숙사 거주 동 (자동 기입)
+
+    @Column(name = "room_number", length = 20)
+    private String roomNumber; // 방 번호 (자동 기입)
+
     @Column(name = "image_path", length = 500)
     private String imagePath;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private String status; // 대기, 검토중, 승인, 반려
 
     @Column(name = "admin_comment", columnDefinition = "TEXT")
     private String adminComment;
@@ -58,12 +65,14 @@ public class Document {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 기본 생성자
+    // =============================================================================
+    // 생성자
+    // =============================================================================
+
     public Document() {
         this.status = "대기"; // 기본 상태
     }
 
-    // 생성자
     public Document(String title, String content, String category, String writerId, String writerName) {
         this.title = title;
         this.content = content;
@@ -73,7 +82,10 @@ public class Document {
         this.status = "대기"; // 기본 상태
     }
 
-    // PrePersist 콜백 - 저장 전 실행
+    // =============================================================================
+    // Lifecycle 콜백
+    // =============================================================================
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
@@ -90,13 +102,15 @@ public class Document {
         }
     }
 
-    // PreUpdate 콜백 - 업데이트 전 실행
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getter and Setter methods
+    // =============================================================================
+    // Getter & Setter
+    // =============================================================================
+
     public Long getId() {
         return id;
     }
@@ -143,6 +157,24 @@ public class Document {
 
     public void setWriterName(String writerName) {
         this.writerName = writerName;
+    }
+
+    // ✅ 거주 동 Getter & Setter
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
+    }
+
+    // ✅ 방 번호 Getter & Setter
+    public String getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
     }
 
     public String getImagePath() {
@@ -201,77 +233,28 @@ public class Document {
         this.updatedAt = updatedAt;
     }
 
-    // 유틸리티 메서드들
-
-    /**
-     * 서류가 승인되었는지 확인
-     */
-    public boolean isApproved() {
-        return "승인".equals(this.status);
-    }
-
-    /**
-     * 서류가 대기 상태인지 확인
-     */
-    public boolean isPending() {
-        return "대기".equals(this.status);
-    }
-
-    /**
-     * 서류가 반려되었는지 확인
-     */
-    public boolean isRejected() {
-        return "반려".equals(this.status);
-    }
-
-    /**
-     * 서류가 검토 중인지 확인
-     */
-    public boolean isUnderReview() {
-        return "검토중".equals(this.status);
-    }
-
-    /**
-     * 서류에 이미지가 첨부되어 있는지 확인
-     */
-    public boolean hasImage() {
-        return this.imagePath != null && !this.imagePath.trim().isEmpty();
-    }
-
-    /**
-     * 서류가 처리되었는지 확인 (승인 또는 반려)
-     */
-    public boolean isProcessed() {
-        return isApproved() || isRejected();
-    }
-
-    /**
-     * 서류 제출 후 경과 시간 (시간 단위)
-     */
-    public long getHoursSinceSubmitted() {
-        if (this.submittedAt == null) return 0;
-        return java.time.Duration.between(this.submittedAt, LocalDateTime.now()).toHours();
-    }
-
-    /**
-     * 긴급 서류인지 확인 (7일 이상 대기)
-     */
-    public boolean isUrgent() {
-        return isPending() && getHoursSinceSubmitted() >= 168; // 7일 = 168시간
-    }
+    // =============================================================================
+    // 비즈니스 메서드
+    // =============================================================================
 
     /**
      * 서류 상태 업데이트
      */
-    public void updateStatus(String newStatus, String adminComment) {
-        this.status = newStatus;
+    public void updateStatus(String status, String adminComment) {
+        this.status = status;
         this.adminComment = adminComment;
-        this.updatedAt = LocalDateTime.now();
 
-        if (isProcessed()) {
+        // 승인 또는 반려 상태인 경우 처리 시간 설정
+        if ("승인".equals(status) || "반려".equals(status)) {
             this.processedAt = LocalDateTime.now();
         }
+
+        this.updatedAt = LocalDateTime.now();
     }
+
+    // =============================================================================
+    // toString
+    // =============================================================================
 
     @Override
     public String toString() {
@@ -280,9 +263,11 @@ public class Document {
                 ", title='" + title + '\'' +
                 ", category='" + category + '\'' +
                 ", writerId='" + writerId + '\'' +
+                ", writerName='" + writerName + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
+                ", roomNumber='" + roomNumber + '\'' +
                 ", status='" + status + '\'' +
                 ", submittedAt=" + submittedAt +
-                ", createdAt=" + createdAt +
                 '}';
     }
 }

@@ -8,6 +8,8 @@ class Document {
   final String category;
   final String writerId;
   final String? writerName;
+  final String? dormitoryBuilding; // ✅ 기숙사 거주 동 (자동 기입)
+  final String? roomNumber; // ✅ 방 번호 (자동 기입)
   final String? imagePath;
   final String status; // 대기, 검토중, 승인, 반려
   final String? adminComment;
@@ -22,6 +24,8 @@ class Document {
     required this.category,
     required this.writerId,
     this.writerName,
+    this.dormitoryBuilding,
+    this.roomNumber,
     this.imagePath,
     required this.status,
     this.adminComment,
@@ -39,6 +43,8 @@ class Document {
       category: json['category'] ?? '',
       writerId: json['writerId'] ?? '',
       writerName: json['writerName'],
+      dormitoryBuilding: json['dormitoryBuilding'], // ✅ 거주 동 파싱
+      roomNumber: json['roomNumber'], // ✅ 방 번호 파싱
       imagePath: json['imagePath'],
       status: json['status'] ?? '대기',
       adminComment: json['adminComment'],
@@ -63,6 +69,8 @@ class Document {
       'category': category,
       'writerId': writerId,
       'writerName': writerName,
+      'dormitoryBuilding': dormitoryBuilding, // ✅ 거주 동 직렬화
+      'roomNumber': roomNumber, // ✅ 방 번호 직렬화
       'imagePath': imagePath,
       'status': status,
       'adminComment': adminComment,
@@ -71,6 +79,10 @@ class Document {
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
+
+  // =============================================================================
+  // Getter 메서드들
+  // =============================================================================
 
   // 상태별 색상 반환
   Color get statusColor {
@@ -104,7 +116,7 @@ class Document {
     }
   }
 
-  // 이미지 URL 생성 (ApiConfig 사용하도록 수정)
+  // 이미지 URL 생성 (ApiConfig 사용)
   String? get imageUrl {
     if (imagePath == null || imagePath!.isEmpty) return null;
     final hostUrl = ApiConfig.baseUrl.replaceAll('/api', '');
@@ -150,6 +162,17 @@ class Document {
     return status == '승인' || status == '반려';
   }
 
+  // ✅ 거주 정보 존재 여부 확인
+  bool get hasLocationInfo => dormitoryBuilding != null && roomNumber != null;
+
+  // ✅ 거주 정보 포맷팅 (예: "A동 301호")
+  String? get formattedLocation {
+    if (dormitoryBuilding != null && roomNumber != null) {
+      return '$dormitoryBuilding $roomNumber호';
+    }
+    return null;
+  }
+
   // 객체 복사 (일부 필드 수정용)
   Document copyWith({
     int? id,
@@ -158,6 +181,8 @@ class Document {
     String? category,
     String? writerId,
     String? writerName,
+    String? dormitoryBuilding,
+    String? roomNumber,
     String? imagePath,
     String? status,
     String? adminComment,
@@ -172,6 +197,8 @@ class Document {
       category: category ?? this.category,
       writerId: writerId ?? this.writerId,
       writerName: writerName ?? this.writerName,
+      dormitoryBuilding: dormitoryBuilding ?? this.dormitoryBuilding,
+      roomNumber: roomNumber ?? this.roomNumber,
       imagePath: imagePath ?? this.imagePath,
       status: status ?? this.status,
       adminComment: adminComment ?? this.adminComment,
@@ -183,7 +210,7 @@ class Document {
 
   @override
   String toString() {
-    return 'Document{id: $id, title: $title, writerId: $writerId, status: $status}';
+    return 'Document{id: $id, title: $title, writerId: $writerId, status: $status, dormitoryBuilding: $dormitoryBuilding, roomNumber: $roomNumber}';
   }
 
   @override

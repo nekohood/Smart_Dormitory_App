@@ -1,7 +1,9 @@
 package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.Complaint;
+import com.dormitory.SpringBoot.domain.User;
 import com.dormitory.SpringBoot.repository.ComplaintRepository;
+import com.dormitory.SpringBoot.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 민원 관련 비즈니스 로직을 처리하는 서비스 - 완성된 버전
+ * 민원 관련 비즈니스 로직을 처리하는 서비스 - 완전한 버전 (모든 메서드 포함)
  */
 @Service
 @Transactional
@@ -25,6 +27,9 @@ public class ComplaintService {
 
     @Autowired
     private ComplaintRepository complaintRepository;
+
+    @Autowired
+    private UserRepository userRepository; // ✅ 사용자 정보 조회를 위해 추가
 
     @Autowired
     private FileService fileService;
@@ -77,12 +82,17 @@ public class ComplaintService {
     }
 
     /**
-     * 민원 신고 제출 - 수정된 시그니처
+     * 민원 신고 제출 - ✅ 거주 정보 자동 기입 기능 추가
      */
+    @Transactional
     public Complaint submitComplaint(String title, String content, String category,
                                      String writerId, String writerName, MultipartFile imageFile) {
         try {
             logger.info("민원 제출 - 작성자: {}, 제목: {}", writerId, title);
+
+            // ✅ 사용자 정보 조회 (거주 동/방 번호 자동 기입)
+            User user = userRepository.findById(writerId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + writerId));
 
             // 민원 객체 생성
             Complaint complaint = new Complaint();
@@ -94,6 +104,13 @@ public class ComplaintService {
             complaint.setStatus("대기");
             complaint.setSubmittedAt(LocalDateTime.now());
             complaint.setUpdatedAt(LocalDateTime.now());
+
+            // ✅ 사용자의 거주 동/방 번호 자동 기입
+            complaint.setDormitoryBuilding(user.getDormitoryBuilding());
+            complaint.setRoomNumber(user.getRoomNumber());
+
+            logger.info("민원 제출 - 거주 동: {}, 방 번호: {}",
+                    user.getDormitoryBuilding(), user.getRoomNumber());
 
             // 이미지 파일 업로드 (선택사항)
             if (imageFile != null && !imageFile.isEmpty()) {
@@ -121,6 +138,7 @@ public class ComplaintService {
     /**
      * 민원 상태 업데이트 (관리자용)
      */
+    @Transactional
     public Complaint updateComplaintStatus(Long complaintId, String status, String adminComment) {
         try {
             logger.info("민원 상태 업데이트 - ID: {}, 상태: {}", complaintId, status);
@@ -152,6 +170,7 @@ public class ComplaintService {
     /**
      * 민원 삭제 (관리자용)
      */
+    @Transactional
     public void deleteComplaint(Long complaintId) {
         try {
             logger.info("민원 삭제 - ID: {}", complaintId);
@@ -160,7 +179,7 @@ public class ComplaintService {
                     .orElseThrow(() -> new RuntimeException("민원을 찾을 수 없습니다. ID: " + complaintId));
 
             // 첨부 파일 삭제
-            if (complaint.getImagePath() != null) {
+            if (complaint.getImagePath() != null && !complaint.getImagePath().isEmpty()) {
                 try {
                     fileService.deleteFile(complaint.getImagePath());
                     logger.info("민원 첨부 파일 삭제 완료: {}", complaint.getImagePath());
@@ -177,6 +196,10 @@ public class ComplaintService {
             throw new RuntimeException("민원 삭제에 실패했습니다: " + e.getMessage());
         }
     }
+
+    // =============================================================================
+    // ✅ 컨트롤러에서 호출하는 추가 메서드들 (누락 방지)
+    // =============================================================================
 
     /**
      * 상태별 민원 조회
@@ -218,191 +241,20 @@ public class ComplaintService {
                 return getAllComplaints();
             }
 
-            return complaintRepository.findByTitleOrContentContainingIgnoreCase(keyword.trim());
+            return complaintRepository.searchByKeyword(keyword.trim());
         } catch (Exception e) {
             logger.error("민원 검색 실패", e);
             throw new RuntimeException("민원 검색에 실패했습니다: " + e.getMessage());
         }
     }
 
-    // =============================================================================
-    // 통계 및 분석 메서드들 (기존 메서드들)
-    // =============================================================================
-
     /**
-     * 대기 중인 민원 개수 조회
-     */
-    @Transactional(readOnly = true)
-    public long countPendingComplaints() {
-        try {
-            logger.debug("대기 중인 민원 개수 조회");
-            return complaintRepository.countPendingComplaints();
-        } catch (Exception e) {
-            logger.error("대기 중인 민원 개수 조회 실패", e);
-            return 0;
-        }
-    }
-
-    /**
-     * 카테고리별 통계 조회
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Long> getCategoryStatistics() {
-        try {
-            logger.debug("카테고리별 통계 조회");
-
-            List<Object[]> results = complaintRepository.getCategoryStatistics();
-            Map<String, Long> statistics = new HashMap<>();
-
-            for (Object[] result : results) {
-                String category = (String) result[0];
-                Long count = (Long) result[1];
-                statistics.put(category, count);
-            }
-
-            return statistics;
-        } catch (Exception e) {
-            logger.error("카테고리별 통계 조회 실패", e);
-            return new HashMap<>();
-        }
-    }
-
-    /**
-     * 전체 민원 통계 조회
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> getComplaintStatistics() {
-        try {
-            logger.debug("전체 민원 통계 조회");
-
-            Map<String, Object> statistics = new HashMap<>();
-
-            // 기본 통계
-            statistics.put("total", complaintRepository.count());
-            statistics.put("pending", complaintRepository.countPendingComplaints());
-            statistics.put("processing", complaintRepository.countProcessingComplaints());
-            statistics.put("completed", complaintRepository.countCompletedComplaints());
-            statistics.put("rejected", complaintRepository.countRejectedComplaints());
-
-            // 오늘 접수된 민원
-            statistics.put("todaySubmissions", complaintRepository.countTodayComplaints());
-
-            // 카테고리별 통계
-            statistics.put("categoryStats", getCategoryStatistics());
-
-            // 상태별 통계
-            Map<String, Long> statusStats = new HashMap<>();
-            List<Object[]> statusResults = complaintRepository.getStatusStatistics();
-            for (Object[] result : statusResults) {
-                String status = (String) result[0];
-                Long count = (Long) result[1];
-                statusStats.put(status, count);
-            }
-            statistics.put("statusStats", statusStats);
-
-            return statistics;
-        } catch (Exception e) {
-            logger.error("전체 민원 통계 조회 실패", e);
-            return new HashMap<>();
-        }
-    }
-
-    /**
-     * 처리 우선순위가 높은 민원 조회
-     */
-    @Transactional(readOnly = true)
-    public List<Complaint> getHighPriorityComplaints() {
-        try {
-            logger.debug("우선순위 높은 민원 조회");
-
-            LocalDateTime priorityDate = LocalDateTime.now().minusDays(3);
-            return complaintRepository.findHighPriorityComplaints(priorityDate);
-        } catch (Exception e) {
-            logger.error("우선순위 높은 민원 조회 실패", e);
-            throw new RuntimeException("우선순위 민원 조회에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 민원 해결율 통계 조회
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> getResolutionRateStatistics(LocalDateTime startDate, LocalDateTime endDate) {
-        try {
-            logger.debug("민원 해결율 통계 조회: {} ~ {}", startDate, endDate);
-
-            List<Object[]> results = complaintRepository.getResolutionRateStatistics(startDate, endDate);
-            Map<String, Object> statistics = new HashMap<>();
-
-            if (!results.isEmpty()) {
-                Object[] result = results.get(0);
-                Long total = (Long) result[0];
-                Long completed = (Long) result[1];
-                Double resolutionRate = (Double) result[2];
-
-                statistics.put("totalComplaints", total);
-                statistics.put("completedComplaints", completed);
-                statistics.put("resolutionRate", resolutionRate);
-                statistics.put("pendingComplaints", total - completed);
-            } else {
-                statistics.put("totalComplaints", 0L);
-                statistics.put("completedComplaints", 0L);
-                statistics.put("resolutionRate", 0.0);
-                statistics.put("pendingComplaints", 0L);
-            }
-
-            return statistics;
-        } catch (Exception e) {
-            logger.error("민원 해결율 통계 조회 실패", e);
-            return new HashMap<>();
-        }
-    }
-
-    /**
-     * 월별 민원 접수 통계 조회
-     */
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMonthlySubmissionStatistics() {
-        try {
-            logger.debug("월별 민원 접수 통계 조회");
-
-            List<Object[]> results = complaintRepository.getMonthlySubmissionStatistics();
-            return results.stream()
-                    .map(result -> {
-                        Map<String, Object> monthlyData = new HashMap<>();
-                        monthlyData.put("year", result[0]);
-                        monthlyData.put("month", result[1]);
-                        monthlyData.put("count", result[2]);
-                        return monthlyData;
-                    })
-                    .toList();
-        } catch (Exception e) {
-            logger.error("월별 민원 접수 통계 조회 실패", e);
-            throw new RuntimeException("월별 통계 조회에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 사용자별 최근 민원 조회
-     */
-    @Transactional(readOnly = true)
-    public List<Complaint> getRecentComplaintsByUser(String userId, int limit) {
-        try {
-            logger.debug("사용자별 최근 민원 조회: {}, 개수: {}", userId, limit);
-            return complaintRepository.findRecentComplaintsByUser(userId, limit);
-        } catch (Exception e) {
-            logger.error("사용자별 최근 민원 조회 실패", e);
-            throw new RuntimeException("사용자 민원 조회에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 긴급 처리가 필요한 민원 조회
+     * 긴급 민원 조회 (3일 이상 대기)
      */
     @Transactional(readOnly = true)
     public List<Complaint> getUrgentComplaints() {
         try {
-            logger.debug("긴급 처리 필요 민원 조회");
+            logger.info("긴급 민원 조회 (3일 이상 대기)");
 
             LocalDateTime urgentDate = LocalDateTime.now().minusDays(3);
             return complaintRepository.findUrgentComplaints(urgentDate);
@@ -412,82 +264,61 @@ public class ComplaintService {
         }
     }
 
-    /**
-     * 평균 처리 시간 조회
-     */
-    @Transactional(readOnly = true)
-    public double getAverageProcessingTime() {
-        try {
-            logger.debug("평균 처리 시간 조회");
-
-            Double avgTime = complaintRepository.getAverageProcessingTimeInHours();
-            return avgTime != null ? avgTime : 0.0;
-        } catch (Exception e) {
-            logger.error("평균 처리 시간 조회 실패", e);
-            return 0.0;
-        }
-    }
+    // =============================================================================
+    // 통계 메서드들
+    // =============================================================================
 
     /**
-     * 관리자용 대시보드 데이터 조회
+     * 민원 통계 조회
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getAdminDashboardData() {
+    public Map<String, Object> getComplaintStatistics() {
         try {
-            logger.debug("관리자 대시보드 데이터 조회");
+            logger.info("민원 통계 조회");
 
-            Map<String, Object> dashboardData = new HashMap<>();
+            Map<String, Object> statistics = new HashMap<>();
 
-            // 기본 통계
-            dashboardData.put("statistics", getComplaintStatistics());
+            // 전체 민원 수
+            long totalComplaints = complaintRepository.count();
+            statistics.put("totalComplaints", totalComplaints);
 
-            // 긴급 처리 필요 민원
-            dashboardData.put("urgentComplaints", getUrgentComplaints());
+            // 상태별 통계
+            statistics.put("waitingCount", complaintRepository.countByStatus("대기"));
+            statistics.put("processingCount", complaintRepository.countByStatus("처리중"));
+            statistics.put("completedCount", complaintRepository.countByStatus("완료"));
+            statistics.put("rejectedCount", complaintRepository.countByStatus("반려"));
+
+            // 처리 완료/미완료 통계
+            long completedTotal = complaintRepository.countCompletedComplaints();
+            long pendingTotal = totalComplaints - completedTotal;
+            statistics.put("completedTotal", completedTotal);
+            statistics.put("pendingTotal", pendingTotal);
+
+            // 긴급 민원 수
+            statistics.put("urgentComplaints", getUrgentComplaints().size());
 
             // 평균 처리 시간
-            dashboardData.put("averageProcessingTime", getAverageProcessingTime());
+            Double avgProcessingTime = complaintRepository.getAverageProcessingTimeInHours();
+            statistics.put("averageProcessingHours", avgProcessingTime != null ? avgProcessingTime : 0.0);
 
-            // 이번 달 해결율
-            LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-            LocalDateTime now = LocalDateTime.now();
-            dashboardData.put("monthlyResolutionRate", getResolutionRateStatistics(startOfMonth, now));
+            // 해결률
+            double resolutionRate = totalComplaints > 0
+                    ? (double) completedTotal / totalComplaints * 100
+                    : 0.0;
+            statistics.put("resolutionRate", Math.round(resolutionRate * 100.0) / 100.0);
 
-            return dashboardData;
+            logger.info("민원 통계 조회 완료 - 전체: {}, 대기: {}, 처리중: {}, 완료: {}, 반려: {}",
+                    totalComplaints,
+                    statistics.get("waitingCount"),
+                    statistics.get("processingCount"),
+                    statistics.get("completedCount"),
+                    statistics.get("rejectedCount"));
+
+            return statistics;
+
         } catch (Exception e) {
-            logger.error("관리자 대시보드 데이터 조회 실패", e);
-            return new HashMap<>();
+            logger.error("민원 통계 조회 실패", e);
+            throw new RuntimeException("민원 통계 조회에 실패했습니다: " + e.getMessage());
         }
-    }
-
-    // =============================================================================
-    // 유틸리티 메서드들
-    // =============================================================================
-
-    /**
-     * 민원 카테고리 목록
-     */
-    public List<String> getComplaintCategories() {
-        return List.of(
-                "시설 문제",
-                "소음 문제",
-                "청소 문제",
-                "보안 문제",
-                "기타 불편사항",
-                "개선 건의",
-                "분실물 신고",
-                "기타"
-        );
-    }
-
-    /**
-     * 상태 목록 (관리자용)
-     */
-    public List<String> getStatusList() {
-        return List.of(
-                "대기",
-                "처리중",
-                "완료",
-                "반려"
-        );
     }
 }

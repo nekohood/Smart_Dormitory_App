@@ -8,7 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 민원 정보를 저장하는 엔티티 - DB 스키마 동기화 최종 버전
+ * 민원 정보를 저장하는 엔티티 - 거주 동/방 번호 자동 기입 기능 포함
  */
 @Entity
 @Table(name = "complaints")
@@ -34,6 +34,13 @@ public class Complaint {
     @Column(name = "writer_name", length = 100)
     private String writerName;
 
+    // ✅ 거주 정보 자동 기입 필드 추가
+    @Column(name = "dormitory_building", length = 50)
+    private String dormitoryBuilding; // 기숙사 거주 동 (자동 기입)
+
+    @Column(name = "room_number", length = 20)
+    private String roomNumber; // 방 번호 (자동 기입)
+
     @Column(name = "image_path", length = 500)
     private String imagePath;
 
@@ -54,19 +61,11 @@ public class Complaint {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // ... (이하 Getter, Setter 및 다른 메서드들은 변경 없음) ...
-
-    // 기본 생성자
-    public Complaint() {}
-
+    // =============================================================================
     // 생성자
-    public Complaint(String title, String content, String category, String writerId) {
-        this.title = title;
-        this.content = content;
-        this.category = category;
-        this.writerId = writerId;
-        this.status = "대기";
-    }
+    // =============================================================================
+
+    public Complaint() {}
 
     public Complaint(String title, String content, String category, String writerId, String writerName) {
         this.title = title;
@@ -75,9 +74,14 @@ public class Complaint {
         this.writerId = writerId;
         this.writerName = writerName;
         this.status = "대기";
+        this.submittedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
+    // =============================================================================
     // Getter & Setter
+    // =============================================================================
+
     public Long getId() {
         return id;
     }
@@ -124,6 +128,24 @@ public class Complaint {
 
     public void setWriterName(String writerName) {
         this.writerName = writerName;
+    }
+
+    // ✅ 거주 동 Getter & Setter
+    public String getDormitoryBuilding() {
+        return dormitoryBuilding;
+    }
+
+    public void setDormitoryBuilding(String dormitoryBuilding) {
+        this.dormitoryBuilding = dormitoryBuilding;
+    }
+
+    // ✅ 방 번호 Getter & Setter
+    public String getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
     }
 
     public String getImagePath() {
@@ -174,23 +196,9 @@ public class Complaint {
         this.updatedAt = updatedAt;
     }
 
-    // 비즈니스 메서드
-    public void updateStatus(String newStatus, String adminComment) {
-        this.status = newStatus;
-        this.adminComment = adminComment;
-        if ("완료".equals(newStatus) || "반려".equals(newStatus)) {
-            this.processedAt = LocalDateTime.now();
-        }
-    }
-
-    public boolean isCompleted() {
-        return "완료".equals(status) || "반려".equals(status);
-    }
-
-    public boolean isUrgent() {
-        return "대기".equals(status) && submittedAt != null &&
-                submittedAt.isBefore(LocalDateTime.now().minusDays(3));
-    }
+    // =============================================================================
+    // toString
+    // =============================================================================
 
     @Override
     public String toString() {
@@ -199,8 +207,12 @@ public class Complaint {
                 ", title='" + title + '\'' +
                 ", category='" + category + '\'' +
                 ", writerId='" + writerId + '\'' +
+                ", writerName='" + writerName + '\'' +
+                ", dormitoryBuilding='" + dormitoryBuilding + '\'' +
+                ", roomNumber='" + roomNumber + '\'' +
                 ", status='" + status + '\'' +
                 ", submittedAt=" + submittedAt +
+                ", processedAt=" + processedAt +
                 '}';
     }
 }

@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:dio/dio.dart'; // MultipartFile을 사용하기 위해 임포트
+import 'package:dio/dio.dart';
 import '../models/complaint.dart';
-import '../api/dio_client.dart'; // 통합된 DioClient 사용
+import '../api/dio_client.dart';
 
 class ComplaintService {
   // 민원 신고 제출
@@ -14,7 +14,6 @@ class ComplaintService {
   }) async {
     try {
       Response response;
-      // DioClient의 uploadFile은 Map<String, String>을 받으므로 변환
       final fields = {
         'title': title,
         'content': content,
@@ -28,8 +27,8 @@ class ComplaintService {
         // 파일이 있는 경우 multipart 요청
         response = await DioClient.uploadFile(
           '/complaints',
-          imageFile.path, // 파일 경로 전달
-          fieldName: 'file', // 서버에서 받을 필드명
+          imageFile.path,
+          fieldName: 'file',
           fields: fields,
         );
       } else {
@@ -38,8 +37,15 @@ class ComplaintService {
       }
 
       final responseData = response.data;
-      if (responseData['success'] == true && responseData['complaint'] != null) {
-        return Complaint.fromJson(responseData['complaint']);
+
+      // ✅ ApiResponse 구조 처리: data 필드에서 민원 데이터 추출
+      if (responseData['success'] == true) {
+        final complaintData = responseData['data'];
+        if (complaintData != null) {
+          return Complaint.fromJson(complaintData);
+        } else {
+          throw Exception('응답에 민원 데이터가 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '민원 제출에 실패했습니다.');
       }
@@ -53,9 +59,14 @@ class ComplaintService {
     try {
       final response = await DioClient.get('/complaints/user/$writerId');
       final responseData = response.data;
+
       if (responseData['success'] == true) {
-        List<dynamic> complaintData = responseData['complaints'];
-        return complaintData.map((data) => Complaint.fromJson(data)).toList();
+        // ✅ ApiResponse 구조: data 필드에서 complaints 추출
+        final data = responseData['data'];
+        if (data != null && data['complaints'] != null) {
+          List<dynamic> complaintData = data['complaints'];
+          return complaintData.map((data) => Complaint.fromJson(data)).toList();
+        }
       }
       return [];
     } catch (e) {
@@ -74,12 +85,13 @@ class ComplaintService {
       print('[DEBUG] ComplaintService: success = ${responseData['success']}');
 
       if (responseData['success'] == true) {
-        // ⭐ 핵심 수정: ApiResponse 구조에 맞춰 data에서 complaints 추출
-        final data = responseData['data'] ?? responseData;
-        List<dynamic> complaintData = data['complaints'] ?? [];
-
-        print('[DEBUG] ComplaintService: 민원 개수 = ${complaintData.length}');
-        return complaintData.map((data) => Complaint.fromJson(data)).toList();
+        // ✅ ApiResponse 구조: data 필드에서 complaints 추출
+        final data = responseData['data'];
+        if (data != null && data['complaints'] != null) {
+          List<dynamic> complaintData = data['complaints'];
+          print('[DEBUG] ComplaintService: 민원 개수 = ${complaintData.length}');
+          return complaintData.map((data) => Complaint.fromJson(data)).toList();
+        }
       }
       return [];
     } catch (e) {
@@ -93,8 +105,15 @@ class ComplaintService {
     try {
       final response = await DioClient.get('/complaints/$complaintId');
       final responseData = response.data;
-      if (responseData['success'] == true && responseData['complaint'] != null) {
-        return Complaint.fromJson(responseData['complaint']);
+
+      if (responseData['success'] == true) {
+        // ✅ ApiResponse 구조: data 필드에서 민원 데이터 추출
+        final complaintData = responseData['data'];
+        if (complaintData != null) {
+          return Complaint.fromJson(complaintData);
+        } else {
+          throw Exception('민원을 찾을 수 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '민원을 찾을 수 없습니다.');
       }
@@ -117,8 +136,15 @@ class ComplaintService {
       });
 
       final responseData = response.data;
-      if (responseData['success'] == true && responseData['complaint'] != null) {
-        return Complaint.fromJson(responseData['complaint']);
+
+      if (responseData['success'] == true) {
+        // ✅ ApiResponse 구조: data 필드에서 민원 데이터 추출
+        final complaintData = responseData['data'];
+        if (complaintData != null) {
+          return Complaint.fromJson(complaintData);
+        } else {
+          throw Exception('민원 상태 업데이트에 실패했습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '민원 상태 업데이트에 실패했습니다.');
       }
@@ -144,8 +170,15 @@ class ComplaintService {
     try {
       final response = await DioClient.get('/complaints/statistics');
       final responseData = response.data;
-      if (responseData['success'] == true && responseData['statistics'] != null) {
-        return responseData['statistics'];
+
+      if (responseData['success'] == true) {
+        // ✅ ApiResponse 구조: data 필드에서 통계 데이터 추출
+        final statisticsData = responseData['data'];
+        if (statisticsData != null) {
+          return statisticsData;
+        } else {
+          throw Exception('통계 조회에 실패했습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '통계 조회에 실패했습니다.');
       }
