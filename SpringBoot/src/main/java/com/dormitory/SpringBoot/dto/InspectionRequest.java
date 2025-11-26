@@ -236,10 +236,11 @@ public class InspectionRequest {
     }
 
     /**
-     * 관리자용 점호 목록 응답 DTO
+     * 관리자용 점호 목록 응답 DTO - dormitoryBuilding 추가
      */
     public static class AdminResponse extends Response {
-        private String userName; // 사용자 이름 추가
+        private String userName; // 사용자 이름
+        private String dormitoryBuilding; // ✅ 거주 동 추가
 
         public AdminResponse() {
             super();
@@ -260,6 +261,15 @@ public class InspectionRequest {
 
         public void setUserName(String userName) {
             this.userName = userName;
+        }
+
+        // ✅ 추가: dormitoryBuilding getter/setter
+        public String getDormitoryBuilding() {
+            return dormitoryBuilding;
+        }
+
+        public void setDormitoryBuilding(String dormitoryBuilding) {
+            this.dormitoryBuilding = dormitoryBuilding;
         }
     }
 
@@ -386,4 +396,6 @@ public class InspectionRequest {
             this.message = message;
         }
     }
+
+
 }

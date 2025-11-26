@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // ✅ PreAuthorize 임포트
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,12 +23,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 점호 관련 API 컨트롤러
+ * 점호 관련 API 컨트롤러 - 컴파일 에러 수정
  */
 @RestController
 @RequestMapping("/api/inspections")
 @Tag(name = "Inspection", description = "점호 관리 API")
-@CrossOrigin(origins = "*") // ✅ CrossOrigin 추가 (필요시)
+@CrossOrigin(origins = "*")
 public class InspectionController {
 
     private static final Logger logger = LoggerFactory.getLogger(InspectionController.class);
@@ -85,12 +85,11 @@ public class InspectionController {
      */
     @GetMapping("/admin/all")
     @Operation(summary = "모든 점호 기록 조회", description = "관리자가 모든 점호 기록을 조회합니다.")
-    @PreAuthorize("hasRole('ADMIN')") // ✅ 관리자 권한 설정
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> getAllInspections() {
         try {
             List<InspectionRequest.AdminResponse> inspections = inspectionService.getAllInspections();
 
-            // ✅ ApiResponse DTO 사용
             Map<String, Object> data = new HashMap<>();
             data.put("inspections", inspections);
             data.put("count", inspections.size());
@@ -99,7 +98,6 @@ public class InspectionController {
 
         } catch (Exception e) {
             logger.error("전체 점호 기록 조회 중 오류 발생", e);
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
@@ -110,14 +108,13 @@ public class InspectionController {
      */
     @GetMapping("/admin/date/{date}")
     @Operation(summary = "날짜별 점호 기록 조회", description = "관리자가 특정 날짜의 점호 기록을 조회합니다.")
-    @PreAuthorize("hasRole('ADMIN')") // ✅ 관리자 권한 설정
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> getInspectionsByDate(
             @Parameter(description = "조회할 날짜 (yyyy-MM-dd)", required = true)
             @PathVariable String date) {
         try {
             List<InspectionRequest.AdminResponse> inspections = inspectionService.getInspectionsByDate(date);
 
-            // ✅ ApiResponse DTO 사용
             Map<String, Object> data = new HashMap<>();
             data.put("inspections", inspections);
             data.put("count", inspections.size());
@@ -126,7 +123,6 @@ public class InspectionController {
 
         } catch (Exception e) {
             logger.error("날짜별 점호 기록 조회 중 오류 발생", e);
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
@@ -137,7 +133,7 @@ public class InspectionController {
      */
     @GetMapping("/statistics")
     @Operation(summary = "점호 통계 조회", description = "전체 또는 특정 날짜의 점호 통계를 조회합니다.")
-    @PreAuthorize("hasRole('ADMIN')") // ✅ 관리자 권한 설정
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> getInspectionStatistics(
             @Parameter(description = "조회할 날짜 (yyyy-MM-dd), 없으면 전체 통계")
             @RequestParam(required = false) String date) {
@@ -150,56 +146,53 @@ public class InspectionController {
                 statistics = inspectionService.getTotalStatistics();
             }
 
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.ok(ApiResponse.success("통계 조회 성공", statistics));
 
         } catch (Exception e) {
             logger.error("점호 통계 조회 중 오류 발생", e);
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
     /**
-     * 관리자용 - 점호 기록 삭제
+     * ✅ 수정: 관리자용 - 점호 기록 삭제 (void 반환 대응)
      */
     @DeleteMapping("/admin/{inspectionId}")
     @Operation(summary = "점호 기록 삭제", description = "관리자가 특정 점호 기록을 삭제합니다.")
-    @PreAuthorize("hasRole('ADMIN')") // ✅ 관리자 권한 설정
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> deleteInspection(
             @Parameter(description = "삭제할 점호 기록 ID", required = true)
             @PathVariable Long inspectionId) {
         try {
-            boolean success = inspectionService.deleteInspection(inspectionId);
+            // ✅ void 반환이므로 예외가 발생하지 않으면 성공
+            inspectionService.deleteInspection(inspectionId);
 
-            if (success) {
-                // ✅ ApiResponse DTO 사용
-                return ResponseEntity.ok(ApiResponse.success("점호 기록이 성공적으로 삭제되었습니다."));
-            } else {
-                // ✅ ApiResponse DTO 사용
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.notFound("삭제할 점호 기록을 찾을 수 없습니다."));
-            }
+            return ResponseEntity.ok(ApiResponse.success("점호 기록이 성공적으로 삭제되었습니다."));
+
+        } catch (RuntimeException e) {
+            // Service에서 던진 RuntimeException (데이터 없음 등)
+            logger.warn("점호 기록 삭제 실패: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.notFound(e.getMessage()));
 
         } catch (Exception e) {
             logger.error("점호 기록 삭제 중 오류 발생", e);
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
     /**
-     * 관리자용 - 점호 기록 수정 (수정된 메서드)
+     * 관리자용 - 점호 기록 수정
      */
     @PutMapping("/admin/{inspectionId}")
     @Operation(summary = "점호 기록 수정", description = "관리자가 점호 기록을 수정합니다.")
-    @PreAuthorize("hasRole('ADMIN')") // ✅ 관리자 권한 설정
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> updateInspection(
             @Parameter(description = "수정할 점호 기록 ID", required = true)
             @PathVariable Long inspectionId,
-            @RequestBody @Valid InspectionRequest.UpdateRequest updateRequest) { // ✅ @Valid 추가
+            @RequestBody @Valid InspectionRequest.UpdateRequest updateRequest) {
         try {
             // UpdateRequest를 Map으로 변환
             Map<String, Object> updateData = new HashMap<>();
@@ -215,23 +208,20 @@ public class InspectionController {
             if (updateRequest.getAdminComment() != null) {
                 updateData.put("adminComment", updateRequest.getAdminComment());
             }
-            // ✅ 수정된 부분: isReInspection 필드 추가
             if (updateRequest.getIsReInspection() != null) {
                 updateData.put("isReInspection", updateRequest.getIsReInspection());
             }
 
             InspectionRequest.AdminResponse updatedInspection = inspectionService.updateInspection(inspectionId, updateData);
 
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.ok(ApiResponse.success("점호 기록이 성공적으로 수정되었습니다.", updatedInspection));
 
-        } catch (RuntimeException e) { // ✅ Service에서 던진 RuntimeException 처리
+        } catch (RuntimeException e) {
             logger.warn("점호 기록 수정 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.notFound(e.getMessage()));
         } catch (Exception e) {
             logger.error("점호 기록 수정 중 예기치 않은 오류 발생", e);
-            // ✅ ApiResponse DTO 사용
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
