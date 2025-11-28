@@ -1,9 +1,18 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/room_template.dart';
 import '../services/room_template_service.dart';
 import '../api/api_config.dart';
+
+/// 이미지 URL 생성 헬퍼 (baseUrl에서 /api 제거)
+String _getImageUrl(String? imagePath) {
+  if (imagePath == null || imagePath.isEmpty) return '';
+  final hostUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+  return '$hostUrl/uploads/$imagePath';
+}
 
 /// 관리자용 방 템플릿 관리 화면
 class AdminRoomTemplateScreen extends StatefulWidget {
@@ -195,7 +204,7 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
               ),
             ),
           ),
-          
+
           // 템플릿 목록
           Expanded(
             child: _buildContent(),
@@ -288,12 +297,23 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
             child: AspectRatio(
               aspectRatio: 16 / 9,
               child: Image.network(
-                '${ApiConfig.baseUrl}/uploads/${template.imagePath}',
+                _getImageUrl(template.imagePath),
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  print('[ERROR] 이미지 로드 실패: ${_getImageUrl(template.imagePath)}, 에러: $error');
                   return Container(
                     color: Colors.grey[200],
-                    child: const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                        const SizedBox(height: 8),
+                        Text(
+                          '이미지 로드 실패',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
                   );
                 },
                 loadingBuilder: (context, child, loadingProgress) {
@@ -306,7 +326,7 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
               ),
             ),
           ),
-          
+
           // 정보
           Padding(
             padding: const EdgeInsets.all(16),
@@ -384,7 +404,7 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
               ],
             ),
           ),
-          
+
           // 액션 버튼
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -418,7 +438,7 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
 /// 템플릿 추가/수정 다이얼로그
 class _TemplateEditDialog extends StatefulWidget {
   final RoomTemplate? template;
-  final Function(RoomTemplate, File?) onSave;
+  final Function(RoomTemplate, XFile?) onSave;
 
   const _TemplateEditDialog({
     this.template,
@@ -434,10 +454,11 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _buildingController;
-  
+
   String _selectedRoomType = 'SINGLE';
   bool _isDefault = false;
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;  // ✅ 이미지 바이트 데이터 추가
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -457,10 +478,13 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
       maxHeight: 1080,
       imageQuality: 85,
     );
-    
+
     if (image != null) {
+      // ✅ 이미지 바이트 데이터도 함께 로드
+      final bytes = await image.readAsBytes();
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImage = image;
+        _selectedImageBytes = bytes;
       });
     }
   }
@@ -473,21 +497,21 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
         );
         return;
       }
-      
+
       final template = RoomTemplate(
         id: widget.template?.id,
         templateName: _nameController.text.trim(),
         roomType: _selectedRoomType,
         imagePath: widget.template?.imagePath ?? '',
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
-        buildingName: _buildingController.text.trim().isEmpty 
-            ? null 
+        buildingName: _buildingController.text.trim().isEmpty
+            ? null
             : _buildingController.text.trim(),
         isDefault: _isDefault,
       );
-      
+
       widget.onSave(template, _selectedImage);
       Navigator.pop(context);
     }
@@ -517,32 +541,32 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: _selectedImage != null
+                    child: _selectedImageBytes != null
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                          )
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(_selectedImageBytes!, fit: BoxFit.cover),
+                    )
                         : widget.template?.imagePath != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  '${ApiConfig.baseUrl}/uploads/${widget.template!.imagePath}',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 48),
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey[400]),
-                                  const SizedBox(height: 8),
-                                  Text('이미지 선택', style: TextStyle(color: Colors.grey[600])),
-                                ],
-                              ),
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        _getImageUrl(widget.template!.imagePath),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 48),
+                      ),
+                    )
+                        : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text('이미지 선택', style: TextStyle(color: Colors.grey[600])),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // 템플릿 이름
                 TextFormField(
                   controller: _nameController,
@@ -559,7 +583,7 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // 방 타입
                 DropdownButtonFormField<String>(
                   value: _selectedRoomType,
@@ -581,7 +605,7 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // 동 이름 (선택)
                 TextFormField(
                   controller: _buildingController,
@@ -592,7 +616,7 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // 설명 (선택)
                 TextFormField(
                   controller: _descriptionController,
@@ -604,7 +628,7 @@ class _TemplateEditDialogState extends State<_TemplateEditDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
-                
+
                 // 기본 템플릿 설정
                 SwitchListTile(
                   title: const Text('기본 템플릿으로 설정'),

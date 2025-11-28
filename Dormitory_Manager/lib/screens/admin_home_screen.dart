@@ -191,10 +191,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   Icons.cancel,
                 ),
                 _buildStatItem(
-                  '평균',
-                  _todayStats!.averageScore.toStringAsFixed(1),
+                  '통과율',
+                  '${_todayStats!.passRate.toStringAsFixed(0)}%',
                   Colors.orange,
-                  Icons.star,
+                  Icons.percent,
                 ),
               ],
             ),
