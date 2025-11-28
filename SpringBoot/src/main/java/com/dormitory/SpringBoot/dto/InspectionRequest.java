@@ -4,12 +4,13 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
 /**
  * 점호 관련 DTO 클래스들
- * ✅ updatedAt 필드 추가
+ * ✅ RejectRequest 클래스 추가
  */
 public class InspectionRequest {
 
@@ -107,6 +108,29 @@ public class InspectionRequest {
     }
 
     /**
+     * ✅ 신규 추가: 점호 반려 요청 DTO
+     */
+    public static class RejectRequest {
+        @NotBlank(message = "반려 사유는 필수입니다.")
+        @Size(min = 5, max = 500, message = "반려 사유는 5자 이상 500자 이하로 입력해주세요.")
+        private String rejectReason;
+
+        public RejectRequest() {}
+
+        public RejectRequest(String rejectReason) {
+            this.rejectReason = rejectReason;
+        }
+
+        public String getRejectReason() {
+            return rejectReason;
+        }
+
+        public void setRejectReason(String rejectReason) {
+            this.rejectReason = rejectReason;
+        }
+    }
+
+    /**
      * 점호 응답 DTO
      * ✅ updatedAt 필드 추가
      */
@@ -127,18 +151,17 @@ public class InspectionRequest {
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime createdAt;
 
-        // ✅ updatedAt 필드 추가
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime updatedAt;
 
         // 기본 생성자
         public Response() {}
 
-        // 전체 생성자 (updatedAt 포함)
+        // 전체 생성자
         public Response(Long id, String userId, String roomNumber, String imagePath,
-                        Integer score, String status, String geminiFeedback, String adminComment,
-                        Boolean isReInspection, LocalDateTime inspectionDate,
-                        LocalDateTime createdAt, LocalDateTime updatedAt) {
+                        Integer score, String status, String geminiFeedback,
+                        String adminComment, Boolean isReInspection,
+                        LocalDateTime inspectionDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
             this.id = id;
             this.userId = userId;
             this.roomNumber = roomNumber;
@@ -155,8 +178,9 @@ public class InspectionRequest {
 
         // 기존 생성자 (하위 호환성)
         public Response(Long id, String userId, String roomNumber, String imagePath,
-                        Integer score, String status, String geminiFeedback, String adminComment,
-                        Boolean isReInspection, LocalDateTime inspectionDate, LocalDateTime createdAt) {
+                        Integer score, String status, String geminiFeedback,
+                        String adminComment, Boolean isReInspection,
+                        LocalDateTime inspectionDate, LocalDateTime createdAt) {
             this(id, userId, roomNumber, imagePath, score, status, geminiFeedback,
                     adminComment, isReInspection, inspectionDate, createdAt, null);
         }
@@ -250,7 +274,6 @@ public class InspectionRequest {
             this.createdAt = createdAt;
         }
 
-        // ✅ updatedAt getter/setter 추가
         public LocalDateTime getUpdatedAt() {
             return updatedAt;
         }

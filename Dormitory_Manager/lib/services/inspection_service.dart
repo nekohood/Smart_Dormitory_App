@@ -4,6 +4,7 @@ import '../models/inspection.dart';
 import '../api/dio_client.dart';
 
 /// 점호 관련 API 서비스 (DioClient 기반)
+/// ✅ 상세 조회 및 반려 기능 추가
 class InspectionService {
   /// ⭐ 기존 코드와의 호환성을 위해 남겨둠 (실제로는 사용되지 않음)
   /// DioClient가 자동으로 토큰을 관리하므로 이 메서드는 아무 동작도 하지 않음
@@ -33,7 +34,7 @@ class InspectionService {
 
       print('[DEBUG] 서버로 요청 전송 중...');
 
-      // ✅ DioClient.post 사용 (uploadFile은 파일 경로가 필요하므로 직접 post 사용)
+      // ✅ DioClient.post 사용
       final response = await DioClient.post(
         '/inspections/submit',
         data: formData,
@@ -103,7 +104,7 @@ class InspectionService {
       });
 
       final response = await DioClient.post(
-        '/inspections/reinspect',
+        '/inspections/resubmit',
         data: formData,
       );
 
@@ -133,6 +134,39 @@ class InspectionService {
     } catch (e) {
       print('[ERROR] 전체 점호 기록 조회 실패: $e');
       rethrow;
+    }
+  }
+
+  /// ✅ 신규 추가: 점호 상세 조회 (관리자)
+  Future<AdminInspectionDetailResponse> getInspectionDetail(int inspectionId) async {
+    try {
+      print('[DEBUG] 점호 상세 조회: ID $inspectionId');
+
+      final response = await DioClient.get('/inspections/admin/$inspectionId');
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final inspectionData = data['data'];
+        if (inspectionData != null) {
+          return AdminInspectionDetailResponse(
+            success: true,
+            inspection: AdminInspectionModel.fromJson(inspectionData),
+            message: data['message'],
+          );
+        }
+      }
+
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: data['message'] ?? '점호 상세 조회 실패',
+      );
+
+    } catch (e) {
+      print('[ERROR] 점호 상세 조회 실패: $e');
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: '점호 상세 조회 실패: $e',
+      );
     }
   }
 
@@ -197,6 +231,37 @@ class InspectionService {
     }
   }
 
+  /// ✅ 신규 추가: 점호 반려 (관리자)
+  Future<InspectionRejectResponse> rejectInspection(
+      int inspectionId, String rejectReason) async {
+    try {
+      print('[DEBUG] 점호 반려: ID $inspectionId, 사유: $rejectReason');
+
+      final response = await DioClient.post(
+        '/inspections/admin/$inspectionId/reject',
+        data: {'rejectReason': rejectReason},
+      );
+
+      final data = response.data;
+
+      return InspectionRejectResponse(
+        success: data['success'] == true,
+        message: data['message'],
+        inspectionId: inspectionId,
+        rejectReason: rejectReason,
+      );
+
+    } catch (e) {
+      print('[ERROR] 점호 반려 실패: $e');
+      return InspectionRejectResponse(
+        success: false,
+        message: '점호 반려 실패: $e',
+        inspectionId: inspectionId,
+        rejectReason: rejectReason,
+      );
+    }
+  }
+
   /// 점호 통계 조회 (관리자)
   Future<InspectionStatisticsResponse> getInspectionStatistics({DateTime? date}) async {
     try {
@@ -218,4 +283,32 @@ class InspectionService {
       rethrow;
     }
   }
+}
+
+/// ✅ 신규 추가: 점호 상세 조회 응답 모델
+class AdminInspectionDetailResponse {
+  final bool success;
+  final AdminInspectionModel? inspection;
+  final String? message;
+
+  AdminInspectionDetailResponse({
+    required this.success,
+    this.inspection,
+    this.message,
+  });
+}
+
+/// ✅ 신규 추가: 점호 반려 응답 모델
+class InspectionRejectResponse {
+  final bool success;
+  final String? message;
+  final int inspectionId;
+  final String rejectReason;
+
+  InspectionRejectResponse({
+    required this.success,
+    this.message,
+    required this.inspectionId,
+    required this.rejectReason,
+  });
 }

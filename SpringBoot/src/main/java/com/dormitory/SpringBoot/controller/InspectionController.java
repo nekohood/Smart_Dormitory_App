@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 점호 관련 API 컨트롤러 - 컴파일 에러 수정
+ * 점호 관련 API 컨트롤러 - 상세 조회 및 반려 기능 추가
  */
 @RestController
 @RequestMapping("/api/inspections")
@@ -98,6 +98,33 @@ public class InspectionController {
 
         } catch (Exception e) {
             logger.error("전체 점호 기록 조회 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
+     * ✅ 신규 추가: 관리자용 - 점호 상세 조회
+     */
+    @GetMapping("/admin/{inspectionId}")
+    @Operation(summary = "점호 상세 조회", description = "관리자가 특정 점호 기록의 상세 정보를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> getInspectionDetail(
+            @Parameter(description = "점호 기록 ID", required = true)
+            @PathVariable Long inspectionId) {
+        try {
+            logger.info("점호 상세 조회 요청 - ID: {}", inspectionId);
+
+            InspectionRequest.AdminResponse inspection = inspectionService.getInspectionById(inspectionId);
+
+            return ResponseEntity.ok(ApiResponse.success("점호 상세 조회 성공", inspection));
+
+        } catch (RuntimeException e) {
+            logger.warn("점호 상세 조회 실패 - ID: {}, 사유: {}", inspectionId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.notFound(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("점호 상세 조회 중 오류 발생 - ID: {}", inspectionId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
         }
@@ -184,6 +211,40 @@ public class InspectionController {
     }
 
     /**
+     * ✅ 신규 추가: 관리자용 - 점호 반려 (반려 사유와 함께 삭제)
+     */
+    @PostMapping("/admin/{inspectionId}/reject")
+    @Operation(summary = "점호 반려", description = "관리자가 점호를 반려 처리하고 삭제합니다. 반려 사유가 사용자에게 전달됩니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> rejectInspection(
+            @Parameter(description = "반려할 점호 기록 ID", required = true)
+            @PathVariable Long inspectionId,
+            @RequestBody @Valid InspectionRequest.RejectRequest rejectRequest) {
+        try {
+            logger.info("점호 반려 요청 - ID: {}, 사유: {}", inspectionId, rejectRequest.getRejectReason());
+
+            inspectionService.rejectInspection(inspectionId, rejectRequest.getRejectReason());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("inspectionId", inspectionId);
+            data.put("rejectReason", rejectRequest.getRejectReason());
+            data.put("rejected", true);
+
+            return ResponseEntity.ok(ApiResponse.success("점호가 성공적으로 반려되었습니다.", data));
+
+        } catch (RuntimeException e) {
+            logger.warn("점호 반려 실패 - ID: {}, 사유: {}", inspectionId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.notFound(e.getMessage()));
+
+        } catch (Exception e) {
+            logger.error("점호 반려 중 오류 발생 - ID: {}", inspectionId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
      * 관리자용 - 점호 기록 수정
      */
     @PutMapping("/admin/{inspectionId}")
@@ -224,6 +285,24 @@ public class InspectionController {
             logger.error("점호 기록 수정 중 예기치 않은 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
+     * 재검 점호 제출
+     */
+    @PostMapping("/resubmit")
+    @Operation(summary = "재검 점호 제출", description = "실패한 점호에 대해 재검 점호를 제출합니다.")
+    public ResponseEntity<ApiResponse<InspectionRequest.Response>> resubmitInspection(
+            @AuthenticationPrincipal String userId,
+            @Parameter(description = "방 번호", required = true) @RequestParam String roomNumber,
+            @Parameter(description = "업로드할 방 사진", required = true) @RequestParam("image") MultipartFile imageFile) {
+        try {
+            InspectionRequest.Response result = inspectionService.submitReInspection(userId, roomNumber, imageFile);
+            return ResponseEntity.ok(ApiResponse.success("재검 점호가 성공적으로 제출되었습니다.", result));
+        } catch (Exception e) {
+            logger.error("재검 점호 제출 중 오류 발생 - 사용자: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 }
