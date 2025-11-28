@@ -204,36 +204,92 @@ public class InspectionService {
     }
 
     /**
-     * 방 사진이 아닌지 확인
+     * ✅ 방 사진이 아닌지 확인 (확장된 키워드 목록)
      */
     private boolean isNotRoomPhoto(String feedback) {
         if (feedback == null) return false;
 
         String lower = feedback.toLowerCase();
-        String[] nonRoomKeywords = {
+
+        // 평가 불가/검사 불가 키워드
+        String[] invalidKeywords = {
+                // 평가 불가 관련
+                "평가 불가", "평가불가", "검사불가", "검사 불가",
+                "평가할 수 없", "점수를 매길 수 없",
+                "적용하여 점수를 매기거나 평가 설명을 드릴 수 없",
+                "cannot evaluate", "unable to evaluate",
+
+                // 방 사진 아님 관련
                 "방_사진_여부: 아니오", "방 사진이 아", "방이 아닙니다",
+                "기숙사 방 사진이 아", "기숙사방 사진이 아",
+                "not a room", "not a dormitory", "not a dorm",
+
+                // 장소 관련
                 "화장실", "샤워", "복도", "계단", "로비", "야외", "외부", "옥외",
-                "식당", "세탁", "공용", "셀카만", "실외", "밖",
-                "not a room", "bathroom", "toilet", "hallway", "outside"
+                "식당", "세탁", "공용", "실외", "밖",
+                "bathroom", "toilet", "hallway", "outside", "corridor",
+
+                // 가짜 이미지 관련
+                "게임", "스크린샷", "screenshot", "screen shot",
+                "영화", "드라마", "애니메이션", "만화", "일러스트",
+                "인터넷", "다운로드", "캡처",
+                "tv 화면", "모니터 화면", "컴퓨터 화면",
+                "가상", "virtual", "cg", "렌더링",
+                "포르자", "forza", "비디오 게임", "video game",
+
+                // 기타
+                "셀카만", "셀카", "selfie"
         };
 
-        for (String keyword : nonRoomKeywords) {
+        for (String keyword : invalidKeywords) {
             if (lower.contains(keyword.toLowerCase())) {
                 return true;
             }
+        }
+
+        // "점수: 평가 불가" 또는 "점수: 불가" 패턴 체크
+        if (lower.contains("점수") && (lower.contains("불가") || lower.contains("없"))) {
+            return true;
         }
 
         return false;
     }
 
     /**
-     * 방이 아닌 이유 추출
+     * ✅ 방이 아닌 이유 추출 (확장된 버전)
      */
     private String extractNonRoomReason(String feedback) {
         if (feedback == null) return "기숙사 방 사진이 아닌 것으로 판단됩니다.";
 
         String lower = feedback.toLowerCase();
 
+        // 게임/스크린샷 관련
+        if (lower.contains("게임") || lower.contains("스크린샷") || lower.contains("screenshot")
+                || lower.contains("포르자") || lower.contains("forza") || lower.contains("video game")) {
+            return "게임 스크린샷은 점호 사진으로 인정되지 않습니다.";
+        }
+
+        // 영상 콘텐츠 관련
+        if (lower.contains("영화") || lower.contains("드라마") || lower.contains("애니메이션")) {
+            return "영화/드라마/애니메이션 장면은 점호 사진으로 인정되지 않습니다.";
+        }
+
+        // 그림/일러스트 관련
+        if (lower.contains("만화") || lower.contains("일러스트") || lower.contains("cg") || lower.contains("렌더링")) {
+            return "그림/일러스트/CG 이미지는 점호 사진으로 인정되지 않습니다.";
+        }
+
+        // 화면 캡처 관련
+        if (lower.contains("tv 화면") || lower.contains("모니터") || lower.contains("컴퓨터 화면") || lower.contains("캡처")) {
+            return "화면 캡처/촬영 이미지는 점호 사진으로 인정되지 않습니다.";
+        }
+
+        // 인터넷 다운로드 관련
+        if (lower.contains("인터넷") || lower.contains("다운로드")) {
+            return "인터넷에서 다운로드한 이미지는 점호 사진으로 인정되지 않습니다.";
+        }
+
+        // 장소 관련
         if (lower.contains("화장실") || lower.contains("샤워") || lower.contains("bathroom")) {
             return "화장실/샤워실 사진은 점호로 인정되지 않습니다.";
         }
@@ -243,11 +299,11 @@ public class InspectionService {
         if (lower.contains("야외") || lower.contains("외부") || lower.contains("옥외") || lower.contains("outside")) {
             return "야외/실외 사진은 점호로 인정되지 않습니다.";
         }
-        if (lower.contains("셀카")) {
+        if (lower.contains("셀카") || lower.contains("selfie")) {
             return "방이 보이지 않는 셀카는 점호로 인정되지 않습니다.";
         }
 
-        return "기숙사 방 내부 사진이 아닌 것으로 판단됩니다.";
+        return "기숙사 방 내부 사진이 아닌 것으로 판단됩니다. 실제 방 사진을 다시 제출해주세요.";
     }
 
     /**

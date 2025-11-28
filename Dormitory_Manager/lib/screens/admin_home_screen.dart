@@ -8,6 +8,8 @@ import 'admin_schedule_screen.dart';
 import 'admin_inspection_screen.dart';
 import 'admin_complaint_screen.dart';
 import 'admin_document_screen.dart';
+import 'admin_inspection_settings_screen.dart';
+import 'admin_room_template_screen.dart';  // ✅ 기준 방 사진 관리 화면
 
 /// 관리자 전용 홈 화면
 class AdminHomeScreen extends StatefulWidget {
@@ -113,6 +115,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               SizedBox(height: 16),
               _buildQuickActionsCard(),
               SizedBox(height: 16),
+              _buildInspectionSettingsCard(),  // ✅ 점호 설정 카드 추가
+              SizedBox(height: 16),
               _buildRecentInspectionsCard(),
             ],
           ),
@@ -187,10 +191,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   Icons.cancel,
                 ),
                 _buildStatItem(
-                  '통과율',
-                  '${_todayStats!.passRate.toStringAsFixed(1)}%',
+                  '평균',
+                  _todayStats!.averageScore.toStringAsFixed(1),
                   Colors.orange,
-                  Icons.percent,
+                  Icons.star,
                 ),
               ],
             ),
@@ -204,7 +208,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Widget _buildStatItem(String label, String value, Color color, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 28),
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
         SizedBox(height: 8),
         Text(
           value,
@@ -214,7 +225,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             color: color,
           ),
         ),
-        SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
@@ -223,6 +233,174 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 빠른 작업 카드
+  Widget _buildQuickActionsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.flash_on, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  '빠른 작업',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2.5,
+              children: [
+                // ✅ 점호 관리 버튼
+                _buildQuickActionButton(
+                  '점호 관리',
+                  Icons.assignment_turned_in,
+                  Colors.blue,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminInspectionScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // ✅ 민원 현황 버튼
+                _buildQuickActionButton(
+                  '민원 현황',
+                  Icons.report_problem,
+                  Colors.orange,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminComplaintScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // ✅ 서류 관리 버튼
+                _buildQuickActionButton(
+                  '서류 관리',
+                  Icons.description,
+                  Colors.green,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminDocumentScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // ✅ 일정 관리 버튼
+                _buildQuickActionButton(
+                  '일정 관리',
+                  Icons.calendar_today,
+                  Colors.purple,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminScheduleScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ✅ 점호 설정 카드 (새로 추가)
+  Widget _buildInspectionSettingsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings, color: Colors.teal),
+                SizedBox(width: 8),
+                Text(
+                  '점호 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2.5,
+              children: [
+                // ✅ 점호 시간 설정 버튼
+                _buildQuickActionButton(
+                  '점호 시간 설정',
+                  Icons.access_time,
+                  Colors.teal,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminInspectionSettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // ✅ 기준 사진 관리 버튼 (새로 추가)
+                _buildQuickActionButton(
+                  '기준 사진 관리',
+                  Icons.photo_library,
+                  Colors.indigo,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminRoomTemplateScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -256,7 +434,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // ✅ 점호 관리 화면으로 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -270,9 +447,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             SizedBox(height: 12),
             if (_recentInspections.isEmpty)
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
                   child: Text(
                     '오늘 점호 기록이 없습니다.',
                     style: TextStyle(color: Colors.grey[600]),
@@ -341,104 +518,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 빠른 작업 카드
-  Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flash_on, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '빠른 작업',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2.5,
-              children: [
-                // ✅ 점호 관리 버튼 - 연결됨
-                _buildQuickActionButton(
-                  '점호 관리',
-                  Icons.assignment_turned_in,
-                  Colors.blue,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminInspectionScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 민원 현황 버튼 - 연결됨
-                _buildQuickActionButton(
-                  '민원 현황',
-                  Icons.report_problem,
-                  Colors.orange,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminComplaintScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 서류 관리 버튼 - 연결됨
-                _buildQuickActionButton(
-                  '서류 관리',
-                  Icons.description,
-                  Colors.green,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminDocumentScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 일정 관리 버튼 - 이미 연결됨
-                _buildQuickActionButton(
-                  '일정 관리',
-                  Icons.calendar_today,
-                  Colors.purple,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminScheduleScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
