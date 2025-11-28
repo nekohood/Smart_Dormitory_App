@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * 점호 관련 DTO 클래스들
+ * ✅ updatedAt 필드 추가
  */
 public class InspectionRequest {
 
@@ -107,6 +108,7 @@ public class InspectionRequest {
 
     /**
      * 점호 응답 DTO
+     * ✅ updatedAt 필드 추가
      */
     public static class Response {
         private Long id;
@@ -125,13 +127,18 @@ public class InspectionRequest {
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime createdAt;
 
+        // ✅ updatedAt 필드 추가
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        private LocalDateTime updatedAt;
+
         // 기본 생성자
         public Response() {}
 
-        // 전체 생성자
+        // 전체 생성자 (updatedAt 포함)
         public Response(Long id, String userId, String roomNumber, String imagePath,
                         Integer score, String status, String geminiFeedback, String adminComment,
-                        Boolean isReInspection, LocalDateTime inspectionDate, LocalDateTime createdAt) {
+                        Boolean isReInspection, LocalDateTime inspectionDate,
+                        LocalDateTime createdAt, LocalDateTime updatedAt) {
             this.id = id;
             this.userId = userId;
             this.roomNumber = roomNumber;
@@ -143,6 +150,15 @@ public class InspectionRequest {
             this.isReInspection = isReInspection;
             this.inspectionDate = inspectionDate;
             this.createdAt = createdAt;
+            this.updatedAt = updatedAt;
+        }
+
+        // 기존 생성자 (하위 호환성)
+        public Response(Long id, String userId, String roomNumber, String imagePath,
+                        Integer score, String status, String geminiFeedback, String adminComment,
+                        Boolean isReInspection, LocalDateTime inspectionDate, LocalDateTime createdAt) {
+            this(id, userId, roomNumber, imagePath, score, status, geminiFeedback,
+                    adminComment, isReInspection, inspectionDate, createdAt, null);
         }
 
         // Getter and Setter methods
@@ -233,6 +249,15 @@ public class InspectionRequest {
         public void setCreatedAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
         }
+
+        // ✅ updatedAt getter/setter 추가
+        public LocalDateTime getUpdatedAt() {
+            return updatedAt;
+        }
+
+        public void setUpdatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+        }
     }
 
     /**
@@ -240,7 +265,7 @@ public class InspectionRequest {
      */
     public static class AdminResponse extends Response {
         private String userName; // 사용자 이름
-        private String dormitoryBuilding; // ✅ 거주 동 추가
+        private String dormitoryBuilding; // 거주 동
 
         public AdminResponse() {
             super();
@@ -249,10 +274,19 @@ public class InspectionRequest {
         public AdminResponse(Long id, String userId, String userName, String roomNumber,
                              String imagePath, Integer score, String status, String geminiFeedback,
                              String adminComment, Boolean isReInspection,
-                             LocalDateTime inspectionDate, LocalDateTime createdAt) {
+                             LocalDateTime inspectionDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
             super(id, userId, roomNumber, imagePath, score, status, geminiFeedback,
-                    adminComment, isReInspection, inspectionDate, createdAt);
+                    adminComment, isReInspection, inspectionDate, createdAt, updatedAt);
             this.userName = userName;
+        }
+
+        // 기존 생성자 (하위 호환성)
+        public AdminResponse(Long id, String userId, String userName, String roomNumber,
+                             String imagePath, Integer score, String status, String geminiFeedback,
+                             String adminComment, Boolean isReInspection,
+                             LocalDateTime inspectionDate, LocalDateTime createdAt) {
+            this(id, userId, userName, roomNumber, imagePath, score, status, geminiFeedback,
+                    adminComment, isReInspection, inspectionDate, createdAt, null);
         }
 
         public String getUserName() {
@@ -263,7 +297,6 @@ public class InspectionRequest {
             this.userName = userName;
         }
 
-        // ✅ 추가: dormitoryBuilding getter/setter
         public String getDormitoryBuilding() {
             return dormitoryBuilding;
         }
@@ -396,6 +429,4 @@ public class InspectionRequest {
             this.message = message;
         }
     }
-
-
 }

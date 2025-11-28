@@ -92,6 +92,16 @@ class DioClient {
     }
   }
 
+  /// PATCH 요청
+  static Future<Response> patch(String path, {dynamic data}) async {
+    try {
+      print('[DEBUG] PATCH 요청: $path');
+      return await _dio.patch(path, data: data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// 파일 업로드
   static Future<Response> uploadFile(
       String path,

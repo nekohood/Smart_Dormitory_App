@@ -4,12 +4,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../models/inspection.dart';
 import '../models/user.dart';
 import '../services/inspection_service.dart';
 import '../utils/storage_helper.dart';
-import '../utils/auth_provider.dart';
 
 /// 점호 메인 화면
 class InspectionScreen extends StatefulWidget {
