@@ -1,16 +1,13 @@
-// ============================================================================
-// InspectionService.java - 사용자 이름 복호화 기능 추가 버전
-// 파일 위치: SpringBoot/src/main/java/com/dormitory/SpringBoot/services/InspectionService.java
-// ============================================================================
 package com.dormitory.SpringBoot.services;
 
+import com.dormitory.SpringBoot.domain.BuildingTableConfig;
 import com.dormitory.SpringBoot.domain.Inspection;
+import com.dormitory.SpringBoot.domain.InspectionSettings;
 import com.dormitory.SpringBoot.domain.User;
 import com.dormitory.SpringBoot.dto.InspectionRequest;
 import com.dormitory.SpringBoot.repository.InspectionRepository;
 import com.dormitory.SpringBoot.repository.UserRepository;
-import com.dormitory.SpringBoot.utils.EncryptionUtil;  // ✅ 추가: 사용자 이름 복호화용
-import com.dormitory.SpringBoot.domain.BuildingTableConfig;
+import com.dormitory.SpringBoot.utils.EncryptionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,17 +19,19 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 
 /**
- * 점호 관련 비즈니스 로직 처리 서비스
- * ✅ 상세 조회 및 반려 기능 추가
+ * 점호 관련 비즈니스 로직을 처리하는 서비스
+ * ✅ 시간 제한, EXIF 검증, 방 사진 검증 기능 통합
+ * ✅ 통계 메서드 포함 (getTotalStatistics, getStatisticsByDate)
+ * ✅ 기숙사별 점호 현황 테이블 기능 추가
  */
 @Service
 @Transactional
@@ -47,46 +46,107 @@ public class InspectionService {
     private UserRepository userRepository;
 
     @Autowired
+    private GeminiService geminiService;
+
+    @Autowired
     private FileService fileService;
 
     @Autowired
-    private EncryptionUtil encryptionUtil;  // ✅ 추가: 사용자 이름 복호화용
+    private AttendanceTableService attendanceTableService;
 
     @Autowired
-    private GeminiService geminiService;
+    private InspectionSettingsService settingsService;
 
-    @Value("${inspection.pass.score:7}")
+    @Autowired
+    private ExifService exifService;
+
+    @Autowired
+    private EncryptionUtil encryptionUtil;
+
+    // ✅ 테이블 설정 서비스 추가
+    @Autowired
+    private BuildingTableConfigService buildingConfigService;
+
+    @Value("${inspection.pass.score:6}")
     private int passScore;
 
+    @Value("${inspection.fail.score:5}")
+    private int failScore;
+
+    // ==================== 점호 제출 관련 메서드 ====================
+
     /**
-     * 점호 제출
+     * ✅ 점호 제출 - 시간 제한 + EXIF 검증 + 방 사진 검증 통합
      */
     public InspectionRequest.Response submitInspection(String userId, String roomNumber, MultipartFile imageFile) {
         try {
-            logger.info("점호 제출 시작 - 사용자: {}, 방 번호: {}", userId, roomNumber);
+            logger.info("점호 제출 시작 - 사용자: {}, 방번호: {}", userId, roomNumber);
 
-            // 오늘 이미 점호를 완료했는지 확인
+            // 1. 사용자 정보 조회
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+            // 방 번호 결정 (사용자 프로필 > 요청값)
+            String finalRoomNumber = user.getRoomNumber() != null ? user.getRoomNumber() : roomNumber;
+
+            // 2. 점호 시간 확인
+            InspectionSettingsService.InspectionTimeCheckResult timeCheck = settingsService.checkInspectionTimeAllowed();
+            if (!timeCheck.isAllowed()) {
+                logger.warn("점호 시간 외 제출 시도 - 사용자: {}", userId);
+                throw new RuntimeException(timeCheck.getMessage());
+            }
+
+            // 3. 오늘 이미 점호를 완료했는지 확인
             List<Inspection> todayInspections = inspectionRepository.findTodayInspectionByUserId(userId);
             if (!todayInspections.isEmpty()) {
                 throw new RuntimeException("오늘 이미 점호를 완료했습니다.");
             }
 
-            // 사용자 정보 조회
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            // 4. EXIF 검증 (설정에 따라)
+            InspectionSettings currentSettings = timeCheck.getSettings();
+            if (currentSettings != null && currentSettings.getExifValidationEnabled()) {
+                // EXIF 검증 파라미터 설정
+                int toleranceMinutes = currentSettings.getExifTimeToleranceMinutes() != null
+                        ? currentSettings.getExifTimeToleranceMinutes() : 30;
+                Double expectedLatitude = currentSettings.getGpsValidationEnabled()
+                        ? currentSettings.getDormitoryLatitude() : null;
+                Double expectedLongitude = currentSettings.getGpsValidationEnabled()
+                        ? currentSettings.getDormitoryLongitude() : null;
+                int radiusMeters = currentSettings.getGpsRadiusMeters() != null
+                        ? currentSettings.getGpsRadiusMeters() : 100;
 
-            // 방 번호 검증 및 설정
-            String finalRoomNumber = roomNumber;
-            if (user.getRoomNumber() != null && !user.getRoomNumber().isEmpty()) {
-                finalRoomNumber = user.getRoomNumber();
+                ExifService.ExifValidationResult exifResult = exifService.validateExif(
+                        imageFile, toleranceMinutes, expectedLatitude, expectedLongitude, radiusMeters);
+
+                if (!exifResult.isValid()) {
+                    logger.warn("EXIF 검증 실패 - 사용자: {}, 메시지: {}", userId, exifResult.getMessage());
+
+                    // EXIF 검증 실패 시 0점 처리
+                    int score = 0;
+                    String geminiFeedback = "❌ " + exifResult.getMessage();
+                    String status = "FAIL";
+
+                    return saveInspection(userId, finalRoomNumber, imageFile, score, geminiFeedback, status, false);
+                }
+
+                // ✅ 촬영 날짜 검증 실패 시 즉시 0점 처리
+                if (!exifResult.isDateValid()) {
+                    logger.warn("❌ 촬영 날짜 검증 실패 - 사용자: {}, 과거 촬영 사진 업로드 시도", userId);
+                    int score = 0;
+                    String geminiFeedback = "❌ 오늘 촬영한 사진이 아닙니다. 과거에 촬영된 사진은 점호로 인정되지 않습니다.";
+                    String status = "FAIL";
+                    return saveInspection(userId, finalRoomNumber, imageFile, score, geminiFeedback, status, false);
+                }
+
+                logger.info("EXIF 검증 통과 - 사용자: {}", userId);
             }
 
-            // AI 평가
+            // 5. AI 평가
             int score = geminiService.evaluateInspection(imageFile);
             String geminiFeedback = geminiService.getInspectionFeedback(imageFile);
             String status = score >= passScore ? "PASS" : "FAIL";
 
-            logger.info("AI 평가 완료 - 점수: {}, 상태: {}", score, status);
+            logger.info("AI 평가 완료 - 사용자: {}, 점수: {}, 상태: {}", userId, score, status);
 
             return saveInspection(userId, finalRoomNumber, imageFile, score, geminiFeedback, status, false);
 
@@ -104,16 +164,14 @@ public class InspectionService {
      */
     public InspectionRequest.Response submitReInspection(String userId, String roomNumber, MultipartFile imageFile) {
         try {
-            logger.info("재검 점호 제출 시작 - 사용자: {}, 방 번호: {}", userId, roomNumber);
+            logger.info("재검 점호 제출 시작 - 사용자: {}, 방번호: {}", userId, roomNumber);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-            String finalRoomNumber = roomNumber;
-            if (user.getRoomNumber() != null && !user.getRoomNumber().isEmpty()) {
-                finalRoomNumber = user.getRoomNumber();
-            }
+            String finalRoomNumber = user.getRoomNumber() != null ? user.getRoomNumber() : roomNumber;
 
+            // 오늘 실패한 점호가 있는지 확인
             List<Inspection> todayInspections = inspectionRepository.findTodayInspectionByUserId(userId);
             if (todayInspections.isEmpty()) {
                 throw new RuntimeException("오늘 점호 기록이 없습니다.");
@@ -171,6 +229,8 @@ public class InspectionService {
             throw new RuntimeException("점호 저장 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+
+    // ==================== 조회 메서드 ====================
 
     /**
      * 사용자의 점호 기록 조회
@@ -241,7 +301,7 @@ public class InspectionService {
     }
 
     /**
-     * ✅ 신규 추가: 특정 점호 기록 상세 조회 (관리자용)
+     * 특정 점호 기록 상세 조회 (관리자용)
      */
     @Transactional(readOnly = true)
     public InspectionRequest.AdminResponse getInspectionById(Long inspectionId) {
@@ -290,59 +350,27 @@ public class InspectionService {
         }
     }
 
-    /**
-     * 점호 삭제
-     */
-    public void deleteInspection(Long inspectionId) {
-        try {
-            logger.info("점호 삭제 시작 - ID: {}", inspectionId);
-
-            Inspection inspection = inspectionRepository.findById(inspectionId)
-                    .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
-
-            if (inspection.getImagePath() != null) {
-                try {
-                    fileService.deleteFile(inspection.getImagePath());
-                } catch (Exception e) {
-                    logger.warn("이미지 파일 삭제 실패: {}", e.getMessage());
-                }
-            }
-
-            inspectionRepository.delete(inspection);
-            logger.info("점호 삭제 완료 - ID: {}", inspectionId);
-
-        } catch (RuntimeException e) {
-            logger.error("점호 삭제 실패 - ID: {}", inspectionId, e);
-            throw e;
-        } catch (Exception e) {
-            logger.error("점호 삭제 중 예기치 않은 오류 발생 - ID: {}", inspectionId, e);
-            throw new RuntimeException("점호 삭제 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
+    // ==================== 수정/삭제 메서드 ====================
 
     /**
-     * ✅ 신규 추가: 점호 반려 (반려 사유와 함께 삭제)
+     * 점호 반려 (관리자)
      */
-    public void rejectInspection(Long inspectionId, String rejectReason) {
+    public void rejectInspection(Long inspectionId, String reason) {
         try {
-            logger.info("점호 반려 시작 - ID: {}, 사유: {}", inspectionId, rejectReason);
+            logger.info("점호 반려 시작 - ID: {}, 사유: {}", inspectionId, reason);
 
             Inspection inspection = inspectionRepository.findById(inspectionId)
                     .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
 
             String userId = inspection.getUserId();
 
-            // TODO: 추후 알림 서비스 연동 시 사용자에게 반려 알림 전송
-            // notificationService.sendRejectionNotification(userId, rejectReason);
-            logger.info("점호 반려 알림 예정 - 사용자: {}, 사유: {}", userId, rejectReason);
-
             // 이미지 파일 삭제
             if (inspection.getImagePath() != null) {
                 try {
                     fileService.deleteFile(inspection.getImagePath());
-                    logger.info("점호 이미지 삭제 완료 - 경로: {}", inspection.getImagePath());
+                    logger.info("점호 이미지 삭제 완료: {}", inspection.getImagePath());
                 } catch (Exception e) {
-                    logger.warn("이미지 파일 삭제 실패: {}", e.getMessage());
+                    logger.warn("점호 이미지 삭제 실패: {}", e.getMessage());
                 }
             }
 
@@ -356,6 +384,39 @@ public class InspectionService {
         } catch (Exception e) {
             logger.error("점호 반려 중 예기치 않은 오류 발생 - ID: {}", inspectionId, e);
             throw new RuntimeException("점호 반려 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 점호 삭제
+     */
+    public void deleteInspection(Long inspectionId) {
+        try {
+            logger.info("점호 삭제 시작 - ID: {}", inspectionId);
+
+            Inspection inspection = inspectionRepository.findById(inspectionId)
+                    .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
+
+            // 이미지 파일 삭제
+            if (inspection.getImagePath() != null) {
+                try {
+                    fileService.deleteFile(inspection.getImagePath());
+                    logger.info("점호 이미지 삭제 완료: {}", inspection.getImagePath());
+                } catch (Exception e) {
+                    logger.warn("이미지 파일 삭제 실패: {}", e.getMessage());
+                }
+            }
+
+            // 점호 기록 삭제
+            inspectionRepository.delete(inspection);
+            logger.info("점호 삭제 완료 - ID: {}", inspectionId);
+
+        } catch (RuntimeException e) {
+            logger.error("점호 삭제 실패 - ID: {}", inspectionId, e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("점호 삭제 중 예기치 않은 오류 발생 - ID: {}", inspectionId, e);
+            throw new RuntimeException("점호 삭제 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -443,8 +504,7 @@ public class InspectionService {
             long reInspections = inspectionRepository.findByIsReInspectionTrueOrderByCreatedAtDesc().size();
 
             InspectionRequest.Statistics result = new InspectionRequest.Statistics(
-                    total, passed, failed, reInspections, LocalDateTime.now()
-            );
+                    total, passed, failed, reInspections, LocalDateTime.now());
 
             logger.info("전체 통계 조회 완료 - 전체: {}, 통과: {}, 실패: {}, 재검: {}",
                     total, passed, failed, reInspections);
@@ -452,12 +512,12 @@ public class InspectionService {
 
         } catch (Exception e) {
             logger.error("전체 통계 조회 중 오류 발생", e);
-            throw new RuntimeException("전체 통계 조회에 실패했습니다: " + e.getMessage());
+            throw new RuntimeException("통계 조회에 실패했습니다: " + e.getMessage());
         }
     }
 
     /**
-     * 날짜별 통계 조회
+     * 날짜별 점호 통계 조회
      */
     @Transactional(readOnly = true)
     public InspectionRequest.Statistics getStatisticsByDate(String dateStr) {
@@ -473,8 +533,7 @@ public class InspectionService {
             long reInspections = inspectionRepository.countReInspectionsByDate(date);
 
             InspectionRequest.Statistics result = new InspectionRequest.Statistics(
-                    total, passed, failed, reInspections, date
-            );
+                    total, passed, failed, reInspections, date);
 
             logger.info("날짜별 통계 조회 완료 - 날짜: {}, 전체: {}, 통과: {}, 실패: {}",
                     dateStr, total, passed, failed);
@@ -486,91 +545,11 @@ public class InspectionService {
         }
     }
 
-    // ========== 변환 메서드들 ==========
+    // ==================== 기숙사별 점호 현황 테이블 메서드 ====================
 
-    private InspectionRequest.Response convertToResponse(Inspection inspection) {
-        InspectionRequest.Response response = new InspectionRequest.Response();
-        response.setId(inspection.getId());
-        response.setUserId(inspection.getUserId());
-        response.setRoomNumber(inspection.getRoomNumber());
-        response.setImagePath(inspection.getImagePath());
-        response.setScore(inspection.getScore());
-        response.setStatus(inspection.getStatus());
-        response.setGeminiFeedback(inspection.getGeminiFeedback());
-        response.setAdminComment(inspection.getAdminComment());
-        response.setIsReInspection(inspection.getIsReInspection());
-        response.setInspectionDate(inspection.getInspectionDate());
-        response.setCreatedAt(inspection.getCreatedAt());
-        response.setUpdatedAt(inspection.getUpdatedAt());
-        return response;
-    }
-
-    private InspectionRequest.AdminResponse convertToAdminResponse(Inspection inspection) {
-        InspectionRequest.AdminResponse response = new InspectionRequest.AdminResponse();
-        response.setId(inspection.getId());
-        response.setUserId(inspection.getUserId());
-        response.setRoomNumber(inspection.getRoomNumber());
-        response.setImagePath(inspection.getImagePath());
-        response.setScore(inspection.getScore());
-        response.setStatus(inspection.getStatus());
-        response.setGeminiFeedback(inspection.getGeminiFeedback());
-        response.setAdminComment(inspection.getAdminComment());
-        response.setIsReInspection(inspection.getIsReInspection());
-        response.setInspectionDate(inspection.getInspectionDate());
-        response.setCreatedAt(inspection.getCreatedAt());
-        response.setUpdatedAt(inspection.getUpdatedAt());
-
-        // ✅ 수정: 사용자 이름 조회 및 복호화
-        try {
-            Optional<User> user = userRepository.findById(inspection.getUserId());
-            if (user.isPresent()) {
-                User u = user.get();
-
-                // ✅ 암호화된 이름 복호화
-                if (u.getName() != null && !u.getName().isEmpty()) {
-                    try {
-                        String decryptedName = encryptionUtil.decrypt(u.getName());
-                        response.setUserName(decryptedName);
-                    } catch (Exception e) {
-                        // 복호화 실패 시 원본 반환 (이미 평문일 수 있음)
-                        logger.warn("사용자 이름 복호화 실패, 원본 사용 - userId: {}", inspection.getUserId());
-                        response.setUserName(u.getName());
-                    }
-                } else {
-                    response.setUserName("이름 없음");
-                }
-
-                response.setDormitoryBuilding(u.getDormitoryBuilding());
-            } else {
-                response.setUserName("알 수 없음");
-                response.setDormitoryBuilding(null);
-            }
-        } catch (Exception e) {
-            logger.warn("사용자 정보 조회 실패 - 사용자ID: {}", inspection.getUserId());
-            response.setUserName("알 수 없음");
-            response.setDormitoryBuilding(null);
-        }
-
-        return response;
-    }
-
-    /**
-     * ✅ 기숙사별 점호 현황 테이블 데이터 조회
-     * 층/호실 매트릭스 형태로 점호 상태 반환
-     *
-     * @param building 기숙사 동 이름
-     * @param dateStr 조회할 날짜 (yyyy-MM-dd), null이면 오늘
-     * @return 층/호실별 점호 상태 매트릭스
-     */
-    @Autowired
-    private BuildingTableConfigService buildingConfigService;
     /**
      * ✅ 기숙사별 점호 현황 테이블 데이터 조회 (테이블 설정 적용)
      * 층/호실 매트릭스 형태로 점호 상태 반환
-     *
-     * @param building 기숙사 동 이름
-     * @param dateStr 조회할 날짜 (yyyy-MM-dd), null이면 오늘
-     * @return 층/호실별 점호 상태 매트릭스
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getBuildingInspectionStatus(String building, String dateStr) {
@@ -588,8 +567,12 @@ public class InspectionService {
             LocalDateTime startOfDay = targetDate.atStartOfDay();
             LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
 
-            // ✅ 테이블 설정 조회 (없으면 기본값)
+            // ✅ 테이블 설정 조회 (없으면 예시용 기본값)
             BuildingTableConfig tableConfig = buildingConfigService.getConfigOrDefault(building);
+
+            // 기본값 여부 확인
+            boolean isDefaultConfig = (tableConfig.getId() == null);
+
             int startFloor = tableConfig.getStartFloor();
             int endFloor = tableConfig.getEndFloor();
             int startRoom = tableConfig.getStartRoom();
@@ -764,6 +747,10 @@ public class InspectionService {
             configInfo.put("endRoom", endRoom);
             configInfo.put("roomNumberFormat", roomNumberFormat);
             configInfo.put("configId", tableConfig.getId());
+            configInfo.put("isDefault", isDefaultConfig);  // ✅ 기본값 여부
+            if (isDefaultConfig) {
+                configInfo.put("message", "⚠️ 예시 테이블입니다. 설정 버튼을 눌러 실제 층/호실 범위를 설정해주세요.");
+            }
             result.put("tableConfig", configInfo);
 
             logger.info("기숙사별 점호 현황 조회 완료 - 동: {}, 통과: {}, 실패: {}, 미제출: {}",
@@ -778,24 +765,43 @@ public class InspectionService {
     }
 
     /**
-     * ✅ 전체 기숙사 동 목록 조회
+     * 전체 기숙사 동 목록 조회
+     * ✅ 사용자 데이터 + 테이블 설정 모두에서 기숙사 목록을 가져옴
      */
     @Transactional(readOnly = true)
     public List<String> getAllBuildings() {
         try {
-            logger.info("기숙사 동 목록 조회");
+            logger.info("전체 기숙사 동 목록 조회");
 
-            List<String> buildings = userRepository.findDistinctDormitoryBuildings();
+            // 1. 사용자 데이터에서 기숙사 목록 조회
+            List<String> userBuildings = userRepository.findDistinctDormitoryBuildings();
 
-            // null 제거 및 정렬
-            buildings = buildings.stream()
-                    .filter(b -> b != null && !b.trim().isEmpty())
-                    .sorted()
+            // 2. 테이블 설정에서 기숙사 목록 조회
+            List<BuildingTableConfig> configs = buildingConfigService.getActiveConfigs();
+            List<String> configBuildings = configs.stream()
+                    .map(BuildingTableConfig::getBuildingName)
+                    .filter(name -> name != null && !name.trim().isEmpty())
                     .collect(Collectors.toList());
 
-            logger.info("기숙사 동 목록 조회 완료 - {}개 동", buildings.size());
-            return buildings;
+            // 3. 두 목록 합치기 (중복 제거, 정렬)
+            java.util.Set<String> allBuildings = new java.util.TreeSet<>();
 
+            if (userBuildings != null) {
+                userBuildings.stream()
+                        .filter(b -> b != null && !b.trim().isEmpty())
+                        .forEach(allBuildings::add);
+            }
+
+            allBuildings.addAll(configBuildings);
+
+            List<String> result = new ArrayList<>(allBuildings);
+
+            logger.info("기숙사 동 목록 조회 완료 - {}개 동 (사용자: {}, 설정: {})",
+                    result.size(),
+                    userBuildings != null ? userBuildings.size() : 0,
+                    configBuildings.size());
+
+            return result;
         } catch (Exception e) {
             logger.error("기숙사 동 목록 조회 실패", e);
             throw new RuntimeException("기숙사 동 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
@@ -803,14 +809,13 @@ public class InspectionService {
     }
 
     /**
-     * ✅ 특정 호실의 점호 상세 정보 조회
+     * 특정 호실의 점호 상세 정보 조회
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getRoomInspectionDetail(String building, String roomNumber, String dateStr) {
         try {
-            logger.info("호실별 점호 상세 조회 - 동: {}, 방번호: {}, 날짜: {}", building, roomNumber, dateStr);
+            logger.info("호실 점호 상세 조회 - 동: {}, 호실: {}, 날짜: {}", building, roomNumber, dateStr);
 
-            // 날짜 파싱
             LocalDate targetDate;
             if (dateStr == null || dateStr.isEmpty()) {
                 targetDate = LocalDate.now();
@@ -821,17 +826,18 @@ public class InspectionService {
             LocalDateTime startOfDay = targetDate.atStartOfDay();
             LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
 
-            // 해당 호실 거주자 조회
+            // 해당 호실의 사용자들 조회
             List<User> roomUsers = userRepository.findByDormitoryBuildingAndRoomNumberAndIsActiveTrue(building, roomNumber);
 
             Map<String, Object> result = new HashMap<>();
             result.put("building", building);
             result.put("roomNumber", roomNumber);
             result.put("date", targetDate.toString());
+            result.put("userCount", roomUsers.size());
 
             if (roomUsers.isEmpty()) {
-                result.put("status", "EMPTY");
-                result.put("message", "해당 호실에 거주자가 없습니다.");
+                result.put("overallStatus", "EMPTY");
+                result.put("statusText", "빈 방");
                 result.put("users", List.of());
                 return result;
             }
@@ -842,7 +848,6 @@ public class InspectionService {
                 Map<String, Object> userDetail = new HashMap<>();
                 userDetail.put("userId", user.getId());
                 userDetail.put("userName", decryptUserName(user.getName()));
-                userDetail.put("email", user.getEmail());  // 암호화된 상태로 전송 또는 복호화 필요시 추가
 
                 // 해당 날짜의 점호 기록 조회
                 List<Inspection> inspections = inspectionRepository.findByUserIdAndInspectionDateBetween(
@@ -853,7 +858,7 @@ public class InspectionService {
                     userDetail.put("statusText", "미제출");
                     userDetail.put("inspection", null);
                 } else {
-                    Inspection inspection = inspections.get(0);  // 가장 최근 것
+                    Inspection inspection = inspections.get(0);
                     userDetail.put("inspectionStatus", inspection.getStatus());
                     userDetail.put("statusText", getStatusText(inspection.getStatus()));
 
@@ -865,7 +870,6 @@ public class InspectionService {
                     inspectionData.put("adminComment", inspection.getAdminComment());
                     inspectionData.put("imagePath", inspection.getImagePath());
                     inspectionData.put("inspectionDate", inspection.getInspectionDate());
-                    inspectionData.put("isReInspection", inspection.getIsReInspection());
 
                     userDetail.put("inspection", inspectionData);
                 }
@@ -873,49 +877,26 @@ public class InspectionService {
                 userDetails.add(userDetail);
             }
 
-            result.put("userCount", roomUsers.size());
+            // 전체 상태 결정
+            String overallStatus = determineOverallStatus(userDetails);
+            result.put("overallStatus", overallStatus);
+            result.put("statusText", getStatusText(overallStatus));
             result.put("users", userDetails);
 
-            // 호실 전체 상태 결정
-            boolean allSubmitted = userDetails.stream()
-                    .noneMatch(u -> "NOT_SUBMITTED".equals(u.get("inspectionStatus")));
-            boolean allPass = userDetails.stream()
-                    .allMatch(u -> "PASS".equals(u.get("inspectionStatus")));
-            boolean hasFail = userDetails.stream()
-                    .anyMatch(u -> "FAIL".equals(u.get("inspectionStatus")));
-            boolean hasRejected = userDetails.stream()
-                    .anyMatch(u -> "REJECTED".equals(u.get("inspectionStatus")));
-
-            String overallStatus;
-            if (hasRejected) {
-                overallStatus = "REJECTED";
-            } else if (hasFail) {
-                overallStatus = "FAIL";
-            } else if (!allSubmitted) {
-                overallStatus = "NOT_SUBMITTED";
-            } else if (allPass) {
-                overallStatus = "PASS";
-            } else {
-                overallStatus = "PENDING";
-            }
-
-            result.put("overallStatus", overallStatus);
-            result.put("overallStatusText", getStatusText(overallStatus));
-
-            logger.info("호실별 점호 상세 조회 완료 - 동: {}, 방번호: {}, 상태: {}", building, roomNumber, overallStatus);
             return result;
 
         } catch (Exception e) {
-            logger.error("호실별 점호 상세 조회 실패 - 동: {}, 방번호: {}", building, roomNumber, e);
-            throw new RuntimeException("호실별 점호 상세 조회 중 오류가 발생했습니다: " + e.getMessage());
+            logger.error("호실 점호 상세 조회 실패", e);
+            throw new RuntimeException("호실 점호 상세 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
+    // ==================== 헬퍼 메서드 ====================
+
     /**
-     * 상태 텍스트 변환 헬퍼 메서드
+     * 상태 코드를 텍스트로 변환
      */
     private String getStatusText(String status) {
-        if (status == null) return "알 수 없음";
         switch (status) {
             case "PASS": return "통과";
             case "FAIL": return "실패";
@@ -928,20 +909,100 @@ public class InspectionService {
     }
 
     /**
-     * 사용자 이름 복호화 헬퍼 메서드
-     * (encryptionUtil이 주입되어 있다고 가정)
+     * 암호화된 사용자 이름 복호화
      */
     private String decryptUserName(String encryptedName) {
-        if (encryptedName == null || encryptedName.isEmpty()) {
-            return "이름 없음";
-        }
+        if (encryptedName == null) return "Unknown";
         try {
             return encryptionUtil.decrypt(encryptedName);
         } catch (Exception e) {
-            logger.warn("사용자 이름 복호화 실패, 원본 반환");
+            logger.warn("사용자 이름 복호화 실패: {}", e.getMessage());
             return encryptedName;
         }
     }
 
+    /**
+     * 호실 전체 상태 결정
+     */
+    private String determineOverallStatus(List<Map<String, Object>> userDetails) {
+        boolean hasPass = false;
+        boolean hasFail = false;
+        boolean hasRejected = false;
+        boolean hasPending = false;
+        boolean hasNotSubmitted = false;
 
+        for (Map<String, Object> user : userDetails) {
+            String status = (String) user.get("inspectionStatus");
+            switch (status) {
+                case "PASS": hasPass = true; break;
+                case "FAIL": hasFail = true; break;
+                case "REJECTED": hasRejected = true; break;
+                case "PENDING": hasPending = true; break;
+                case "NOT_SUBMITTED": hasNotSubmitted = true; break;
+            }
+        }
+
+        if (hasRejected) return "REJECTED";
+        if (hasFail) return "FAIL";
+        if (hasPending) return "PENDING";
+        if (hasNotSubmitted) return "NOT_SUBMITTED";
+        if (hasPass) return "PASS";
+        return "EMPTY";
+    }
+
+    // ==================== 변환 메서드 ====================
+
+    private InspectionRequest.Response convertToResponse(Inspection inspection) {
+        InspectionRequest.Response response = new InspectionRequest.Response();
+        response.setId(inspection.getId());
+        response.setUserId(inspection.getUserId());
+        response.setRoomNumber(inspection.getRoomNumber());
+        response.setImagePath(inspection.getImagePath());
+        response.setScore(inspection.getScore());
+        response.setStatus(inspection.getStatus());
+        response.setGeminiFeedback(inspection.getGeminiFeedback());
+        response.setAdminComment(inspection.getAdminComment());
+        response.setIsReInspection(inspection.getIsReInspection());
+        response.setInspectionDate(inspection.getInspectionDate());
+        response.setCreatedAt(inspection.getCreatedAt());
+        response.setUpdatedAt(inspection.getUpdatedAt());
+        return response;
+    }
+
+    private InspectionRequest.AdminResponse convertToAdminResponse(Inspection inspection) {
+        InspectionRequest.AdminResponse response = new InspectionRequest.AdminResponse();
+        response.setId(inspection.getId());
+        response.setUserId(inspection.getUserId());
+        response.setRoomNumber(inspection.getRoomNumber());
+        response.setImagePath(inspection.getImagePath());
+        response.setScore(inspection.getScore());
+        response.setStatus(inspection.getStatus());
+        response.setGeminiFeedback(inspection.getGeminiFeedback());
+        response.setAdminComment(inspection.getAdminComment());
+        response.setIsReInspection(inspection.getIsReInspection());
+        response.setInspectionDate(inspection.getInspectionDate());
+        response.setCreatedAt(inspection.getCreatedAt());
+        response.setUpdatedAt(inspection.getUpdatedAt());
+
+        // 사용자 이름 조회 및 복호화
+        try {
+            Optional<User> user = userRepository.findById(inspection.getUserId());
+            if (user.isPresent()) {
+                User u = user.get();
+                if (u.getName() != null) {
+                    response.setUserName(decryptUserName(u.getName()));
+                } else {
+                    response.setUserName(u.getId());
+                }
+                response.setDormitoryBuilding(u.getDormitoryBuilding());
+            } else {
+                response.setUserName(inspection.getUserId());
+            }
+        } catch (Exception e) {
+            logger.warn("사용자 정보 조회 실패 - 사용자ID: {}", inspection.getUserId());
+            response.setUserName(inspection.getUserId());
+        }
+
+        return response;
+    }
 }

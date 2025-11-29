@@ -59,22 +59,32 @@ public class BuildingTableConfigService {
     }
 
     /**
-     * 기숙사 동의 층/호실 범위 조회 (설정이 없으면 기본값 반환)
+     * 기숙사 동의 층/호실 범위 조회 (설정이 없으면 예시용 기본값 반환)
      */
     @Transactional(readOnly = true)
     public BuildingTableConfig getConfigOrDefault(String buildingName) {
         return configRepository.findByBuildingNameAndIsActiveTrue(buildingName)
                 .orElseGet(() -> {
-                    // 기본값 반환 (2~13층, 1~20호)
+                    // ✅ 예시용 기본값 반환 (1~3층, 1~5호 - 작은 크기)
                     BuildingTableConfig defaultConfig = new BuildingTableConfig();
-                    defaultConfig.setBuildingName(buildingName);
-                    defaultConfig.setStartFloor(2);
-                    defaultConfig.setEndFloor(13);
+                    defaultConfig.setBuildingName("예시 템플릿");  // ✅ 실제 기숙사명이 아닌 "예시 템플릿"으로 표시
+                    defaultConfig.setStartFloor(1);
+                    defaultConfig.setEndFloor(3);
                     defaultConfig.setStartRoom(1);
-                    defaultConfig.setEndRoom(20);
+                    defaultConfig.setEndRoom(5);
                     defaultConfig.setRoomNumberFormat("FLOOR_ROOM");
+                    defaultConfig.setDescription("⚠️ 예시 테이블입니다. 설정 버튼을 눌러 실제 층/호실 범위를 설정해주세요.");
+                    defaultConfig.setIsActive(false);  // 기본값임을 표시
                     return defaultConfig;
                 });
+    }
+
+    /**
+     * 기숙사 동의 설정이 존재하는지 확인
+     */
+    @Transactional(readOnly = true)
+    public boolean hasConfig(String buildingName) {
+        return configRepository.findByBuildingNameAndIsActiveTrue(buildingName).isPresent();
     }
 
     /**

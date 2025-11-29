@@ -160,9 +160,27 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
         setState(() {
           _statusData = response.data['data'];
         });
+      } else {
+        // 에러 메시지 표시
+        final message = response.data['message'] ?? '데이터를 불러올 수 없습니다.';
+        _showSnackBar(message, isError: true);
+        setState(() {
+          _statusData = null;
+        });
       }
     } catch (e) {
       print('[ERROR] 점호 현황 로드 실패: $e');
+
+      // 에러 메시지에서 설정 없음 여부 확인
+      String errorMsg = e.toString();
+      if (errorMsg.contains('테이블 설정이 없습니다')) {
+        _showSnackBar('$_selectedBuilding의 테이블 설정이 없습니다.\n설정 버튼을 눌러 추가해주세요.', isError: true);
+      } else {
+        _showSnackBar('점호 현황을 불러오는데 실패했습니다.', isError: true);
+      }
+      setState(() {
+        _statusData = null;
+      });
     } finally {
       setState(() => _isLoading = false);
     }
@@ -424,14 +442,31 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                 Icon(Icons.apartment, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
                 Text(
-                  '기숙사 동을 선택해주세요',
+                  _selectedBuilding == null
+                      ? '기숙사 동을 선택해주세요'
+                      : '$_selectedBuilding의 테이블 설정이 없습니다',
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 8),
+                if (_selectedBuilding != null)
+                  Text(
+                    '⚙️ 설정 버튼을 눌러 테이블을 추가해주세요',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  ),
                 if (_buildings.isEmpty) ...[
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadBuildings,
                     child: const Text('기숙사 목록 불러오기'),
+                  ),
+                ],
+                if (_selectedBuilding != null) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _openTableConfigScreen,
+                    icon: const Icon(Icons.settings),
+                    label: const Text('테이블 설정하기'),
                   ),
                 ],
               ],
@@ -468,7 +503,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                   items: _buildings.map((building) {
                     return DropdownMenuItem(
                       value: building,
-                      child: Text('$building동'),
+                      child: Text(building),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -517,10 +552,12 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
         builder: (context) => const AdminBuildingConfigScreen(),
       ),
     ).then((_) {
-      // 설정 화면에서 돌아오면 데이터 새로고침
-      if (_selectedBuilding != null) {
-        _loadBuildingStatus();
-      }
+      // ✅ 설정 화면에서 돌아오면 기숙사 목록 + 상태 데이터 새로고침
+      _loadBuildings().then((_) {
+        if (_selectedBuilding != null) {
+          _loadBuildingStatus();
+        }
+      });
     });
   }
 
@@ -570,80 +607,134 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     final rooms = (_statusData!['rooms'] as List<dynamic>?)?.cast<int>() ??
         List.generate(20, (i) => i + 1);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 헤더 행
-              Row(
-                children: [
-                  _buildHeaderCell('층\\호', isCorner: true),
-                  ...rooms.map((room) => _buildHeaderCell('$room호')),
-                ],
-              ),
+    // ✅ 기본값(예시 테이블) 여부 확인
+    final tableConfig = _statusData!['tableConfig'] as Map<String, dynamic>?;
+    final isDefault = tableConfig?['isDefault'] == true;
 
-              // 데이터 행
-              ...floors.map((floor) {
-                final floorData = matrix[floor.toString()] as Map<String, dynamic>? ?? {};
+    return Column(
+      children: [
+        // ✅ 예시 테이블일 경우 안내 배너 표시
+        if (isDefault)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '⚠️ 예시 테이블입니다. 설정 버튼(⚙️)을 눌러 실제 층/호실 범위를 설정해주세요.',
+                    style: TextStyle(
+                      color: Colors.orange[800],
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _openTableConfigScreen,
+                  child: const Text('설정하기'),
+                ),
+              ],
+            ),
+          ),
 
-                return Row(
+        // 테이블 본체
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeaderCell('$floor층'),
-                    ...rooms.map((room) {
-                      final roomData = floorData[room.toString()] as Map<String, dynamic>?;
-                      final status = roomData?['status'] ?? 'EMPTY';
+                    // 헤더 행
+                    Row(
+                      children: [
+                        _buildHeaderCell('층\\호', isCorner: true),
+                        ...rooms.map((room) => _buildHeaderCell('$room호')),
+                      ],
+                    ),
 
-                      return _buildRoomCell(floor, room, status);
+                    // 데이터 행
+                    ...floors.map((floor) {
+                      final floorData = matrix[floor.toString()] as Map<String, dynamic>? ?? {};
+
+                      return Row(
+                        children: [
+                          _buildHeaderCell('$floor층'),
+                          ...rooms.map((room) {
+                            final roomData = floorData[room.toString()] as Map<String, dynamic>?;
+                            final status = roomData?['status'] ?? 'EMPTY';
+
+                            return _buildRoomCell(floor, room, status);
+                          }),
+                        ],
+                      );
                     }),
                   ],
-                );
-              }),
-            ],
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildHeaderCell(String text, {bool isCorner = false}) {
     return Container(
-      width: isCorner ? 50 : 40,
-      height: 40,
+      width: 44,  // 모든 셀 동일한 너비
+      height: 36,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.blue[100],
-        border: Border.all(color: Colors.blue[300]!),
+        border: Border.all(color: Colors.blue[300]!, width: 0.5),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: isCorner ? 10 : 10,
+          fontSize: 11,
         ),
       ),
     );
   }
 
   Widget _buildRoomCell(int floor, int room, String status) {
+    // 방 번호 계산 (테이블 설정의 형식에 따라)
+    String roomNumber;
+    final tableConfig = _statusData?['tableConfig'] as Map<String, dynamic>?;
+    final format = tableConfig?['roomNumberFormat'] ?? 'FLOOR_ROOM';
+
+    if (format == 'FLOOR_ZERO_ROOM') {
+      roomNumber = '${floor * 1000 + room}';
+    } else {
+      roomNumber = '${floor * 100 + room}';
+    }
+
     return InkWell(
       onTap: () => _showRoomDetail(floor, room),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,  // 모든 셀 동일한 너비
+        height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: _getStatusColor(status),
-          border: Border.all(color: Colors.grey[400]!),
+          border: Border.all(color: Colors.grey[400]!, width: 0.5),
         ),
         child: Text(
-          '${floor * 100 + room}',
+          roomNumber,
           style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
             color: status == 'EMPTY' ? Colors.grey[600] : Colors.white,
           ),
         ),
@@ -737,6 +828,11 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     final overallStatus = roomData['overallStatus'] ?? 'EMPTY';
     final users = roomData['users'] as List<dynamic>? ?? [];
 
+    // ✅ 예시 템플릿인지 확인
+    final tableConfig = _statusData?['tableConfig'] as Map<String, dynamic>?;
+    final isDefault = tableConfig?['isDefault'] == true;
+    final displayBuilding = isDefault ? '예시 화면' : _selectedBuilding;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -751,7 +847,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                 shape: BoxShape.circle,
               ),
             ),
-            Text('$_selectedBuilding동 $roomNumber호'),
+            Text('$displayBuilding $roomNumber호'),  // ✅ 예시일 때 "예시 화면" 표시
           ],
         ),
         content: SizedBox(
