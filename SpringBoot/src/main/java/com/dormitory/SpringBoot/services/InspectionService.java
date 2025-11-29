@@ -10,6 +10,7 @@ import com.dormitory.SpringBoot.dto.InspectionRequest;
 import com.dormitory.SpringBoot.repository.InspectionRepository;
 import com.dormitory.SpringBoot.repository.UserRepository;
 import com.dormitory.SpringBoot.utils.EncryptionUtil;  // ✅ 추가: 사용자 이름 복호화용
+import com.dormitory.SpringBoot.domain.BuildingTableConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

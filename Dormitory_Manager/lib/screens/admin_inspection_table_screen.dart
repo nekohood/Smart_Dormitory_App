@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/inspection_service.dart';
 import '../api/dio_client.dart';
 
 /// 기숙사별 점호 현황 테이블 화면
@@ -22,10 +21,22 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
   bool _isLoading = true;
   String? _errorMessage;
 
+  // ✅ 표의 모든 셀(헤더 포함) 크기를 50x50 정사각형으로 통일
+  final double _cellSize = 50.0;
+
   @override
   void initState() {
     super.initState();
     _loadBuildings();
+  }
+
+  /// 기숙사 이름 포맷팅 헬퍼 ("동" 중복 방지)
+  /// 예: "인재동" -> "인재동", "인재" -> "인재동"
+  String _getFormattedBuildingName(String name) {
+    if (name.endsWith('동')) {
+      return name;
+    }
+    return '$name동';
   }
 
   /// 기숙사 동 목록 로드
@@ -42,14 +53,14 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
         final List<dynamic> buildingList = response.data['data']['buildings'] ?? [];
         setState(() {
           _buildings = buildingList.cast<String>();
-          if (_buildings.isNotEmpty && _selectedBuilding == null) {
-            _selectedBuilding = _buildings.first;
-          }
+
+          // ✅ 수정됨: 초기 진입 시 자동으로 건물을 선택하지 않음 (null 유지)
+          // _selectedBuilding = null;
+
+          _isLoading = false;
         });
 
-        if (_selectedBuilding != null) {
-          await _loadBuildingStatus();
-        }
+        // 선택된 건물이 없으므로 데이터를 로드하지 않음
       }
     } catch (e) {
       print('[ERROR] 기숙사 동 목록 로드 실패: $e');
@@ -107,7 +118,10 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
       setState(() {
         _selectedDate = picked;
       });
-      await _loadBuildingStatus();
+      // 건물이 선택된 상태라면 데이터 갱신
+      if (_selectedBuilding != null) {
+        await _loadBuildingStatus();
+      }
     }
   }
 
@@ -116,7 +130,6 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     if (_selectedBuilding == null) return;
 
     try {
-      // 로딩 다이얼로그 표시
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -129,14 +142,14 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
         queryParameters: {'date': dateStr},
       );
 
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
+      Navigator.pop(context); // 로딩 닫기
 
       if (response.data['success'] == true) {
         final roomData = response.data['data'];
         _showRoomDetailDialog(roomData);
       }
     } catch (e) {
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('호실 정보를 불러오는데 실패했습니다: $e')),
       );
@@ -148,6 +161,9 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     final roomNumber = roomData['roomNumber'] ?? '';
     final overallStatus = roomData['overallStatus'] ?? 'EMPTY';
     final users = roomData['users'] as List<dynamic>? ?? [];
+
+    // ✅ 수정됨: 헬퍼 함수를 사용하여 "동" 중복 방지
+    final buildingName = _getFormattedBuildingName(_selectedBuilding ?? '');
 
     showDialog(
       context: context,
@@ -163,7 +179,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                 shape: BoxShape.circle,
               ),
             ),
-            Text('$_selectedBuilding동 $roomNumber호'),
+            Text('$buildingName $roomNumber호'),
           ],
         ),
         content: SizedBox(
@@ -294,27 +310,18 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     );
   }
 
-  /// 상태별 색상
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'PASS':
-        return Colors.green;
-      case 'FAIL':
-        return Colors.red;
-      case 'REJECTED':
-        return Colors.red[700]!;
-      case 'PENDING':
-        return Colors.orange;
-      case 'NOT_SUBMITTED':
-        return Colors.amber;
-      case 'EMPTY':
-        return Colors.grey[400]!;
-      default:
-        return Colors.grey;
+      case 'PASS': return Colors.green;
+      case 'FAIL': return Colors.red;
+      case 'REJECTED': return Colors.red[700]!;
+      case 'PENDING': return Colors.orange;
+      case 'NOT_SUBMITTED': return Colors.amber;
+      case 'EMPTY': return Colors.grey[400]!;
+      default: return Colors.grey;
     }
   }
 
-  /// 날짜 포맷
   String _formatDateTime(dynamic dateTime) {
     if (dateTime == null) return '';
     try {
@@ -345,18 +352,15 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadBuildingStatus,
+            onPressed: _selectedBuilding != null ? _loadBuildingStatus : null,
             tooltip: '새로고침',
           ),
         ],
       ),
       body: Column(
         children: [
-          // 상단 컨트롤 영역
-          _buildControlPanel(),
-
-          // 범례
-          _buildLegend(),
+          _buildControlPanel(), // 상단 컨트롤 (드롭다운, 날짜)
+          _buildLegend(),       // 범례
 
           // 테이블 영역
           Expanded(
@@ -378,7 +382,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                 ],
               ),
             )
-                : _buildInspectionTable(),
+                : _buildInspectionTable(), // 테이블 생성 위젯
           ),
 
           // 하단 통계
@@ -409,16 +413,17 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                   hint: const Text('기숙사 동 선택'),
                   isExpanded: true,
                   items: _buildings.map((building) {
+                    // ✅ 수정됨: 헬퍼 함수를 사용하여 드롭다운 메뉴 텍스트 "동" 중복 방지
                     return DropdownMenuItem(
                       value: building,
-                      child: Text('$building동'),
+                      child: Text(_getFormattedBuildingName(building)),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedBuilding = value;
                     });
-                    _loadBuildingStatus();
+                    _loadBuildingStatus(); // 선택 시 데이터 로드
                   },
                 ),
               ),
@@ -453,7 +458,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     );
   }
 
-  /// 범례
+  /// 범례 위젯
   Widget _buildLegend() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -493,10 +498,21 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     );
   }
 
-  /// 점호 현황 테이블
+  /// 점호 현황 테이블 위젯
   Widget _buildInspectionTable() {
-    if (_statusData == null) {
-      return const Center(child: Text('기숙사 동을 선택해주세요.'));
+    // ✅ 수정됨: 기숙사가 선택되지 않았을 때는 빈 화면(안내 메시지) 표시
+    if (_selectedBuilding == null || _statusData == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.apartment, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('점호 현황을 조회할 기숙사 동을 선택해주세요.',
+                style: TextStyle(fontSize: 16, color: Colors.grey)),
+          ],
+        ),
+      );
     }
 
     final matrix = _statusData!['matrix'] as Map<String, dynamic>? ?? {};
@@ -506,18 +522,19 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 헤더 행 (호실 번호)
+              // 1. 헤더 행 (호실 번호)
               Row(
                 children: [
-                  // 빈 코너 셀
+                  // 좌측 상단 코너 셀 (층/호)
                   Container(
-                    width: 50,
-                    height: 40,
+                    width: _cellSize, // ✅ 가로 고정 (50)
+                    height: _cellSize, // ✅ 세로 고정 (50)
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.blue[100],
@@ -528,10 +545,10 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
                     ),
                   ),
-                  // 호실 헤더
+                  // 호실 번호 헤더
                   ...rooms.map((room) => Container(
-                    width: 40,
-                    height: 40,
+                    width: _cellSize, // ✅ 가로 고정 (50)
+                    height: _cellSize, // ✅ 세로 고정 (50)
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.blue[100],
@@ -545,16 +562,16 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                 ],
               ),
 
-              // 데이터 행 (각 층)
+              // 2. 데이터 행 (각 층)
               ...floors.map((floor) {
                 final floorData = matrix[floor.toString()] as Map<String, dynamic>? ?? {};
 
                 return Row(
                   children: [
-                    // 층 헤더
+                    // 층 번호 헤더
                     Container(
-                      width: 50,
-                      height: 40,
+                      width: _cellSize, // ✅ 가로 고정 (50)
+                      height: _cellSize, // ✅ 세로 고정 (50)
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.blue[100],
@@ -565,7 +582,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                       ),
                     ),
-                    // 각 호실 셀
+                    // 각 호실 상태 데이터 셀
                     ...rooms.map((room) {
                       final roomData = floorData[room.toString()] as Map<String, dynamic>?;
                       final status = roomData?['status'] ?? 'EMPTY';
@@ -573,8 +590,8 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                       return InkWell(
                         onTap: () => _showRoomDetail(floor, room),
                         child: Container(
-                          width: 40,
-                          height: 40,
+                          width: _cellSize, // ✅ 가로 고정 (50)
+                          height: _cellSize, // ✅ 세로 고정 (50)
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _getStatusColor(status),
@@ -583,7 +600,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
                           child: Text(
                             '${floor * 100 + room}',
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 10, // ✅ 칸 크기에 맞춰 폰트 사이즈 조정
                               fontWeight: FontWeight.bold,
                               color: status == 'EMPTY' ? Colors.grey[600] : Colors.white,
                             ),
