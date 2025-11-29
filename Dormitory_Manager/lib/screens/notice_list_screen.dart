@@ -399,20 +399,21 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       // 관리자인 경우에만 작성 버튼 표시
       floatingActionButton: isAdmin
           ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NoticeWriteScreen(),
-                  ),
-                ).then((_) => _loadNotices());
-              },
-              backgroundColor: Colors.blue,
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
-              ),
-            )
+        heroTag: 'fab_notice_list',  // ✅ heroTag 추가
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NoticeWriteScreen(),
+            ),
+          ).then((_) => _loadNotices());
+        },
+        backgroundColor: Colors.blue,
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
+      )
           : null,
     );
   }

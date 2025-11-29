@@ -11,6 +11,7 @@ import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -20,6 +21,7 @@ import java.util.Map;
 
 /**
  * EXIF 데이터 추출 및 검증 서비스
+ * ✅ 촬영 날짜 검증 기능 추가 (당일 촬영 사진만 허용)
  */
 @Service
 public class ExifService {
@@ -37,6 +39,7 @@ public class ExifService {
         private final boolean timeValid;
         private final boolean locationValid;
         private final boolean notEdited;
+        private final boolean dateValid;  // ✅ 추가: 촬영 날짜 유효 여부
 
         public ExifValidationResult(boolean valid, String message, Map<String, Object> exifData,
                                     boolean timeValid, boolean locationValid, boolean notEdited) {
@@ -46,6 +49,19 @@ public class ExifService {
             this.timeValid = timeValid;
             this.locationValid = locationValid;
             this.notEdited = notEdited;
+            this.dateValid = true;  // 기본값
+        }
+
+        // ✅ 새로운 생성자 (dateValid 포함)
+        public ExifValidationResult(boolean valid, String message, Map<String, Object> exifData,
+                                    boolean timeValid, boolean locationValid, boolean notEdited, boolean dateValid) {
+            this.valid = valid;
+            this.message = message;
+            this.exifData = exifData;
+            this.timeValid = timeValid;
+            this.locationValid = locationValid;
+            this.notEdited = notEdited;
+            this.dateValid = dateValid;
         }
 
         public boolean isValid() { return valid; }
@@ -54,6 +70,7 @@ public class ExifService {
         public boolean isTimeValid() { return timeValid; }
         public boolean isLocationValid() { return locationValid; }
         public boolean isNotEdited() { return notEdited; }
+        public boolean isDateValid() { return dateValid; }  // ✅ 추가
     }
 
     /**
@@ -80,7 +97,7 @@ public class ExifService {
     }
 
     /**
-     * EXIF 종합 검증
+     * ✅ EXIF 종합 검증 (촬영 날짜 검증 추가)
      */
     public ExifValidationResult validateExif(MultipartFile imageFile,
                                              int toleranceMinutes,
@@ -92,6 +109,7 @@ public class ExifService {
 
             Map<String, Object> exifData = extractExifData(imageFile);
 
+            // 기존 검증
             boolean timeValid = validateCaptureTime(exifData, toleranceMinutes);
             boolean locationValid = true;
             if (expectedLatitude != null && expectedLongitude != null) {
@@ -99,23 +117,66 @@ public class ExifService {
             }
             boolean notEdited = checkNotEdited(exifData);
 
-            boolean allValid = timeValid && locationValid && notEdited;
-            String message = buildValidationMessage(timeValid, locationValid, notEdited, exifData);
+            // ✅ 촬영 날짜 검증 추가 (오늘 촬영 사진인지 확인)
+            boolean dateValid = validateCaptureDate(exifData);
 
-            logger.info("EXIF 검증 완료 - 유효: {}, 시간: {}, 위치: {}, 미편집: {}",
-                    allValid, timeValid, locationValid, notEdited);
+            boolean allValid = timeValid && locationValid && notEdited && dateValid;
+            String message = buildValidationMessage(timeValid, locationValid, notEdited, dateValid, exifData);
 
-            return new ExifValidationResult(allValid, message, exifData, timeValid, locationValid, notEdited);
+            logger.info("EXIF 검증 완료 - 유효: {}, 시간: {}, 위치: {}, 미편집: {}, 날짜: {}",
+                    allValid, timeValid, locationValid, notEdited, dateValid);
+
+            return new ExifValidationResult(allValid, message, exifData, timeValid, locationValid, notEdited, dateValid);
 
         } catch (Exception e) {
             logger.error("EXIF 검증 중 오류 발생", e);
             return new ExifValidationResult(true, "EXIF 검증을 수행할 수 없습니다.",
-                    new HashMap<>(), true, true, true);
+                    new HashMap<>(), true, true, true, true);
         }
     }
 
     /**
-     * 촬영 시간 검증
+     * ✅ 촬영 날짜 검증 - 오늘 촬영한 사진인지 확인
+     * @return true: 오늘 촬영 또는 날짜 정보 없음 (통과), false: 과거 촬영 (0점 처리)
+     */
+    public boolean validateCaptureDate(Map<String, Object> exifData) {
+        try {
+            String dateTimeOriginal = (String) exifData.get("DateTimeOriginal");
+            if (dateTimeOriginal == null) {
+                dateTimeOriginal = (String) exifData.get("DateTime");
+            }
+
+            if (dateTimeOriginal == null) {
+                // EXIF에 날짜 정보가 없으면 통과 (일부 기기는 EXIF 미지원)
+                logger.warn("촬영 날짜 정보가 없습니다. 검증 통과 처리.");
+                return true;
+            }
+
+            LocalDateTime captureTime = LocalDateTime.parse(dateTimeOriginal, EXIF_DATE_FORMAT);
+            LocalDate captureDate = captureTime.toLocalDate();
+            LocalDate today = LocalDate.now();
+
+            logger.info("촬영 날짜 검증 - 촬영일: {}, 오늘: {}", captureDate, today);
+
+            if (!captureDate.equals(today)) {
+                long daysDiff = ChronoUnit.DAYS.between(captureDate, today);
+                logger.warn("❌ 촬영 날짜가 오늘이 아닙니다! 촬영일: {}, 오늘: {}, 차이: {}일",
+                        captureDate, today, daysDiff);
+                return false;
+            }
+
+            logger.info("✅ 촬영 날짜 검증 통과 - 오늘 촬영된 사진입니다.");
+            return true;
+
+        } catch (Exception e) {
+            logger.error("촬영 날짜 검증 중 오류 발생", e);
+            // 오류 발생 시 통과 처리 (EXIF 파싱 문제일 수 있음)
+            return true;
+        }
+    }
+
+    /**
+     * 촬영 시간 검증 (기존 - 분 단위 오차)
      */
     public boolean validateCaptureTime(Map<String, Object> exifData, int toleranceMinutes) {
         try {
@@ -272,10 +333,17 @@ public class ExifService {
         return EARTH_RADIUS * c;
     }
 
+    /**
+     * ✅ 검증 메시지 생성 (날짜 검증 추가)
+     */
     private String buildValidationMessage(boolean timeValid, boolean locationValid,
-                                          boolean notEdited, Map<String, Object> exifData) {
+                                          boolean notEdited, boolean dateValid, Map<String, Object> exifData) {
         StringBuilder message = new StringBuilder();
 
+        // ✅ 날짜 검증 실패가 가장 중요 (0점 처리 대상)
+        if (!dateValid) {
+            message.append("❌ 오늘 촬영한 사진이 아닙니다. 과거에 촬영된 사진은 점호로 인정되지 않습니다. ");
+        }
         if (!timeValid) {
             message.append("촬영 시간이 제출 시간과 일치하지 않습니다. ");
         }
@@ -291,5 +359,11 @@ public class ExifService {
         }
 
         return message.toString().trim();
+    }
+
+    // ✅ 기존 메서드 오버로드 (하위 호환성 유지)
+    private String buildValidationMessage(boolean timeValid, boolean locationValid,
+                                          boolean notEdited, Map<String, Object> exifData) {
+        return buildValidationMessage(timeValid, locationValid, notEdited, true, exifData);
     }
 }

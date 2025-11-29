@@ -144,6 +144,7 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_inspection_settings',  // ✅ heroTag 추가
         onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),

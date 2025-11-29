@@ -178,6 +178,7 @@ class _AdminRoomTemplateScreenState extends State<AdminRoomTemplateScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_room_template',  // ✅ heroTag 추가
         onPressed: () => _showAddEditDialog(),
         icon: const Icon(Icons.add_photo_alternate),
         label: const Text('템플릿 추가'),

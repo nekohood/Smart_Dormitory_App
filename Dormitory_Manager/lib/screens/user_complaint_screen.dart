@@ -162,6 +162,7 @@ class _UserComplaintScreenState extends State<UserComplaintScreen>
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_user_complaint',  // ✅ heroTag 추가
         onPressed: () async {
           await Navigator.push(
             context,

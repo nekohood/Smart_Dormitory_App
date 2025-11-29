@@ -123,6 +123,7 @@ class _AdminScheduleScreenState extends State<AdminScheduleScreen> {
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_admin_schedule',  // ✅ heroTag 추가
         onPressed: _showAddScheduleDialog,
         backgroundColor: Colors.blue,
         tooltip: '일정 추가',

@@ -1,3 +1,7 @@
+// ============================================================================
+// InspectionService.java - 사용자 이름 복호화 기능 추가 버전
+// 파일 위치: SpringBoot/src/main/java/com/dormitory/SpringBoot/services/InspectionService.java
+// ============================================================================
 package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.Inspection;
@@ -5,6 +9,7 @@ import com.dormitory.SpringBoot.domain.User;
 import com.dormitory.SpringBoot.dto.InspectionRequest;
 import com.dormitory.SpringBoot.repository.InspectionRepository;
 import com.dormitory.SpringBoot.repository.UserRepository;
+import com.dormitory.SpringBoot.utils.EncryptionUtil;  // ✅ 추가: 사용자 이름 복호화용
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +18,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 /**
  * 점호 관련 비즈니스 로직 처리 서비스
@@ -38,6 +47,9 @@ public class InspectionService {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private EncryptionUtil encryptionUtil;  // ✅ 추가: 사용자 이름 복호화용
 
     @Autowired
     private GeminiService geminiService;
@@ -507,20 +519,428 @@ public class InspectionService {
         response.setCreatedAt(inspection.getCreatedAt());
         response.setUpdatedAt(inspection.getUpdatedAt());
 
-        // 사용자 이름 조회
+        // ✅ 수정: 사용자 이름 조회 및 복호화
         try {
             Optional<User> user = userRepository.findById(inspection.getUserId());
             if (user.isPresent()) {
-                response.setUserName(user.get().getName());
-                response.setDormitoryBuilding(user.get().getDormitoryBuilding());
+                User u = user.get();
+
+                // ✅ 암호화된 이름 복호화
+                if (u.getName() != null && !u.getName().isEmpty()) {
+                    try {
+                        String decryptedName = encryptionUtil.decrypt(u.getName());
+                        response.setUserName(decryptedName);
+                    } catch (Exception e) {
+                        // 복호화 실패 시 원본 반환 (이미 평문일 수 있음)
+                        logger.warn("사용자 이름 복호화 실패, 원본 사용 - userId: {}", inspection.getUserId());
+                        response.setUserName(u.getName());
+                    }
+                } else {
+                    response.setUserName("이름 없음");
+                }
+
+                response.setDormitoryBuilding(u.getDormitoryBuilding());
             } else {
                 response.setUserName("알 수 없음");
+                response.setDormitoryBuilding(null);
             }
         } catch (Exception e) {
             logger.warn("사용자 정보 조회 실패 - 사용자ID: {}", inspection.getUserId());
             response.setUserName("알 수 없음");
+            response.setDormitoryBuilding(null);
         }
 
         return response;
     }
+
+    /**
+     * ✅ 기숙사별 점호 현황 테이블 데이터 조회
+     * 층/호실 매트릭스 형태로 점호 상태 반환
+     *
+     * @param building 기숙사 동 이름
+     * @param dateStr 조회할 날짜 (yyyy-MM-dd), null이면 오늘
+     * @return 층/호실별 점호 상태 매트릭스
+     */
+    @Autowired
+    private BuildingTableConfigService buildingConfigService;
+    /**
+     * ✅ 기숙사별 점호 현황 테이블 데이터 조회 (테이블 설정 적용)
+     * 층/호실 매트릭스 형태로 점호 상태 반환
+     *
+     * @param building 기숙사 동 이름
+     * @param dateStr 조회할 날짜 (yyyy-MM-dd), null이면 오늘
+     * @return 층/호실별 점호 상태 매트릭스
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getBuildingInspectionStatus(String building, String dateStr) {
+        try {
+            logger.info("기숙사별 점호 현황 조회 시작 - 동: {}, 날짜: {}", building, dateStr);
+
+            // 날짜 파싱 (없으면 오늘)
+            LocalDate targetDate;
+            if (dateStr == null || dateStr.isEmpty()) {
+                targetDate = LocalDate.now();
+            } else {
+                targetDate = LocalDate.parse(dateStr);
+            }
+
+            LocalDateTime startOfDay = targetDate.atStartOfDay();
+            LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
+
+            // ✅ 테이블 설정 조회 (없으면 기본값)
+            BuildingTableConfig tableConfig = buildingConfigService.getConfigOrDefault(building);
+            int startFloor = tableConfig.getStartFloor();
+            int endFloor = tableConfig.getEndFloor();
+            int startRoom = tableConfig.getStartRoom();
+            int endRoom = tableConfig.getEndRoom();
+            String roomNumberFormat = tableConfig.getRoomNumberFormat();
+
+            logger.info("테이블 설정 - 층: {}~{}, 호실: {}~{}, 형식: {}",
+                    startFloor, endFloor, startRoom, endRoom, roomNumberFormat);
+
+            // 해당 기숙사의 모든 사용자 조회
+            List<User> buildingUsers = userRepository.findByDormitoryBuildingAndIsActiveTrue(building);
+
+            // 해당 날짜의 점호 기록 조회
+            List<Inspection> inspections = inspectionRepository.findByInspectionDateBetween(startOfDay, endOfDay);
+
+            // 해당 기숙사 사용자들의 점호 기록만 필터링
+            Map<String, Inspection> userInspectionMap = inspections.stream()
+                    .filter(i -> buildingUsers.stream().anyMatch(u -> u.getId().equals(i.getUserId())))
+                    .collect(Collectors.toMap(
+                            Inspection::getUserId,
+                            i -> i,
+                            (existing, replacement) -> replacement
+                    ));
+
+            // ✅ 동적 층/호실 목록 생성
+            List<Integer> floors = new ArrayList<>();
+            for (int f = startFloor; f <= endFloor; f++) {
+                floors.add(f);
+            }
+
+            List<Integer> rooms = new ArrayList<>();
+            for (int r = startRoom; r <= endRoom; r++) {
+                rooms.add(r);
+            }
+
+            // 호실별 상태 매트릭스 생성
+            Map<String, Map<String, Object>> matrix = new LinkedHashMap<>();
+
+            for (int floor : floors) {
+                Map<String, Object> floorData = new LinkedHashMap<>();
+
+                for (int room : rooms) {
+                    // ✅ 방 번호 형식에 따라 생성
+                    String roomNumber;
+                    if ("FLOOR_ZERO_ROOM".equals(roomNumberFormat)) {
+                        roomNumber = String.valueOf(floor * 1000 + room);
+                    } else {
+                        roomNumber = String.valueOf(floor * 100 + room);
+                    }
+
+                    // 해당 호실의 사용자 찾기
+                    List<User> roomUsers = buildingUsers.stream()
+                            .filter(u -> roomNumber.equals(u.getRoomNumber()))
+                            .collect(Collectors.toList());
+
+                    Map<String, Object> roomStatus = new HashMap<>();
+                    roomStatus.put("roomNumber", roomNumber);
+                    roomStatus.put("floor", floor);
+                    roomStatus.put("room", room);
+
+                    if (roomUsers.isEmpty()) {
+                        roomStatus.put("status", "EMPTY");
+                        roomStatus.put("statusText", "빈 방");
+                        roomStatus.put("userCount", 0);
+                    } else {
+                        List<Map<String, Object>> userStatuses = new ArrayList<>();
+                        String overallStatus = "NOT_SUBMITTED";
+
+                        boolean hasPass = false;
+                        boolean hasFail = false;
+                        boolean hasRejected = false;
+                        boolean hasPending = false;
+                        int submittedCount = 0;
+
+                        for (User user : roomUsers) {
+                            Map<String, Object> userStatus = new HashMap<>();
+                            userStatus.put("userId", user.getId());
+                            userStatus.put("userName", decryptUserName(user.getName()));
+
+                            Inspection inspection = userInspectionMap.get(user.getId());
+
+                            if (inspection != null) {
+                                submittedCount++;
+                                userStatus.put("inspectionId", inspection.getId());
+                                userStatus.put("status", inspection.getStatus());
+                                userStatus.put("score", inspection.getScore());
+                                userStatus.put("inspectionTime", inspection.getInspectionDate());
+
+                                String status = inspection.getStatus();
+                                if ("PASS".equals(status)) hasPass = true;
+                                else if ("FAIL".equals(status)) hasFail = true;
+                                else if ("REJECTED".equals(status)) hasRejected = true;
+                                else if ("PENDING".equals(status)) hasPending = true;
+                            } else {
+                                userStatus.put("status", "NOT_SUBMITTED");
+                            }
+
+                            userStatuses.add(userStatus);
+                        }
+
+                        // 호실 전체 상태 결정
+                        if (hasRejected) overallStatus = "REJECTED";
+                        else if (hasFail) overallStatus = "FAIL";
+                        else if (hasPending) overallStatus = "PENDING";
+                        else if (submittedCount < roomUsers.size()) overallStatus = "NOT_SUBMITTED";
+                        else if (hasPass && submittedCount == roomUsers.size()) overallStatus = "PASS";
+
+                        roomStatus.put("status", overallStatus);
+                        roomStatus.put("statusText", getStatusText(overallStatus));
+                        roomStatus.put("userCount", roomUsers.size());
+                        roomStatus.put("submittedCount", submittedCount);
+                        roomStatus.put("users", userStatuses);
+                    }
+
+                    floorData.put(String.valueOf(room), roomStatus);
+                }
+
+                matrix.put(String.valueOf(floor), floorData);
+            }
+
+            // 통계 정보
+            Map<String, Object> statistics = new HashMap<>();
+            int totalRooms = 0;
+            int passCount = 0;
+            int failCount = 0;
+            int rejectedCount = 0;
+            int pendingCount = 0;
+            int notSubmittedCount = 0;
+            int emptyCount = 0;
+
+            for (Map.Entry<String, Map<String, Object>> floorEntry : matrix.entrySet()) {
+                for (Map.Entry<String, Object> roomEntry : floorEntry.getValue().entrySet()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> roomData = (Map<String, Object>) roomEntry.getValue();
+                    String status = (String) roomData.get("status");
+
+                    totalRooms++;
+                    switch (status) {
+                        case "PASS": passCount++; break;
+                        case "FAIL": failCount++; break;
+                        case "REJECTED": rejectedCount++; break;
+                        case "PENDING": pendingCount++; break;
+                        case "NOT_SUBMITTED": notSubmittedCount++; break;
+                        case "EMPTY": emptyCount++; break;
+                    }
+                }
+            }
+
+            statistics.put("totalRooms", totalRooms);
+            statistics.put("occupiedRooms", totalRooms - emptyCount);
+            statistics.put("passCount", passCount);
+            statistics.put("failCount", failCount);
+            statistics.put("rejectedCount", rejectedCount);
+            statistics.put("pendingCount", pendingCount);
+            statistics.put("notSubmittedCount", notSubmittedCount);
+            statistics.put("emptyCount", emptyCount);
+
+            // 결과 구성
+            Map<String, Object> result = new HashMap<>();
+            result.put("building", building);
+            result.put("date", targetDate.toString());
+            result.put("matrix", matrix);
+            result.put("statistics", statistics);
+            result.put("floors", floors);
+            result.put("rooms", rooms);
+
+            // ✅ 테이블 설정 정보 추가
+            Map<String, Object> configInfo = new HashMap<>();
+            configInfo.put("startFloor", startFloor);
+            configInfo.put("endFloor", endFloor);
+            configInfo.put("startRoom", startRoom);
+            configInfo.put("endRoom", endRoom);
+            configInfo.put("roomNumberFormat", roomNumberFormat);
+            configInfo.put("configId", tableConfig.getId());
+            result.put("tableConfig", configInfo);
+
+            logger.info("기숙사별 점호 현황 조회 완료 - 동: {}, 통과: {}, 실패: {}, 미제출: {}",
+                    building, passCount, failCount, notSubmittedCount);
+
+            return result;
+
+        } catch (Exception e) {
+            logger.error("기숙사별 점호 현황 조회 실패 - 동: {}", building, e);
+            throw new RuntimeException("기숙사별 점호 현황 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * ✅ 전체 기숙사 동 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<String> getAllBuildings() {
+        try {
+            logger.info("기숙사 동 목록 조회");
+
+            List<String> buildings = userRepository.findDistinctDormitoryBuildings();
+
+            // null 제거 및 정렬
+            buildings = buildings.stream()
+                    .filter(b -> b != null && !b.trim().isEmpty())
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            logger.info("기숙사 동 목록 조회 완료 - {}개 동", buildings.size());
+            return buildings;
+
+        } catch (Exception e) {
+            logger.error("기숙사 동 목록 조회 실패", e);
+            throw new RuntimeException("기숙사 동 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * ✅ 특정 호실의 점호 상세 정보 조회
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRoomInspectionDetail(String building, String roomNumber, String dateStr) {
+        try {
+            logger.info("호실별 점호 상세 조회 - 동: {}, 방번호: {}, 날짜: {}", building, roomNumber, dateStr);
+
+            // 날짜 파싱
+            LocalDate targetDate;
+            if (dateStr == null || dateStr.isEmpty()) {
+                targetDate = LocalDate.now();
+            } else {
+                targetDate = LocalDate.parse(dateStr);
+            }
+
+            LocalDateTime startOfDay = targetDate.atStartOfDay();
+            LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
+
+            // 해당 호실 거주자 조회
+            List<User> roomUsers = userRepository.findByDormitoryBuildingAndRoomNumberAndIsActiveTrue(building, roomNumber);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("building", building);
+            result.put("roomNumber", roomNumber);
+            result.put("date", targetDate.toString());
+
+            if (roomUsers.isEmpty()) {
+                result.put("status", "EMPTY");
+                result.put("message", "해당 호실에 거주자가 없습니다.");
+                result.put("users", List.of());
+                return result;
+            }
+
+            List<Map<String, Object>> userDetails = new ArrayList<>();
+
+            for (User user : roomUsers) {
+                Map<String, Object> userDetail = new HashMap<>();
+                userDetail.put("userId", user.getId());
+                userDetail.put("userName", decryptUserName(user.getName()));
+                userDetail.put("email", user.getEmail());  // 암호화된 상태로 전송 또는 복호화 필요시 추가
+
+                // 해당 날짜의 점호 기록 조회
+                List<Inspection> inspections = inspectionRepository.findByUserIdAndInspectionDateBetween(
+                        user.getId(), startOfDay, endOfDay);
+
+                if (inspections.isEmpty()) {
+                    userDetail.put("inspectionStatus", "NOT_SUBMITTED");
+                    userDetail.put("statusText", "미제출");
+                    userDetail.put("inspection", null);
+                } else {
+                    Inspection inspection = inspections.get(0);  // 가장 최근 것
+                    userDetail.put("inspectionStatus", inspection.getStatus());
+                    userDetail.put("statusText", getStatusText(inspection.getStatus()));
+
+                    Map<String, Object> inspectionData = new HashMap<>();
+                    inspectionData.put("id", inspection.getId());
+                    inspectionData.put("score", inspection.getScore());
+                    inspectionData.put("status", inspection.getStatus());
+                    inspectionData.put("geminiFeedback", inspection.getGeminiFeedback());
+                    inspectionData.put("adminComment", inspection.getAdminComment());
+                    inspectionData.put("imagePath", inspection.getImagePath());
+                    inspectionData.put("inspectionDate", inspection.getInspectionDate());
+                    inspectionData.put("isReInspection", inspection.getIsReInspection());
+
+                    userDetail.put("inspection", inspectionData);
+                }
+
+                userDetails.add(userDetail);
+            }
+
+            result.put("userCount", roomUsers.size());
+            result.put("users", userDetails);
+
+            // 호실 전체 상태 결정
+            boolean allSubmitted = userDetails.stream()
+                    .noneMatch(u -> "NOT_SUBMITTED".equals(u.get("inspectionStatus")));
+            boolean allPass = userDetails.stream()
+                    .allMatch(u -> "PASS".equals(u.get("inspectionStatus")));
+            boolean hasFail = userDetails.stream()
+                    .anyMatch(u -> "FAIL".equals(u.get("inspectionStatus")));
+            boolean hasRejected = userDetails.stream()
+                    .anyMatch(u -> "REJECTED".equals(u.get("inspectionStatus")));
+
+            String overallStatus;
+            if (hasRejected) {
+                overallStatus = "REJECTED";
+            } else if (hasFail) {
+                overallStatus = "FAIL";
+            } else if (!allSubmitted) {
+                overallStatus = "NOT_SUBMITTED";
+            } else if (allPass) {
+                overallStatus = "PASS";
+            } else {
+                overallStatus = "PENDING";
+            }
+
+            result.put("overallStatus", overallStatus);
+            result.put("overallStatusText", getStatusText(overallStatus));
+
+            logger.info("호실별 점호 상세 조회 완료 - 동: {}, 방번호: {}, 상태: {}", building, roomNumber, overallStatus);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("호실별 점호 상세 조회 실패 - 동: {}, 방번호: {}", building, roomNumber, e);
+            throw new RuntimeException("호실별 점호 상세 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 상태 텍스트 변환 헬퍼 메서드
+     */
+    private String getStatusText(String status) {
+        if (status == null) return "알 수 없음";
+        switch (status) {
+            case "PASS": return "통과";
+            case "FAIL": return "실패";
+            case "REJECTED": return "반려";
+            case "PENDING": return "검토중";
+            case "NOT_SUBMITTED": return "미제출";
+            case "EMPTY": return "빈 방";
+            default: return status;
+        }
+    }
+
+    /**
+     * 사용자 이름 복호화 헬퍼 메서드
+     * (encryptionUtil이 주입되어 있다고 가정)
+     */
+    private String decryptUserName(String encryptedName) {
+        if (encryptedName == null || encryptedName.isEmpty()) {
+            return "이름 없음";
+        }
+        try {
+            return encryptionUtil.decrypt(encryptedName);
+        } catch (Exception e) {
+            logger.warn("사용자 이름 복호화 실패, 원본 반환");
+            return encryptedName;
+        }
+    }
+
+
 }

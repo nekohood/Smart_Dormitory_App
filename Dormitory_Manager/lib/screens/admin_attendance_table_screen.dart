@@ -310,11 +310,12 @@ class _AdminAttendanceTableScreenState extends State<AdminAttendanceTableScreen>
           : _buildBody(),
       floatingActionButton: !_tableExists
           ? FloatingActionButton.extended(
-              onPressed: _createAttendanceTable,
-              icon: Icon(Icons.add),
-              label: Text('테이블 생성'),
-              backgroundColor: Colors.purple,
-            )
+        heroTag: 'fab_attendance_table',  // ✅ heroTag 추가
+        onPressed: _createAttendanceTable,
+        icon: Icon(Icons.add),
+        label: Text('테이블 생성'),
+        backgroundColor: Colors.purple,
+      )
           : null,
     );
   }

@@ -251,4 +251,16 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
                                 @Param("status") String status,
                                 @Param("comment") String comment,
                                 @Param("updateTime") LocalDateTime updateTime);
+
+    // ============================================================================
+// InspectionRepository.java에 추가할 메서드들
+// 파일 위치: SpringBoot/src/main/java/com/dormitory/SpringBoot/repository/InspectionRepository.java
+// ============================================================================
+
+// 기존 InspectionRepository 인터페이스에 아래 메서드들을 추가하세요
+
+    /**
+     * ✅ 특정 사용자의 특정 기간 내 점호 기록 조회
+     */
+    List<Inspection> findByUserIdAndInspectionDateBetween(String userId, LocalDateTime startDate, LocalDateTime endDate);
 }

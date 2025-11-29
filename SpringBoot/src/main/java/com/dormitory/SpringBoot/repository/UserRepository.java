@@ -203,4 +203,33 @@ public interface UserRepository extends JpaRepository<User, String> {
                                     @Param("systemNotifications") Boolean systemNotifications,
                                     @Param("emailNotifications") Boolean emailNotifications,
                                     @Param("updateTime") LocalDateTime updateTime);
+
+    // ============================================================================
+// UserRepository.java에 추가할 메서드들
+// 파일 위치: SpringBoot/src/main/java/com/dormitory/SpringBoot/repository/UserRepository.java
+// ============================================================================
+
+// 기존 UserRepository 인터페이스에 아래 메서드들을 추가하세요
+
+    /**
+     * ✅ 특정 기숙사 동의 활성 사용자 조회
+     */
+    List<User> findByDormitoryBuildingAndIsActiveTrue(String dormitoryBuilding);
+
+    /**
+     * ✅ 특정 기숙사 동 + 방 번호의 활성 사용자 조회
+     */
+    List<User> findByDormitoryBuildingAndRoomNumberAndIsActiveTrue(String dormitoryBuilding, String roomNumber);
+
+    /**
+     * ✅ 전체 기숙사 동 목록 조회 (중복 제거)
+     */
+    @Query("SELECT DISTINCT u.dormitoryBuilding FROM User u WHERE u.dormitoryBuilding IS NOT NULL AND u.isActive = true")
+    List<String> findDistinctDormitoryBuildings();
+
+    /**
+     * ✅ 특정 기숙사 동의 전체 방 번호 목록 조회 (중복 제거)
+     */
+    @Query("SELECT DISTINCT u.roomNumber FROM User u WHERE u.dormitoryBuilding = :building AND u.isActive = true AND u.roomNumber IS NOT NULL ORDER BY u.roomNumber")
+    List<String> findDistinctRoomNumbersByBuilding(@Param("building") String building);
 }

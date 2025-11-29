@@ -303,6 +303,7 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_allowed_users',  // ✅ heroTag 추가
         onPressed: _showAddUserDialog,
         icon: Icon(Icons.person_add),
         label: Text('개별 추가'),

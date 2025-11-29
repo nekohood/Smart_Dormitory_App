@@ -305,4 +305,83 @@ public class InspectionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    /**
+     * ✅ 기숙사별 점호 현황 테이블 데이터 조회
+     * 층/호실 매트릭스 형태로 점호 상태 반환
+     */
+    @GetMapping("/admin/building-status/{building}")
+    @Operation(summary = "기숙사별 점호 현황 조회", description = "특정 기숙사의 층/호실별 점호 현황을 테이블 형태로 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> getBuildingInspectionStatus(
+            @Parameter(description = "기숙사 동 이름", required = true)
+            @PathVariable String building,
+            @Parameter(description = "조회할 날짜 (yyyy-MM-dd), 없으면 오늘")
+            @RequestParam(required = false) String date) {
+        try {
+            logger.info("기숙사별 점호 현황 조회 - 동: {}, 날짜: {}", building, date);
+
+            Map<String, Object> statusData = inspectionService.getBuildingInspectionStatus(building, date);
+
+            return ResponseEntity.ok(ApiResponse.success("기숙사별 점호 현황 조회 성공", statusData));
+
+        } catch (Exception e) {
+            logger.error("기숙사별 점호 현황 조회 중 오류 발생 - 동: {}", building, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
+     * ✅ 전체 기숙사 목록 조회
+     * 등록된 사용자들의 기숙사 동 목록을 반환
+     */
+    @GetMapping("/admin/buildings")
+    @Operation(summary = "기숙사 동 목록 조회", description = "등록된 모든 기숙사 동 목록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> getBuildingList() {
+        try {
+            logger.info("기숙사 동 목록 조회");
+
+            List<String> buildings = inspectionService.getAllBuildings();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("buildings", buildings);
+            data.put("count", buildings.size());
+
+            return ResponseEntity.ok(ApiResponse.success("기숙사 동 목록 조회 성공", data));
+
+        } catch (Exception e) {
+            logger.error("기숙사 동 목록 조회 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
+     * ✅ 특정 호실의 점호 상세 정보 조회
+     */
+    @GetMapping("/admin/room-status/{building}/{floor}/{room}")
+    @Operation(summary = "호실별 점호 상세 조회", description = "특정 호실의 점호 상세 정보를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> getRoomInspectionDetail(
+            @Parameter(description = "기숙사 동", required = true) @PathVariable String building,
+            @Parameter(description = "층수", required = true) @PathVariable int floor,
+            @Parameter(description = "호실 번호", required = true) @PathVariable int room,
+            @Parameter(description = "조회할 날짜 (yyyy-MM-dd), 없으면 오늘") @RequestParam(required = false) String date) {
+        try {
+            // 방 번호 형식: 층수 + 호실 (예: 2층 1호실 = 201)
+            String roomNumber = String.valueOf(floor * 100 + room);
+            logger.info("호실별 점호 상세 조회 - 동: {}, 방번호: {}, 날짜: {}", building, roomNumber, date);
+
+            Map<String, Object> roomDetail = inspectionService.getRoomInspectionDetail(building, roomNumber, date);
+
+            return ResponseEntity.ok(ApiResponse.success("호실별 점호 상세 조회 성공", roomDetail));
+
+        } catch (Exception e) {
+            logger.error("호실별 점호 상세 조회 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
 }

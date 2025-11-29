@@ -102,6 +102,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
       body: _buildBody(),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
+        heroTag: 'fab_notice',  // ✅ heroTag 추가
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
