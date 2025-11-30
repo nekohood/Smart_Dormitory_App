@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/inspection_settings.dart';
 import '../services/inspection_settings_service.dart';
 
 /// 관리자용 점호 설정 관리 화면
+/// ✅ 수정: 점호 날짜 선택 기능 추가
 class AdminInspectionSettingsScreen extends StatefulWidget {
   const AdminInspectionSettingsScreen({super.key});
 
@@ -62,7 +64,20 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('설정 삭제'),
-        content: Text('"${settings.settingName}" 설정을 삭제하시겠습니까?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('"${settings.settingName}" 설정을 삭제하시겠습니까?'),
+            if (settings.scheduleId != null) ...[
+              const SizedBox(height: 8),
+              const Text(
+                '⚠️ 연결된 캘린더 일정도 함께 삭제됩니다.',
+                style: TextStyle(color: Colors.orange, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -104,7 +119,7 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
               _showSnackBar('설정이 수정되었습니다.');
             } else {
               await InspectionSettingsService.createSettings(newSettings);
-              _showSnackBar('설정이 생성되었습니다.');
+              _showSnackBar('설정이 생성되었습니다. 📅 캘린더에 자동 등록됩니다.');
             }
             _loadSettings();
           } catch (e) {
@@ -144,7 +159,7 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
-        heroTag: 'fab_inspection_settings',  // ✅ heroTag 추가
+        heroTag: 'fab_inspection_settings',
         onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
@@ -183,18 +198,9 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
             Icon(Icons.settings_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              '점호 설정이 없습니다.',
+              '점호 설정이 없습니다.\n+ 버튼을 눌러 새 설정을 추가하세요.',
+              textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => _showAddEditDialog(),
-              icon: const Icon(Icons.add),
-              label: const Text('설정 추가'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
             ),
           ],
         ),
@@ -212,144 +218,202 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
   }
 
   Widget _buildSettingsCard(InspectionSettings settings) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    final isActive = settings.isEnabled;
+    final hasDate = settings.inspectionDate != null;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: isActive ? 2 : 0.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isActive ? Colors.blue : Colors.grey[300]!,
+          width: isActive ? 1.5 : 0.5,
+        ),
       ),
-      child: Column(
-        children: [
-          // 헤더
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: settings.isEnabled ? Colors.blue[50] : Colors.grey[100],
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: settings.isEnabled ? Colors.blue : Colors.grey,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.access_time, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            settings.settingName,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showAddEditDialog(settings: settings),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 상단: 이름, 상태
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          settings.settingName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isActive ? Colors.black : Colors.grey,
                           ),
-                          if (settings.isDefault) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                '기본',
-                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
+                        ),
+                        if (settings.isDefault) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[100],
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          ],
+                            child: const Text(
+                              '기본',
+                              style: TextStyle(fontSize: 10, color: Colors.blue),
+                            ),
+                          ),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${settings.startTime} ~ ${settings.endTime}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Switch(
-                  value: settings.isEnabled,
-                  onChanged: (value) => _toggleSettings(settings),
-                  activeColor: Colors.blue,
-                ),
+                  // 활성화 스위치
+                  Switch(
+                    value: isActive,
+                    onChanged: (_) => _toggleSettings(settings),
+                    activeColor: Colors.blue,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // ✅ 점호 날짜 표시
+              if (hasDate) ...[
+                _buildDateChip(settings),
+                const SizedBox(height: 10),
               ],
+
+              // 시간, 검증 옵션
+              Row(
+                children: [
+                  _buildInfoChip(
+                    Icons.access_time,
+                    '${settings.startTime} ~ ${settings.endTime}',
+                    isActive,
+                  ),
+                  const SizedBox(width: 8),
+                  if (settings.exifValidationEnabled)
+                    _buildInfoChip(Icons.verified, 'EXIF', isActive),
+                  if (settings.gpsValidationEnabled) ...[
+                    const SizedBox(width: 4),
+                    _buildInfoChip(Icons.location_on, 'GPS', isActive),
+                  ],
+                  if (settings.roomPhotoValidationEnabled) ...[
+                    const SizedBox(width: 4),
+                    _buildInfoChip(Icons.home, 'AI', isActive),
+                  ],
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+
+              // 하단: 버튼들
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (settings.scheduleId != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Chip(
+                        avatar: const Icon(Icons.event, size: 16),
+                        label: const Text('캘린더 연동됨'),
+                        backgroundColor: Colors.green[50],
+                        labelStyle: TextStyle(fontSize: 11, color: Colors.green[700]),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => _showAddEditDialog(settings: settings),
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('수정'),
+                  ),
+                  if (!settings.isDefault)
+                    TextButton.icon(
+                      onPressed: () => _deleteSettings(settings),
+                      icon: const Icon(Icons.delete, size: 18),
+                      label: const Text('삭제'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// ✅ 신규: 점호 날짜 칩 위젯 (null-safe)
+  Widget _buildDateChip(InspectionSettings settings) {
+    final int days = settings.daysUntilInspection ?? 0;
+
+    Color bgColor;
+    Color borderColor;
+    Color iconColor;
+    Color textColor;
+    String dDayText;
+
+    if (days == 0) {
+      bgColor = Colors.green[50]!;
+      borderColor = Colors.green[300]!;
+      iconColor = Colors.green[700]!;
+      textColor = Colors.green[700]!;
+      dDayText = '오늘';
+    } else if (days > 0) {
+      bgColor = Colors.blue[50]!;
+      borderColor = Colors.blue[300]!;
+      iconColor = Colors.blue[700]!;
+      textColor = Colors.blue[700]!;
+      dDayText = 'D-$days';
+    } else {
+      bgColor = Colors.grey[100]!;
+      borderColor = Colors.grey[300]!;
+      iconColor = Colors.grey[600]!;
+      textColor = Colors.grey[600]!;
+      dDayText = '지남';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.calendar_today, size: 16, color: iconColor),
+          const SizedBox(width: 6),
+          Text(
+            settings.formattedInspectionDate ?? '',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: textColor,
             ),
           ),
-
-          // 설정 상세
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildSettingRow(
-                  icon: Icons.camera_alt,
-                  label: '카메라 전용',
-                  value: settings.cameraOnly ? '활성화' : '비활성화',
-                  isActive: settings.cameraOnly,
-                ),
-                const SizedBox(height: 12),
-                _buildSettingRow(
-                  icon: Icons.photo_camera_front,
-                  label: 'EXIF 검증',
-                  value: settings.exifValidationEnabled ? '활성화' : '비활성화',
-                  isActive: settings.exifValidationEnabled,
-                ),
-                const SizedBox(height: 12),
-                _buildSettingRow(
-                  icon: Icons.location_on,
-                  label: 'GPS 검증',
-                  value: settings.gpsValidationEnabled ? '활성화' : '비활성화',
-                  isActive: settings.gpsValidationEnabled,
-                ),
-                const SizedBox(height: 12),
-                _buildSettingRow(
-                  icon: Icons.home,
-                  label: '방 사진 검증',
-                  value: settings.roomPhotoValidationEnabled ? '활성화' : '비활성화',
-                  isActive: settings.roomPhotoValidationEnabled,
-                ),
-              ],
-            ),
-          ),
-
-          // 액션 버튼
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              color: days == 0 ? Colors.green : (days > 0 ? Colors.blue : Colors.grey),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _showAddEditDialog(settings: settings),
-                  icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('수정'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: settings.isDefault ? null : () => _deleteSettings(settings),
-                  icon: const Icon(Icons.delete, size: 18),
-                  label: const Text('삭제'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: settings.isDefault ? Colors.grey : Colors.red,
-                  ),
-                ),
-              ],
+            child: Text(
+              dDayText,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -357,39 +421,33 @@ class _AdminInspectionSettingsScreenState extends State<AdminInspectionSettingsS
     );
   }
 
-  Widget _buildSettingRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required bool isActive,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: isActive ? Colors.blue : Colors.grey[400]),
-        const SizedBox(width: 12),
-        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: isActive ? Colors.green[50] : Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            value,
+  Widget _buildInfoChip(IconData icon, String label, bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.blue[50] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: isActive ? Colors.blue : Colors.grey),
+          const SizedBox(width: 4),
+          Text(
+            label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isActive ? Colors.green[700] : Colors.grey[600],
+              color: isActive ? Colors.blue[700] : Colors.grey[600],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// 설정 추가/수정 다이얼로그
+/// ✅ 수정: 점호 날짜 선택 기능 추가
 class _SettingsEditDialog extends StatefulWidget {
   final InspectionSettings? settings;
   final Function(InspectionSettings) onSave;
@@ -406,6 +464,7 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
 
   TimeOfDay _startTime = const TimeOfDay(hour: 21, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 23, minute: 59);
+  DateTime? _inspectionDate;  // ✅ 신규: 점호 날짜
 
   bool _isEnabled = true;
   bool _cameraOnly = true;
@@ -423,6 +482,7 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
       _nameController.text = s.settingName;
       _startTime = _parseTime(s.startTime);
       _endTime = _parseTime(s.endTime);
+      _inspectionDate = s.inspectionDate;  // ✅ 신규
       _isEnabled = s.isEnabled;
       _cameraOnly = s.cameraOnly;
       _exifValidation = s.exifValidationEnabled;
@@ -458,30 +518,49 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
     }
   }
 
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      final settings = InspectionSettings(
-        id: widget.settings?.id,
-        settingName: _nameController.text.trim(),
-        startTime: _formatTime(_startTime),
-        endTime: _formatTime(_endTime),
-        isEnabled: _isEnabled,
-        cameraOnly: _cameraOnly,
-        exifValidationEnabled: _exifValidation,
-        exifTimeToleranceMinutes: _exifTolerance,
-        gpsValidationEnabled: _gpsValidation,
-        roomPhotoValidationEnabled: _roomPhotoValidation,
-        isDefault: _isDefault,
-      );
-      widget.onSave(settings);
-      Navigator.pop(context);
+  /// ✅ 신규: 날짜 선택
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _inspectionDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      locale: const Locale('ko', 'KR'),
+    );
+    if (picked != null) {
+      setState(() {
+        _inspectionDate = picked;
+      });
     }
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final settings = InspectionSettings(
+      settingName: _nameController.text.trim(),
+      startTime: _formatTime(_startTime),
+      endTime: _formatTime(_endTime),
+      inspectionDate: _inspectionDate,  // ✅ 신규
+      isEnabled: _isEnabled,
+      cameraOnly: _cameraOnly,
+      exifValidationEnabled: _exifValidation,
+      exifTimeToleranceMinutes: _exifTolerance,
+      gpsValidationEnabled: _gpsValidation,
+      roomPhotoValidationEnabled: _roomPhotoValidation,
+      isDefault: _isDefault,
+    );
+
+    widget.onSave(settings);
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.settings != null;
+
     return AlertDialog(
-      title: Text(widget.settings == null ? '점호 설정 추가' : '점호 설정 수정'),
+      title: Text(isEditing ? '점호 설정 수정' : '새 점호 설정'),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -491,15 +570,17 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 설정 이름
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: '설정 이름',
-                    hintText: '예: 평일 점호',
+                    labelText: '설정 이름 *',
+                    hintText: '예: 평일 저녁 점호',
+                    prefixIcon: Icon(Icons.label),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
                       return '설정 이름을 입력해주세요.';
                     }
                     return null;
@@ -507,51 +588,101 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                const Text('점호 허용 시간', style: TextStyle(fontWeight: FontWeight.bold)),
+                // ✅ 신규: 점호 날짜 선택
+                const Text('점호 날짜', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  '특정 날짜에만 점호를 진행하려면 날짜를 선택하세요.\n미선택 시 매일 점호가 가능합니다.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _selectTime(true),
-                        child: Text('시작: ${_formatTime(_startTime)}'),
+                      child: InkWell(
+                        onTap: _selectDate,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(8),
+                            color: _inspectionDate != null ? Colors.blue[50] : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 20,
+                                color: _inspectionDate != null ? Colors.blue : Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _inspectionDate != null
+                                    ? DateFormat('yyyy년 M월 d일 (E)', 'ko').format(_inspectionDate!)
+                                    : '날짜 선택 (선택사항)',
+                                style: TextStyle(
+                                  color: _inspectionDate != null ? Colors.blue[700] : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
+                    ),
+                    if (_inspectionDate != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.red),
+                        onPressed: () => setState(() => _inspectionDate = null),
+                        tooltip: '날짜 초기화',
+                      ),
+                  ],
+                ),
+                if (_inspectionDate != null) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.event_available, size: 16, color: Colors.green[700]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '📅 저장 시 캘린더에 자동 등록됩니다',
+                          style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+
+                // 점호 시간
+                const Text('점호 시간', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimeButton('시작', _startTime, () => _selectTime(true)),
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Text('~'),
                     ),
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _selectTime(false),
-                        child: Text('종료: ${_formatTime(_endTime)}'),
-                      ),
+                      child: _buildTimeButton('종료', _endTime, () => _selectTime(false)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                SwitchListTile(
-                  title: const Text('활성화'),
-                  subtitle: const Text('이 설정을 사용합니다'),
-                  value: _isEnabled,
-                  onChanged: (v) => setState(() => _isEnabled = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('카메라 전용'),
-                  subtitle: const Text('갤러리 선택 비활성화'),
-                  value: _cameraOnly,
-                  onChanged: (v) => setState(() => _cameraOnly = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('EXIF 검증'),
-                  subtitle: const Text('촬영 시간/위조 여부 확인'),
-                  value: _exifValidation,
-                  onChanged: (v) => setState(() => _exifValidation = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
+                // 검증 옵션들
+                const Text('검증 옵션', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildSwitchTile('카메라 촬영만 허용', _cameraOnly, (v) => setState(() => _cameraOnly = v)),
+                _buildSwitchTile('EXIF 검증', _exifValidation, (v) => setState(() => _exifValidation = v)),
                 if (_exifValidation)
                   Padding(
                     padding: const EdgeInsets.only(left: 16),
@@ -560,35 +691,22 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
                         const Text('허용 오차: '),
                         DropdownButton<int>(
                           value: _exifTolerance,
-                          items: [5, 10, 15, 30, 60]
-                              .map((v) => DropdownMenuItem(value: v, child: Text('$v분')))
-                              .toList(),
+                          items: [5, 10, 15, 30, 60].map((v) => DropdownMenuItem(
+                            value: v,
+                            child: Text('$v분'),
+                          )).toList(),
                           onChanged: (v) => setState(() => _exifTolerance = v!),
                         ),
                       ],
                     ),
                   ),
-                SwitchListTile(
-                  title: const Text('GPS 검증'),
-                  subtitle: const Text('기숙사 위치 확인'),
-                  value: _gpsValidation,
-                  onChanged: (v) => setState(() => _gpsValidation = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('방 사진 검증'),
-                  subtitle: const Text('AI가 방 사진 여부 확인'),
-                  value: _roomPhotoValidation,
-                  onChanged: (v) => setState(() => _roomPhotoValidation = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('기본 설정'),
-                  subtitle: const Text('다른 설정이 없을 때 적용'),
-                  value: _isDefault,
-                  onChanged: (v) => setState(() => _isDefault = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
+                _buildSwitchTile('GPS 위치 검증', _gpsValidation, (v) => setState(() => _gpsValidation = v)),
+                _buildSwitchTile('AI 방 사진 검증', _roomPhotoValidation, (v) => setState(() => _roomPhotoValidation = v)),
+
+                const Divider(),
+
+                _buildSwitchTile('활성화', _isEnabled, (v) => setState(() => _isEnabled = v)),
+                _buildSwitchTile('기본 설정으로 지정', _isDefault, (v) => setState(() => _isDefault = v)),
               ],
             ),
           ),
@@ -601,9 +719,44 @@ class _SettingsEditDialogState extends State<_SettingsEditDialog> {
         ),
         ElevatedButton(
           onPressed: _save,
-          child: const Text('저장'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+          ),
+          child: Text(isEditing ? '수정' : '생성'),
         ),
       ],
+    );
+  }
+
+  Widget _buildTimeButton(String label, TimeOfDay time, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[400]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.access_time, size: 18, color: Colors.blue),
+            const SizedBox(width: 8),
+            Text(_formatTime(time), style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(String title, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      title: Text(title, style: const TextStyle(fontSize: 14)),
+      value: value,
+      onChanged: onChanged,
+      dense: true,
+      contentPadding: EdgeInsets.zero,
     );
   }
 
