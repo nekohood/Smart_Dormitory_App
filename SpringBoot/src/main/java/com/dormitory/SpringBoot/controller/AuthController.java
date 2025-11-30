@@ -225,12 +225,12 @@ public class AuthController {
 
             String token = authHeader.substring(7);
 
-            if (!jwtUtil.validateToken(token)) {
+            if (!jwtUtil.isTokenValid(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(ApiResponse.unauthorized("유효하지 않은 토큰입니다."));
             }
 
-            String userId = jwtUtil.extractUserId(token);
+            String userId = jwtUtil.getUserIdFromToken(token);
             Optional<User> userOpt = userRepository.findById(userId);
 
             if (userOpt.isEmpty()) {
