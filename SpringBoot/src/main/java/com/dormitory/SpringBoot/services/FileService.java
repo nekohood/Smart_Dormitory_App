@@ -1,11 +1,13 @@
 package com.dormitory.SpringBoot.services;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * 파일 업로드 및 관리를 담당하는 서비스 - 완성된 버전
+ * 파일 업로드 및 관리를 담당하는 서비스
+ * ✅ 수정: Railway Volume 경로 지원 (/app/uploads)
  */
 @Service
 public class FileService {
@@ -30,13 +33,69 @@ public class FileService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     @Value("${file.upload.base-path:uploads}")
+    private String configuredUploadPath;
+
+    // ✅ 실제 사용할 업로드 경로 (런타임에 결정)
     private String baseUploadPath;
+
+    /**
+     * ✅ 서비스 초기화 시 업로드 경로 설정
+     */
+    @PostConstruct
+    public void init() {
+        this.baseUploadPath = resolveUploadPath();
+        ensureDirectoryExists(baseUploadPath);
+        logger.info("[FileService] 업로드 기본 경로 설정: {}", baseUploadPath);
+    }
+
+    /**
+     * ✅ 업로드 경로 결정 (Railway Volume 지원)
+     */
+    private String resolveUploadPath() {
+        // 1. 환경변수 FILE_UPLOAD_PATH 확인
+        String envPath = System.getenv("FILE_UPLOAD_PATH");
+        if (envPath != null && !envPath.isEmpty()) {
+            logger.info("[FileService] 환경변수 FILE_UPLOAD_PATH 사용: {}", envPath);
+            return envPath;
+        }
+
+        // 2. Railway Volume 경로 확인 (/app/uploads)
+        File railwayVolume = new File("/app/uploads");
+        if (railwayVolume.exists() || isRunningOnRailway()) {
+            logger.info("[FileService] Railway Volume 경로 사용: /app/uploads");
+            return "/app/uploads";
+        }
+
+        // 3. 로컬 개발 환경 (현재 작업 디렉토리)
+        String localPath = System.getProperty("user.dir") + "/uploads";
+        logger.info("[FileService] 로컬 개발 경로 사용: {}", localPath);
+        return localPath;
+    }
+
+    /**
+     * ✅ Railway 환경인지 확인
+     */
+    private boolean isRunningOnRailway() {
+        return System.getenv("RAILWAY_ENVIRONMENT") != null ||
+                System.getenv("RAILWAY_PROJECT_ID") != null;
+    }
+
+    /**
+     * ✅ 디렉토리가 없으면 생성
+     */
+    private void ensureDirectoryExists(String path) {
+        File dir = new File(path);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            logger.info("[FileService] 디렉토리 생성: {} - {}", path, (created ? "성공" : "실패 또는 이미 존재"));
+        }
+    }
 
     /**
      * 이미지 파일 업로드
      *
      * @param file 업로드할 파일
-     * @param category 파일 카테고리 (inspection, document 등)
+     * @param category 파일 카테고리 (inspection, document, room-templates 등)
      * @return 업로드된 파일의 상대 경로
      */
     public String uploadImage(MultipartFile file, String category) {
@@ -65,6 +124,7 @@ public class FileService {
             String relativePath = category + "/" + datePath + "/" + fileName;
 
             logger.info("파일 업로드 완료: {}", relativePath);
+            logger.info("실제 저장 경로: {}", targetPath);
             return relativePath;
 
         } catch (Exception e) {
@@ -138,7 +198,14 @@ public class FileService {
     }
 
     /**
-     * 이미지 파일 유효성 검사 - 완성된 버전
+     * ✅ 현재 업로드 기본 경로 반환 (디버깅용)
+     */
+    public String getBaseUploadPath() {
+        return baseUploadPath;
+    }
+
+    /**
+     * 이미지 파일 유효성 검사
      */
     private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -180,57 +247,39 @@ public class FileService {
         if (!isValidImageSignature(file)) {
             throw new IllegalArgumentException("파일 내용이 이미지 형식과 일치하지 않습니다.");
         }
-
-        logger.debug("파일 유효성 검사 통과: {}", originalFilename);
     }
 
     /**
-     * 파일 시그니처(Magic Number) 검증 - 완성된 버전
+     * 파일 시그니처 검사 (Magic Number)
      */
     private boolean isValidImageSignature(MultipartFile file) {
         try {
-            byte[] signature = new byte[12]; // 최대 12바이트까지 읽어서 확인
-            int bytesRead = file.getInputStream().read(signature);
+            byte[] bytes = new byte[8];
+            file.getInputStream().read(bytes, 0, 8);
 
-            if (bytesRead < 4) {
-                logger.debug("파일이 너무 작아 시그니처를 확인할 수 없습니다");
-                return false;
-            }
+            String hex = bytesToHex(bytes, 8);
 
-            // JPEG 파일 시그니처 확인 (FF D8 FF)
-            if (signature[0] == (byte) 0xFF && signature[1] == (byte) 0xD8 && signature[2] == (byte) 0xFF) {
-                logger.debug("JPEG 파일 시그니처 확인됨");
+            // JPEG: FF D8 FF
+            if (hex.startsWith("FF D8 FF")) {
                 return true;
             }
 
-            // PNG 파일 시그니처 확인 (89 50 4E 47 0D 0A 1A 0A)
-            if (bytesRead >= 8 &&
-                    signature[0] == (byte) 0x89 && signature[1] == (byte) 0x50 &&
-                    signature[2] == (byte) 0x4E && signature[3] == (byte) 0x47 &&
-                    signature[4] == (byte) 0x0D && signature[5] == (byte) 0x0A &&
-                    signature[6] == (byte) 0x1A && signature[7] == (byte) 0x0A) {
-                logger.debug("PNG 파일 시그니처 확인됨");
+            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            if (hex.startsWith("89 50 4E 47")) {
                 return true;
             }
 
-            // GIF 파일 시그니처 확인 (47 49 46 38)
-            if (signature[0] == (byte) 0x47 && signature[1] == (byte) 0x49 &&
-                    signature[2] == (byte) 0x46 && signature[3] == (byte) 0x38) {
-                logger.debug("GIF 파일 시그니처 확인됨");
+            // GIF: 47 49 46 38
+            if (hex.startsWith("47 49 46 38")) {
                 return true;
             }
 
-            // WebP 파일 시그니처 확인 (52 49 46 46 ... 57 45 42 50)
-            if (bytesRead >= 12 &&
-                    signature[0] == (byte) 0x52 && signature[1] == (byte) 0x49 &&
-                    signature[2] == (byte) 0x46 && signature[3] == (byte) 0x46 &&
-                    signature[8] == (byte) 0x57 && signature[9] == (byte) 0x45 &&
-                    signature[10] == (byte) 0x42 && signature[11] == (byte) 0x50) {
-                logger.debug("WebP 파일 시그니처 확인됨");
+            // WEBP: 52 49 46 46 ... 57 45 42 50
+            if (hex.startsWith("52 49 46 46")) {
                 return true;
             }
 
-            logger.debug("알 수 없는 파일 시그니처: {}", bytesToHex(signature, bytesRead));
+            logger.warn("알 수 없는 파일 시그니처: {}", hex);
             return false;
 
         } catch (IOException e) {
@@ -252,9 +301,10 @@ public class FileService {
 
     /**
      * 업로드 디렉토리 생성
+     * ✅ 수정: baseUploadPath 사용
      */
     private String createUploadDirectory(String category) throws IOException {
-        // 날짜별 폴더 구조: uploads/category/yyyy/MM/dd/
+        // 날짜별 폴더 구조: /app/uploads/category/yyyy/MM/dd/
         LocalDateTime now = LocalDateTime.now();
         String datePath = now.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
@@ -279,54 +329,25 @@ public class FileService {
     }
 
     /**
-     * 고유한 파일명 생성
+     * 고유 파일명 생성
      */
     private String generateFileName(String extension) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String uuid = UUID.randomUUID().toString().substring(0, 8);
         return timestamp + "_" + uuid + extension;
     }
 
     /**
-     * 파일 크기를 사람이 읽기 쉬운 형식으로 변환
+     * 파일 크기 포맷팅
      */
-    public String formatFileSize(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(1024));
-        String pre = "KMGTPE".charAt(exp - 1) + "";
-        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
-    }
-
-    /**
-     * 업로드 디렉토리 정리 (오래된 파일 삭제)
-     */
-    public void cleanupOldFiles(int daysToKeep) {
-        try {
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysToKeep);
-            Path uploadPath = Paths.get(baseUploadPath);
-
-            if (Files.exists(uploadPath)) {
-                Files.walk(uploadPath)
-                        .filter(Files::isRegularFile)
-                        .filter(path -> {
-                            try {
-                                return Files.getLastModifiedTime(path).toMillis() <
-                                        cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
-                            } catch (IOException e) {
-                                return false;
-                            }
-                        })
-                        .forEach(path -> {
-                            try {
-                                Files.delete(path);
-                                logger.info("오래된 파일 삭제: {}", path);
-                            } catch (IOException e) {
-                                logger.warn("파일 삭제 실패: {}", path, e);
-                            }
-                        });
-            }
-        } catch (Exception e) {
-            logger.error("파일 정리 중 오류 발생", e);
+    private String formatFileSize(long size) {
+        if (size < 1024) {
+            return size + " B";
+        } else if (size < 1024 * 1024) {
+            return String.format("%.1f KB", size / 1024.0);
+        } else {
+            return String.format("%.1f MB", size / (1024.0 * 1024.0));
         }
     }
 }
