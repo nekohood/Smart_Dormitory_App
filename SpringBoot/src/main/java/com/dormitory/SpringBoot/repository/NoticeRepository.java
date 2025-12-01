@@ -2,7 +2,9 @@ package com.dormitory.SpringBoot.repository;
 
 import com.dormitory.SpringBoot.domain.Notice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import java.util.Optional;
 
 /**
  * 공지사항 데이터 액세스 인터페이스
+ * ✅ 수정: 조회수 증가용 Native Query 추가
  */
 @Repository
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
@@ -48,7 +51,7 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
             "LOWER(n.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(n.content) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "ORDER BY n.isPinned DESC, n.createdAt DESC")
-    List<Notice> findByTitleOrContentContainingIgnoreCase(String keyword);
+    List<Notice> findByTitleOrContentContainingIgnoreCase(@Param("keyword") String keyword);
 
     /**
      * 작성자별 공지사항 조회
@@ -81,11 +84,19 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
      * 이번 주 작성된 공지사항 개수
      */
     @Query("SELECT COUNT(n) FROM Notice n WHERE n.createdAt >= :startOfWeek")
-    long countThisWeekNotices(LocalDateTime startOfWeek);
+    long countThisWeekNotices(@Param("startOfWeek") LocalDateTime startOfWeek);
 
     /**
      * 이번 달 작성된 공지사항 개수
      */
     @Query("SELECT COUNT(n) FROM Notice n WHERE n.createdAt >= :startOfMonth")
-    long countThisMonthNotices(LocalDateTime startOfMonth);
+    long countThisMonthNotices(@Param("startOfMonth") LocalDateTime startOfMonth);
+
+    /**
+     * ✅ 신규: 조회수만 증가 (updated_at은 변경하지 않음)
+     * Native Query를 사용하여 @LastModifiedDate 자동 갱신을 우회
+     */
+    @Modifying
+    @Query(value = "UPDATE notices SET view_count = view_count + 1 WHERE id = :id", nativeQuery = true)
+    void incrementViewCountOnly(@Param("id") Long id);
 }

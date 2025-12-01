@@ -23,6 +23,44 @@ class Notice {
     this.viewCount = 0,
   });
 
+  // ✅ UTC 시간을 한국 시간(KST, UTC+9)으로 변환하는 헬퍼 메서드
+  static DateTime _parseToKST(String? dateTimeString) {
+    if (dateTimeString == null || dateTimeString.isEmpty) {
+      return DateTime.now();
+    }
+
+    try {
+      DateTime parsed = DateTime.parse(dateTimeString);
+
+      // 서버에서 받은 시간이 UTC인 경우 KST로 변환
+      // DateTime.parse()는 'Z' 또는 타임존 정보가 없으면 로컬로 처리
+      // 서버가 UTC로 보내는 경우를 대비하여 명시적으로 9시간 추가
+      if (dateTimeString.endsWith('Z') || dateTimeString.contains('+00:00')) {
+        // UTC 시간인 경우 KST(+9시간)로 변환
+        return parsed.toLocal();
+      } else if (!dateTimeString.contains('+') && !dateTimeString.contains('-', 10)) {
+        // 타임존 정보가 없는 경우 (서버가 UTC로 저장했지만 Z를 붙이지 않은 경우)
+        // UTC로 간주하고 KST로 변환
+        final utcTime = DateTime.utc(
+          parsed.year,
+          parsed.month,
+          parsed.day,
+          parsed.hour,
+          parsed.minute,
+          parsed.second,
+          parsed.millisecond,
+        );
+        return utcTime.toLocal();
+      }
+
+      // 이미 로컬 타임존 정보가 포함된 경우
+      return parsed.toLocal();
+    } catch (e) {
+      print('[ERROR] DateTime 파싱 실패: $dateTimeString, 에러: $e');
+      return DateTime.now();
+    }
+  }
+
   // JSON에서 Notice 객체 생성
   factory Notice.fromJson(Map<String, dynamic> json) {
     return Notice(
@@ -31,11 +69,10 @@ class Notice {
       content: json['content'] ?? '',
       imagePath: json['imagePath'],
       author: json['author'] ?? '관리자',
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+      // ✅ UTC → KST 변환 적용
+      createdAt: _parseToKST(json['createdAt']?.toString()),
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? _parseToKST(json['updatedAt'].toString())
           : null,
       isPinned: json['isPinned'] ?? false,
       viewCount: json['viewCount'] ?? 0,

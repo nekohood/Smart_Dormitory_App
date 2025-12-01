@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/notice_repository.dart';
 import '../models/notice.dart';
-import '../data/user_repository.dart';
+import '../utils/auth_provider.dart';
 import 'notice_detail_screen.dart';
 import 'notice_write_screen.dart';
 
@@ -75,7 +76,11 @@ class _NoticeScreenState extends State<NoticeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = UserRepository.currentUser?.isAdmin ?? false;
+    // ✅ AuthProvider에서 관리자 여부 확인 (UserRepository 대신)
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
+
+    print('[DEBUG] NoticeScreen - isAdmin: $isAdmin');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -102,7 +107,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
       body: _buildBody(),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
-        heroTag: 'fab_notice',  // ✅ heroTag 추가
+        heroTag: 'fab_notice',
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
@@ -113,7 +118,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
               builder: (_) => const NoticeWriteScreen(),
             ),
           );
-          if (result == true) {
+          if (result != null) {
             _refreshNotices();
           }
         },
@@ -189,166 +194,149 @@ class _NoticeScreenState extends State<NoticeScreen> {
         itemCount: _notices.length,
         itemBuilder: (context, index) {
           final notice = _notices[index];
-          final isNew = DateTime.now().difference(notice.createdAt).inDays < 3;
+          return _buildNoticeCard(notice);
+        },
+      ),
+    );
+  }
 
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => NoticeDetailScreen(notice: notice),
-                  ),
-                ).then((_) => _refreshNotices());
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 아이콘
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: notice.isPinned
-                            ? Colors.orange.withOpacity(0.1)
-                            : Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        notice.isPinned ? Icons.push_pin : Icons.campaign,
-                        color: notice.isPinned ? Colors.orange : Colors.blue,
-                        size: 20,
-                      ),
+  Widget _buildNoticeCard(Notice notice) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NoticeDetailScreen(notice: notice),
+              ),
+            );
+            if (result == true) {
+              _refreshNotices();
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 고정 아이콘
+                if (notice.isPinned)
+                  Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 12),
+                    child: const Icon(
+                      Icons.push_pin,
+                      size: 20,
+                      color: Colors.orange,
+                    ),
+                  ),
 
-                    // 공지사항 내용
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                // 공지사항 정보
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 제목
+                      Text(
+                        notice.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 내용 미리보기
+                      Text(
+                        notice.content,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 날짜 및 시간
+                      Row(
                         children: [
-                          // 제목과 NEW 뱃지
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  notice.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isNew) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'NEW',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Colors.grey[500],
                           ),
-                          const SizedBox(height: 8),
-
-                          // 내용 미리보기
+                          const SizedBox(width: 4),
                           Text(
-                            notice.content,
+                            _formatDate(notice.createdAt),
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                              height: 1.4,
+                              fontSize: 12,
+                              color: Colors.grey[500],
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 8),
-
-                          // 작성자, 날짜, 조회수
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 14,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                notice.author,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                Icons.access_time,
-                                size: 14,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _getTimeAgo(notice.createdAt),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                Icons.visibility_outlined,
-                                size: 14,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                notice.viewCount.toString(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 8),
+                          Text(
+                            '• ${_getTimeAgo(notice.createdAt)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                          const Spacer(),
+                          // 조회수
+                          Icon(
+                            Icons.visibility_outlined,
+                            size: 14,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${notice.viewCount}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-
-                    // 화살표 아이콘
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.grey[400],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+
+                // 화살표 아이콘
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey[400],
+                  size: 20,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

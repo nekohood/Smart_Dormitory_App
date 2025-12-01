@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/admin_home_screen.dart';
 import 'screens/admin_inspection_screen.dart';
 import 'screens/admin_schedule_screen.dart';
-import 'screens/admin_room_template_screen.dart';  // ✅ 기준 사진 관리 화면 추가
+import 'screens/admin_room_template_screen.dart';  // 관리자 홈에서 기준 사진 관리 접근용 (유지)
 import 'screens/home_screen.dart';
 import 'screens/inspection_screen.dart';
 import 'screens/notice_screen.dart';
@@ -57,10 +57,10 @@ class _MainNavigationState extends State<MainNavigation> {
           icon: Icon(Icons.checklist),
           label: '점호 관리',
         ),
-        // ✅ 민원 관리 → 기준 사진 관리로 변경
+        // ✅ 기준 사진 → 공지 화면으로 변경
         const BottomNavigationBarItem(
-          icon: Icon(Icons.photo_library),
-          label: '기준 사진',
+          icon: Icon(Icons.notifications),
+          label: '공지',
         ),
         const BottomNavigationBarItem(
           icon: Icon(Icons.person),
@@ -72,7 +72,7 @@ class _MainNavigationState extends State<MainNavigation> {
         const AdminHomeScreen(),
         const AdminScheduleScreen(),
         const AdminInspectionScreen(),
-        const AdminRoomTemplateScreen(),  // ✅ 민원 관리 → 기준 사진 관리로 변경
+        const NoticeScreen(),  // ✅ 기준 사진 → 공지 화면으로 변경
         const MyPageScreen(),
       ];
 

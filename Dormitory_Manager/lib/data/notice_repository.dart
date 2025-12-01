@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../models/notice.dart';
 import '../services/notice_service.dart';
 
@@ -27,17 +28,19 @@ class NoticeRepository {
     }
   }
 
-  // 공지사항 작성 (관리자용)
+  // ✅ 공지사항 작성 (관리자용) - 웹/앱 모두 지원
   static Future<Notice> createNotice({
     required String title,
     required String content,
-    File? imageFile,
+    XFile? imageFile,
+    Uint8List? imageBytes,
   }) async {
     try {
       final newNotice = await NoticeService.createNotice(
         title: title,
         content: content,
         imageFile: imageFile,
+        imageBytes: imageBytes,
       );
 
       // 캐시에 추가 (맨 앞에)
@@ -49,12 +52,13 @@ class NoticeRepository {
     }
   }
 
-  // 공지사항 수정 (관리자용)
+  // ✅ 공지사항 수정 (관리자용) - 웹/앱 모두 지원
   static Future<Notice> updateNotice({
     required int noticeId,
     required String title,
     required String content,
-    File? imageFile,
+    XFile? imageFile,
+    Uint8List? imageBytes,
   }) async {
     try {
       final updatedNotice = await NoticeService.updateNotice(
@@ -62,6 +66,7 @@ class NoticeRepository {
         title: title,
         content: content,
         imageFile: imageFile,
+        imageBytes: imageBytes,
       );
 
       // 캐시 업데이트

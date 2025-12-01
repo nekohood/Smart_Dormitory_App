@@ -19,6 +19,7 @@ import java.util.UUID;
 
 /**
  * 공지사항 비즈니스 로직 서비스
+ * ✅ 수정: 조회수 증가 시 updated_at이 변경되지 않도록 수정
  */
 @Service
 @Transactional
@@ -38,16 +39,21 @@ public class NoticeService {
     }
 
     /**
-     * 특정 공지사항 조회 및 조회수 증가
+     * ✅ 수정: 특정 공지사항 조회 및 조회수 증가
+     * Native Query를 사용하여 updated_at은 변경하지 않음
      */
     @Transactional
     public Notice getNoticeById(Long id) {
+        // 1. 먼저 공지사항 존재 여부 확인
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id));
 
-        // 조회수 증가
-        notice.incrementViewCount();
-        return noticeRepository.save(notice);
+        // 2. Native Query로 조회수만 증가 (updated_at은 변경되지 않음)
+        noticeRepository.incrementViewCountOnly(id);
+
+        // 3. 증가된 조회수를 반영하여 다시 조회
+        return noticeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id));
     }
 
     /**
@@ -84,6 +90,7 @@ public class NoticeService {
 
     /**
      * 공지사항 수정 - 완전한 버전
+     * ✅ 이 경우에만 updated_at이 갱신됨 (관리자가 내용 수정 시)
      */
     @Transactional
     public Notice updateNotice(Long id, String title, String content, Boolean isPinned, MultipartFile file) {
@@ -106,6 +113,7 @@ public class NoticeService {
                 notice.setImagePath(imagePath);
             }
 
+            // ✅ save() 호출 시 @LastModifiedDate에 의해 updated_at 자동 갱신
             return noticeRepository.save(notice);
         } catch (IOException e) {
             throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
@@ -147,6 +155,7 @@ public class NoticeService {
 
     /**
      * 고정 공지사항 토글
+     * ✅ 고정/해제도 내용 수정으로 간주하여 updated_at 갱신
      */
     @Transactional
     public Notice togglePinNotice(Long id) {
@@ -229,26 +238,27 @@ public class NoticeService {
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        String fileName = UUID.randomUUID().toString() + extension;
+        String newFilename = UUID.randomUUID().toString() + extension;
 
         // 파일 저장
-        Path filePath = uploadPath.resolve(fileName);
+        Path filePath = uploadPath.resolve(newFilename);
         Files.copy(file.getInputStream(), filePath);
 
-        return uploadDirectory + fileName;
+        // 저장된 파일 경로 반환 (상대 경로)
+        return uploadDirectory + newFilename;
     }
 
     /**
-     * 파일 삭제 처리
+     * 업로드된 파일 삭제
      */
     private void deleteUploadedFile(String filePath) {
         try {
-            Path path = Paths.get(filePath);
-            if (Files.exists(path)) {
-                Files.delete(path);
+            if (filePath != null && !filePath.isEmpty()) {
+                Path path = Paths.get(filePath);
+                Files.deleteIfExists(path);
             }
         } catch (IOException e) {
-            // 파일 삭제 실패는 로그만 남기고 진행
+            // 파일 삭제 실패는 로그만 남기고 계속 진행
             System.err.println("파일 삭제 실패: " + filePath + " - " + e.getMessage());
         }
     }
