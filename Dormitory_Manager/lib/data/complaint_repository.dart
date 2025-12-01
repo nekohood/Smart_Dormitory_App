@@ -1,7 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../models/complaint.dart';
 import '../services/complaint_service.dart';
 
+/// 민원 Repository
+/// ✅ 수정: XFile + Uint8List 지원으로 웹/앱 호환성 확보
 class ComplaintRepository {
   static List<Complaint> _userComplaints = [];
   static List<Complaint> _allComplaints = [];
@@ -12,13 +15,16 @@ class ComplaintRepository {
   // 캐시된 전체 민원 목록 반환 (관리자용)
   static List<Complaint> get allComplaints => _allComplaints;
 
-  // 민원 신고 제출
+  /// 민원 신고 제출
+  /// ✅ 수정: XFile + imageBytes 지원
   static Future<Complaint> submitComplaint({
     required String title,
     required String content,
     required String category,
     required String writerId,
-    File? imageFile,
+    XFile? imageFile,
+    Uint8List? imageBytes,
+    String? fileName,
   }) async {
     try {
       final newComplaint = await ComplaintService.submitComplaint(
@@ -27,6 +33,8 @@ class ComplaintRepository {
         category: category,
         writerId: writerId,
         imageFile: imageFile,
+        imageBytes: imageBytes,
+        fileName: fileName,
       );
 
       // 사용자 캐시에 추가 (맨 앞에)
@@ -83,16 +91,15 @@ class ComplaintRepository {
         adminComment: adminComment,
       );
 
-      // 전체 캐시 업데이트
-      final allIndex = _allComplaints.indexWhere((c) => c.id == complaintId);
-      if (allIndex != -1) {
-        _allComplaints[allIndex] = updatedComplaint;
-      }
-
-      // 사용자 캐시 업데이트
+      // 캐시 업데이트
       final userIndex = _userComplaints.indexWhere((c) => c.id == complaintId);
       if (userIndex != -1) {
         _userComplaints[userIndex] = updatedComplaint;
+      }
+
+      final allIndex = _allComplaints.indexWhere((c) => c.id == complaintId);
+      if (allIndex != -1) {
+        _allComplaints[allIndex] = updatedComplaint;
       }
 
       return updatedComplaint;
@@ -107,29 +114,26 @@ class ComplaintRepository {
       await ComplaintService.deleteComplaint(complaintId);
 
       // 캐시에서 제거
-      _allComplaints.removeWhere((c) => c.id == complaintId);
       _userComplaints.removeWhere((c) => c.id == complaintId);
+      _allComplaints.removeWhere((c) => c.id == complaintId);
     } catch (e) {
       rethrow;
     }
   }
 
-  // 민원 통계 조회 (관리자용)
-  static Future<Map<String, dynamic>> getComplaintStatistics() async {
-    try {
-      return await ComplaintService.getComplaintStatistics();
-    } catch (e) {
-      rethrow;
-    }
+  // 캐시 초기화
+  static void clearCache() {
+    _userComplaints.clear();
+    _allComplaints.clear();
   }
 
-  // ID로 민원 찾기
+  // ID로 캐시된 민원 찾기
   static Complaint? findById(int id) {
     try {
-      return _allComplaints.firstWhere((complaint) => complaint.id == id);
+      return _allComplaints.firstWhere((c) => c.id == id);
     } catch (e) {
       try {
-        return _userComplaints.firstWhere((complaint) => complaint.id == id);
+        return _userComplaints.firstWhere((c) => c.id == id);
       } catch (e) {
         return null;
       }
@@ -146,20 +150,23 @@ class ComplaintRepository {
     _allComplaints.clear();
   }
 
-  // 모든 캐시 초기화
-  static void clearCache() {
-    _userComplaints.clear();
-    _allComplaints.clear();
-  }
-
   // 민원 카테고리 목록
   static List<String> getComplaintCategories() {
     return ComplaintService.getComplaintCategories();
   }
 
-  // 상태 목록 (관리자용)
+  // ✅ 상태 목록 (관리자용)
   static List<String> getStatusList() {
     return ComplaintService.getStatusList();
+  }
+
+  // ✅ 민원 통계 조회 (관리자용)
+  static Future<Map<String, dynamic>> getComplaintStatistics() async {
+    try {
+      return await ComplaintService.getComplaintStatistics();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // 상태별 민원 개수 (관리자용)

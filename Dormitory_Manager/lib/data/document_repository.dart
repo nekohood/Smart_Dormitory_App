@@ -1,7 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../models/document.dart';
 import '../services/document_service.dart';
 
+/// 서류 Repository
+/// ✅ 수정: XFile + Uint8List 지원으로 웹/앱 호환성 확보
 class DocumentRepository {
   static List<Document> _userDocuments = [];
   static List<Document> _allDocuments = [];
@@ -12,13 +15,16 @@ class DocumentRepository {
   // 캐시된 전체 서류 목록 반환 (관리자용)
   static List<Document> get allDocuments => _allDocuments;
 
-  // 서류 제출
+  /// 서류 제출
+  /// ✅ 수정: XFile + imageBytes 지원
   static Future<Document> submitDocument({
     required String title,
     required String content,
     required String category,
     required String writerId,
-    File? imageFile,
+    XFile? imageFile,
+    Uint8List? imageBytes,
+    String? fileName,
   }) async {
     try {
       final newDocument = await DocumentService.submitDocument(
@@ -27,6 +33,8 @@ class DocumentRepository {
         category: category,
         writerId: writerId,
         imageFile: imageFile,
+        imageBytes: imageBytes,
+        fileName: fileName,
       );
 
       // 사용자 캐시에 추가 (맨 앞에)
@@ -83,16 +91,15 @@ class DocumentRepository {
         adminComment: adminComment,
       );
 
-      // 전체 캐시 업데이트
-      final allIndex = _allDocuments.indexWhere((d) => d.id == documentId);
-      if (allIndex != -1) {
-        _allDocuments[allIndex] = updatedDocument;
-      }
-
-      // 사용자 캐시 업데이트
+      // 캐시 업데이트
       final userIndex = _userDocuments.indexWhere((d) => d.id == documentId);
       if (userIndex != -1) {
         _userDocuments[userIndex] = updatedDocument;
+      }
+
+      final allIndex = _allDocuments.indexWhere((d) => d.id == documentId);
+      if (allIndex != -1) {
+        _allDocuments[allIndex] = updatedDocument;
       }
 
       return updatedDocument;
@@ -107,29 +114,26 @@ class DocumentRepository {
       await DocumentService.deleteDocument(documentId);
 
       // 캐시에서 제거
-      _allDocuments.removeWhere((d) => d.id == documentId);
       _userDocuments.removeWhere((d) => d.id == documentId);
+      _allDocuments.removeWhere((d) => d.id == documentId);
     } catch (e) {
       rethrow;
     }
   }
 
-  // 서류 통계 조회 (관리자용)
-  static Future<Map<String, dynamic>> getDocumentStatistics() async {
-    try {
-      return await DocumentService.getDocumentStatistics();
-    } catch (e) {
-      rethrow;
-    }
+  // 캐시 초기화
+  static void clearCache() {
+    _userDocuments.clear();
+    _allDocuments.clear();
   }
 
-  // ID로 서류 찾기
+  // ID로 캐시된 서류 찾기
   static Document? findById(int id) {
     try {
-      return _allDocuments.firstWhere((document) => document.id == id);
+      return _allDocuments.firstWhere((d) => d.id == id);
     } catch (e) {
       try {
-        return _userDocuments.firstWhere((document) => document.id == id);
+        return _userDocuments.firstWhere((d) => d.id == id);
       } catch (e) {
         return null;
       }
@@ -146,20 +150,23 @@ class DocumentRepository {
     _allDocuments.clear();
   }
 
-  // 모든 캐시 초기화
-  static void clearCache() {
-    _userDocuments.clear();
-    _allDocuments.clear();
-  }
-
   // 서류 카테고리 목록
   static List<String> getDocumentCategories() {
     return DocumentService.getDocumentCategories();
   }
 
-  // 상태 목록 (관리자용)
+  // ✅ 상태 목록 (관리자용)
   static List<String> getStatusList() {
     return DocumentService.getStatusList();
+  }
+
+  // ✅ 서류 통계 조회 (관리자용)
+  static Future<Map<String, dynamic>> getDocumentStatistics() async {
+    try {
+      return await DocumentService.getDocumentStatistics();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // 상태별 서류 개수 (관리자용)
