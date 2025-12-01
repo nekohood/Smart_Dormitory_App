@@ -1,10 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:image_picker/image_picker.dart';
 import '../models/notice.dart';
 import '../api/dio_client.dart';
 
+/// 공지사항 API 서비스
+/// ✅ 수정: 모든 작성/수정 요청을 multipart/form-data로 통일
 class NoticeService {
   // 모든 공지사항 조회
   static Future<List<Notice>> getAllNotices() async {
@@ -50,151 +51,104 @@ class NoticeService {
     }
   }
 
-  // ✅ 공지사항 작성 (관리자용) - 웹/앱 모두 지원
+  /// 공지사항 작성 (관리자용)
+  /// ✅ 파일 유무에 관계없이 항상 multipart/form-data로 요청
   static Future<Notice> createNotice({
     required String title,
     required String content,
-    XFile? imageFile,
+    File? imageFile,
     Uint8List? imageBytes,
+    String? fileName,
   }) async {
     try {
-      print('[DEBUG] NoticeService.createNotice 시작');
-      print('[DEBUG] 이미지 파일: ${imageFile != null}, 이미지 바이트: ${imageBytes != null}');
+      print('[NoticeService] 공지사항 작성 시작 - 제목: $title');
 
-      // 이미지가 있는 경우 multipart 요청
-      if (imageFile != null || imageBytes != null) {
-        final formData = FormData();
+      final formData = FormData.fromMap({
+        'title': title,
+        'content': content,
+        'author': 'admin',
+        'isPinned': 'false',
+      });
 
-        // 기본 필드 추가
-        formData.fields.addAll([
-          MapEntry('title', title),
-          MapEntry('content', content),
-          MapEntry('author', '관리자'),  // ✅ 기본값 사용
-          MapEntry('isPinned', 'false'),
-        ]);
+      // 파일 추가 (File 또는 Uint8List)
+      if (imageFile != null) {
+        formData.files.add(MapEntry(
+          'file',
+          await MultipartFile.fromFile(imageFile.path),
+        ));
+      } else if (imageBytes != null) {
+        formData.files.add(MapEntry(
+          'file',
+          MultipartFile.fromBytes(
+            imageBytes,
+            filename: fileName ?? 'image.jpg',
+          ),
+        ));
+      }
 
-        // ✅ 이미지 파일 추가 (웹/앱 모두 지원)
-        if (imageBytes != null && imageFile != null) {
-          final fileName = imageFile.name.isNotEmpty ? imageFile.name : 'image.jpg';
-          formData.files.add(
-            MapEntry(
-              'file',
-              MultipartFile.fromBytes(
-                imageBytes,
-                filename: fileName,
-                contentType: DioMediaType('image', _getImageExtension(fileName)),
-              ),
-            ),
-          );
-        }
+      final response = await DioClient.post('/notices', data: formData);
 
-        print('[DEBUG] FormData 필드: ${formData.fields}');
-        print('[DEBUG] FormData 파일: ${formData.files.length}개');
-
-        final response = await DioClient.post('/notices', data: formData);
-        final responseData = response.data;
-
-        print('[DEBUG] 서버 응답: $responseData');
-
-        if (responseData['success'] == true) {
-          return Notice.fromJson(responseData['notice']);
-        } else {
-          throw Exception(responseData['message'] ?? '공지사항 작성에 실패했습니다.');
-        }
+      final responseData = response.data;
+      if (responseData['success'] == true) {
+        print('[NoticeService] 공지사항 작성 성공');
+        return Notice.fromJson(responseData['notice']);
       } else {
-        // 파일이 없는 경우 FormData로 전송 (서버가 multipart 기대)
-        final formData = FormData();
-        formData.fields.addAll([
-          MapEntry('title', title),
-          MapEntry('content', content),
-          MapEntry('author', '관리자'),
-          MapEntry('isPinned', 'false'),
-        ]);
-
-        final response = await DioClient.post('/notices', data: formData);
-        final responseData = response.data;
-
-        print('[DEBUG] 서버 응답 (이미지 없음): $responseData');
-
-        if (responseData['success'] == true) {
-          return Notice.fromJson(responseData['notice']);
-        } else {
-          throw Exception(responseData['message'] ?? '공지사항 작성에 실패했습니다.');
-        }
+        throw Exception(responseData['message'] ?? '공지사항 작성에 실패했습니다.');
       }
     } catch (e) {
-      print('[ERROR] 공지사항 작성 실패: $e');
+      print('[NoticeService] 공지사항 작성 실패: $e');
       throw Exception('공지사항 작성 실패: $e');
     }
   }
 
-  // ✅ 공지사항 수정 (관리자용) - 웹/앱 모두 지원
+  /// 공지사항 수정 (관리자용)
+  /// ✅ 파일 유무에 관계없이 항상 POST로 multipart/form-data 요청
+  /// 서버에서 POST /notices/{id} 엔드포인트로 수정 처리
   static Future<Notice> updateNotice({
     required int noticeId,
     required String title,
     required String content,
-    XFile? imageFile,
+    File? imageFile,
     Uint8List? imageBytes,
+    String? fileName,
   }) async {
     try {
-      print('[DEBUG] NoticeService.updateNotice 시작 - ID: $noticeId');
+      print('[NoticeService] 공지사항 수정 시작 - ID: $noticeId, 제목: $title');
 
-      // 이미지가 있는 경우 multipart 요청
-      if (imageFile != null || imageBytes != null) {
-        final formData = FormData();
+      final formData = FormData.fromMap({
+        'title': title,
+        'content': content,
+        'isPinned': 'false',
+      });
 
-        formData.fields.addAll([
-          MapEntry('title', title),
-          MapEntry('content', content),
-          MapEntry('isPinned', 'false'),
-        ]);
+      // 파일 추가 (File 또는 Uint8List)
+      if (imageFile != null) {
+        formData.files.add(MapEntry(
+          'file',
+          await MultipartFile.fromFile(imageFile.path),
+        ));
+      } else if (imageBytes != null) {
+        formData.files.add(MapEntry(
+          'file',
+          MultipartFile.fromBytes(
+            imageBytes,
+            filename: fileName ?? 'image.jpg',
+          ),
+        ));
+      }
 
-        // ✅ 이미지 파일 추가 (웹/앱 모두 지원)
-        if (imageBytes != null && imageFile != null) {
-          final fileName = imageFile.name.isNotEmpty ? imageFile.name : 'image.jpg';
-          formData.files.add(
-            MapEntry(
-              'file',
-              MultipartFile.fromBytes(
-                imageBytes,
-                filename: fileName,
-                contentType: DioMediaType('image', _getImageExtension(fileName)),
-              ),
-            ),
-          );
-        }
+      // ✅ POST /notices/{id}로 수정 요청 (서버에서 PUT 대체 엔드포인트 제공)
+      final response = await DioClient.post('/notices/$noticeId', data: formData);
 
-        // ✅ PUT 대신 POST + _method 사용 (multipart와 호환)
-        formData.fields.add(MapEntry('_method', 'PUT'));
-
-        final response = await DioClient.post('/notices/$noticeId', data: formData);
-        final responseData = response.data;
-
-        if (responseData['success'] == true) {
-          return Notice.fromJson(responseData['notice']);
-        } else {
-          throw Exception(responseData['message'] ?? '공지사항 수정에 실패했습니다.');
-        }
+      final responseData = response.data;
+      if (responseData['success'] == true) {
+        print('[NoticeService] 공지사항 수정 성공');
+        return Notice.fromJson(responseData['notice']);
       } else {
-        // 파일이 없는 경우 FormData로 전송
-        final formData = FormData();
-        formData.fields.addAll([
-          MapEntry('title', title),
-          MapEntry('content', content),
-          MapEntry('isPinned', 'false'),
-        ]);
-
-        final response = await DioClient.put('/notices/$noticeId', data: formData);
-        final responseData = response.data;
-
-        if (responseData['success'] == true) {
-          return Notice.fromJson(responseData['notice']);
-        } else {
-          throw Exception(responseData['message'] ?? '공지사항 수정에 실패했습니다.');
-        }
+        throw Exception(responseData['message'] ?? '공지사항 수정에 실패했습니다.');
       }
     } catch (e) {
-      print('[ERROR] 공지사항 수정 실패: $e');
+      print('[NoticeService] 공지사항 수정 실패: $e');
       throw Exception('공지사항 수정 실패: $e');
     }
   }
@@ -229,20 +183,36 @@ class NoticeService {
     }
   }
 
-  // ✅ 이미지 확장자 추출 헬퍼
-  static String _getImageExtension(String fileName) {
-    final ext = fileName.split('.').last.toLowerCase();
-    switch (ext) {
-      case 'png':
-        return 'png';
-      case 'gif':
-        return 'gif';
-      case 'webp':
-        return 'webp';
-      case 'bmp':
-        return 'bmp';
-      default:
-        return 'jpeg';
+  // 중요 공지사항 조회
+  static Future<List<Notice>> getImportantNotices() async {
+    try {
+      final response = await DioClient.get('/notices/important');
+      final responseData = response.data;
+      if (responseData['success'] == true) {
+        final List<dynamic> noticeData = responseData['notices'];
+        return noticeData.map((data) => Notice.fromJson(data)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('중요 공지사항 조회 실패: $e');
+    }
+  }
+
+  // 공지사항 검색
+  static Future<List<Notice>> searchNotices(String keyword) async {
+    try {
+      final response = await DioClient.get('/notices/search', queryParameters: {
+        'keyword': keyword,
+      });
+
+      final responseData = response.data;
+      if (responseData['success'] == true) {
+        final List<dynamic> noticeData = responseData['notices'];
+        return noticeData.map((data) => Notice.fromJson(data)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('공지사항 검색 실패: $e');
     }
   }
 }
