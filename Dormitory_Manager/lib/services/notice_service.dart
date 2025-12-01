@@ -1,11 +1,12 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/notice.dart';
 import '../api/dio_client.dart';
 
 /// 공지사항 API 서비스
 /// ✅ 수정: 모든 작성/수정 요청을 multipart/form-data로 통일
+/// ✅ XFile 지원 추가 (웹 호환성)
 class NoticeService {
   // 모든 공지사항 조회
   static Future<List<Notice>> getAllNotices() async {
@@ -53,10 +54,11 @@ class NoticeService {
 
   /// 공지사항 작성 (관리자용)
   /// ✅ 파일 유무에 관계없이 항상 multipart/form-data로 요청
+  /// ✅ XFile 지원 (웹 호환성)
   static Future<Notice> createNotice({
     required String title,
     required String content,
-    File? imageFile,
+    XFile? imageFile,
     Uint8List? imageBytes,
     String? fileName,
   }) async {
@@ -70,11 +72,15 @@ class NoticeService {
         'isPinned': 'false',
       });
 
-      // 파일 추가 (File 또는 Uint8List)
+      // 파일 추가 (XFile 또는 Uint8List)
       if (imageFile != null) {
+        final bytes = await imageFile.readAsBytes();
         formData.files.add(MapEntry(
           'file',
-          await MultipartFile.fromFile(imageFile.path),
+          MultipartFile.fromBytes(
+            bytes,
+            filename: imageFile.name,
+          ),
         ));
       } else if (imageBytes != null) {
         formData.files.add(MapEntry(
@@ -103,12 +109,13 @@ class NoticeService {
 
   /// 공지사항 수정 (관리자용)
   /// ✅ 파일 유무에 관계없이 항상 POST로 multipart/form-data 요청
+  /// ✅ XFile 지원 (웹 호환성)
   /// 서버에서 POST /notices/{id} 엔드포인트로 수정 처리
   static Future<Notice> updateNotice({
     required int noticeId,
     required String title,
     required String content,
-    File? imageFile,
+    XFile? imageFile,
     Uint8List? imageBytes,
     String? fileName,
   }) async {
@@ -121,11 +128,15 @@ class NoticeService {
         'isPinned': 'false',
       });
 
-      // 파일 추가 (File 또는 Uint8List)
+      // 파일 추가 (XFile 또는 Uint8List)
       if (imageFile != null) {
+        final bytes = await imageFile.readAsBytes();
         formData.files.add(MapEntry(
           'file',
-          await MultipartFile.fromFile(imageFile.path),
+          MultipartFile.fromBytes(
+            bytes,
+            filename: imageFile.name,
+          ),
         ));
       } else if (imageBytes != null) {
         formData.files.add(MapEntry(
