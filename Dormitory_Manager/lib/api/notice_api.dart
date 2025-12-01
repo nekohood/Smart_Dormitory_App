@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'api_config.dart';
 
 class NoticeApi {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/notices';
+  // ✅ ApiConfig에서 baseUrl 가져오기
+  static String get baseUrl => '${ApiConfig.baseUrl}/notices';
 
   static Future<List<dynamic>> fetchNotices() async {
+    print('🟡 [NoticeApi] fetchNotices URL: $baseUrl');
     final response = await http.get(Uri.parse(baseUrl));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -38,9 +41,6 @@ class NoticeApi {
     required String author,
   }) async {
     final url = Uri.parse('$baseUrl/$id');
-    print('🟡 PUT URL: $url'); // 추가
-    print('🟡 Payload: title=$title, content=$content, author=$author');
-
     final response = await http.put(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -50,11 +50,6 @@ class NoticeApi {
         'author': author,
       }),
     );
-
-    print('🔴 Status: ${response.statusCode}');
-    print('🔴 Body: ${response.body}');
-
     return response.statusCode == 200;
   }
-
 }
