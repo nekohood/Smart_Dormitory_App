@@ -188,4 +188,32 @@ class DocumentService {
       '기타 서류',
     ];
   }
+
+  // ✅ 상태 목록 (관리자용)
+  static List<String> getStatusList() {
+    return [
+      '대기',
+      '검토중',
+      '승인',
+      '반려',
+    ];
+  }
+
+  // 서류 통계 조회 (관리자용)
+  static Future<Map<String, dynamic>> getDocumentStatistics() async {
+    try {
+      print('[DocumentService] 서류 통계 조회');
+
+      final response = await DioClient.get('/documents/statistics');
+      final responseData = response.data;
+
+      if (responseData['success'] == true && responseData['data'] != null) {
+        return Map<String, dynamic>.from(responseData['data']);
+      }
+      return {};
+    } catch (e) {
+      print('[DocumentService] 서류 통계 조회 실패: $e');
+      throw Exception('서류 통계 조회 실패: $e');
+    }
+  }
 }

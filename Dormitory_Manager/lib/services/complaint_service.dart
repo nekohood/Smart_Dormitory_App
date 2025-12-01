@@ -1,15 +1,15 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/document.dart';
+import '../models/complaint.dart';
 import '../api/dio_client.dart';
 
-/// 서류 API 서비스
+/// 민원 API 서비스
 /// ✅ 수정: XFile + Uint8List 지원으로 웹/앱 호환성 확보
-class DocumentService {
-  /// 서류 제출
+class ComplaintService {
+  /// 민원 신고 제출
   /// ✅ 수정: XFile + imageBytes 지원 (웹/앱 호환)
-  static Future<Document> submitDocument({
+  static Future<Complaint> submitComplaint({
     required String title,
     required String content,
     required String category,
@@ -19,7 +19,7 @@ class DocumentService {
     String? fileName,
   }) async {
     try {
-      print('[DocumentService] 서류 제출 시작 - 제목: $title');
+      print('[ComplaintService] 민원 제출 시작 - 제목: $title');
 
       final formData = FormData.fromMap({
         'title': title,
@@ -40,107 +40,107 @@ class DocumentService {
             filename: imageFile.name,
           ),
         ));
-        print('[DocumentService] 파일 첨부 (XFile): ${imageFile.name}');
+        print('[ComplaintService] 이미지 첨부 (XFile): ${imageFile.name}');
       } else if (imageBytes != null) {
         formData.files.add(MapEntry(
           'file',
           MultipartFile.fromBytes(
             imageBytes,
-            filename: fileName ?? 'document_file.jpg',
+            filename: fileName ?? 'complaint_image.jpg',
           ),
         ));
-        print('[DocumentService] 파일 첨부 (bytes): ${fileName ?? 'document_file.jpg'}');
+        print('[ComplaintService] 이미지 첨부 (bytes): ${fileName ?? 'complaint_image.jpg'}');
       }
 
-      final response = await DioClient.post('/documents', data: formData);
+      final response = await DioClient.post('/complaints', data: formData);
       final responseData = response.data;
 
-      // ✅ ApiResponse 구조 처리
+      // ✅ ApiResponse 구조 처리: data 필드에서 민원 데이터 추출
       if (responseData['success'] == true) {
-        final documentData = responseData['data'];
-        if (documentData != null) {
-          print('[DocumentService] 서류 제출 성공 - ID: ${documentData['id']}');
-          return Document.fromJson(documentData);
+        final complaintData = responseData['data'];
+        if (complaintData != null) {
+          print('[ComplaintService] 민원 제출 성공 - ID: ${complaintData['id']}');
+          return Complaint.fromJson(complaintData);
         } else {
-          throw Exception('응답에 서류 데이터가 없습니다.');
+          throw Exception('응답에 민원 데이터가 없습니다.');
         }
       } else {
-        throw Exception(responseData['message'] ?? '서류 제출에 실패했습니다.');
+        throw Exception(responseData['message'] ?? '민원 제출에 실패했습니다.');
       }
     } catch (e) {
-      print('[DocumentService] 서류 제출 실패: $e');
-      throw Exception('서류 제출 실패: $e');
+      print('[ComplaintService] 민원 제출 실패: $e');
+      throw Exception('민원 제출 실패: $e');
     }
   }
 
-  // 사용자별 서류 목록 조회
-  static Future<List<Document>> getUserDocuments(String writerId) async {
+  // 사용자별 민원 목록 조회
+  static Future<List<Complaint>> getUserComplaints(String writerId) async {
     try {
-      print('[DocumentService] 사용자 서류 목록 조회 - writerId: $writerId');
+      print('[ComplaintService] 사용자 민원 목록 조회 - writerId: $writerId');
 
-      final response = await DioClient.get('/documents/user/$writerId');
+      final response = await DioClient.get('/complaints/user/$writerId');
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> documentsData = responseData['data'] ?? [];
-        return documentsData.map((data) => Document.fromJson(data)).toList();
+        final List<dynamic> complaintsData = responseData['data'] ?? [];
+        return complaintsData.map((data) => Complaint.fromJson(data)).toList();
       }
       return [];
     } catch (e) {
-      print('[DocumentService] 사용자 서류 목록 조회 실패: $e');
-      throw Exception('서류 목록 조회 실패: $e');
+      print('[ComplaintService] 사용자 민원 목록 조회 실패: $e');
+      throw Exception('민원 목록 조회 실패: $e');
     }
   }
 
-  // 모든 서류 목록 조회 (관리자용)
-  static Future<List<Document>> getAllDocuments() async {
+  // 모든 민원 목록 조회 (관리자용)
+  static Future<List<Complaint>> getAllComplaints() async {
     try {
-      print('[DocumentService] 전체 서류 목록 조회');
+      print('[ComplaintService] 전체 민원 목록 조회');
 
-      final response = await DioClient.get('/documents');
+      final response = await DioClient.get('/complaints');
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> documentsData = responseData['data'] ?? [];
-        return documentsData.map((data) => Document.fromJson(data)).toList();
+        final List<dynamic> complaintsData = responseData['data'] ?? [];
+        return complaintsData.map((data) => Complaint.fromJson(data)).toList();
       }
       return [];
     } catch (e) {
-      print('[DocumentService] 전체 서류 목록 조회 실패: $e');
-      throw Exception('서류 목록 조회 실패: $e');
+      print('[ComplaintService] 전체 민원 목록 조회 실패: $e');
+      throw Exception('민원 목록 조회 실패: $e');
     }
   }
 
-  // 특정 서류 조회
-  static Future<Document> getDocumentById(int documentId) async {
+  // 특정 민원 조회
+  static Future<Complaint> getComplaintById(int complaintId) async {
     try {
-      print('[DocumentService] 서류 상세 조회 - ID: $documentId');
+      print('[ComplaintService] 민원 상세 조회 - ID: $complaintId');
 
-      final response = await DioClient.get('/documents/$documentId');
+      final response = await DioClient.get('/complaints/$complaintId');
       final responseData = response.data;
 
       if (responseData['success'] == true && responseData['data'] != null) {
-        return Document.fromJson(responseData['data']);
+        return Complaint.fromJson(responseData['data']);
       } else {
-        throw Exception(responseData['message'] ?? '서류를 찾을 수 없습니다.');
+        throw Exception(responseData['message'] ?? '민원을 찾을 수 없습니다.');
       }
     } catch (e) {
-      print('[DocumentService] 서류 상세 조회 실패: $e');
-      throw Exception('서류 조회 실패: $e');
+      print('[ComplaintService] 민원 상세 조회 실패: $e');
+      throw Exception('민원 조회 실패: $e');
     }
   }
 
-  // 서류 상태 업데이트 (관리자용)
-  static Future<Document> updateDocumentStatus({
-    required int documentId,
+  // 민원 상태 업데이트 (관리자용)
+  static Future<Complaint> updateComplaintStatus({
+    required int complaintId,
     required String status,
     String? adminComment,
   }) async {
     try {
-      print('[DocumentService] 서류 상태 업데이트 - ID: $documentId, 상태: $status');
+      print('[ComplaintService] 민원 상태 업데이트 - ID: $complaintId, 상태: $status');
 
       final response = await DioClient.patch(
-        '/documents/$documentId/status',
+        '/complaints/$complaintId/status',
         data: {
           'status': status,
           if (adminComment != null) 'adminComment': adminComment,
@@ -150,42 +150,41 @@ class DocumentService {
       final responseData = response.data;
 
       if (responseData['success'] == true && responseData['data'] != null) {
-        return Document.fromJson(responseData['data']);
+        return Complaint.fromJson(responseData['data']);
       } else {
         throw Exception(responseData['message'] ?? '상태 업데이트에 실패했습니다.');
       }
     } catch (e) {
-      print('[DocumentService] 서류 상태 업데이트 실패: $e');
+      print('[ComplaintService] 민원 상태 업데이트 실패: $e');
       throw Exception('상태 업데이트 실패: $e');
     }
   }
 
-  // 서류 삭제 (관리자용)
-  static Future<void> deleteDocument(int documentId) async {
+  // 민원 삭제 (관리자용)
+  static Future<void> deleteComplaint(int complaintId) async {
     try {
-      print('[DocumentService] 서류 삭제 - ID: $documentId');
+      print('[ComplaintService] 민원 삭제 - ID: $complaintId');
 
-      final response = await DioClient.delete('/documents/$documentId');
+      final response = await DioClient.delete('/complaints/$complaintId');
       final responseData = response.data;
 
       if (responseData['success'] != true) {
-        throw Exception(responseData['message'] ?? '서류 삭제에 실패했습니다.');
+        throw Exception(responseData['message'] ?? '민원 삭제에 실패했습니다.');
       }
     } catch (e) {
-      print('[DocumentService] 서류 삭제 실패: $e');
-      throw Exception('서류 삭제 실패: $e');
+      print('[ComplaintService] 민원 삭제 실패: $e');
+      throw Exception('민원 삭제 실패: $e');
     }
   }
 
-  // 서류 카테고리 목록
-  static List<String> getDocumentCategories() {
+  // 민원 카테고리 목록
+  static List<String> getComplaintCategories() {
     return [
-      '외박 신청',
-      '외출 신청',
-      '퇴사 신청',
-      '호실 변경 신청',
-      '시설 이용 신청',
-      '기타 서류',
+      '시설 문제',
+      '소음 문제',
+      '위생 문제',
+      '안전 문제',
+      '기타 건의',
     ];
   }
 
@@ -193,18 +192,18 @@ class DocumentService {
   static List<String> getStatusList() {
     return [
       '대기',
-      '검토중',
-      '승인',
+      '처리중',
+      '완료',
       '반려',
     ];
   }
 
-  // 서류 통계 조회 (관리자용)
-  static Future<Map<String, dynamic>> getDocumentStatistics() async {
+  // 민원 통계 조회 (관리자용)
+  static Future<Map<String, dynamic>> getComplaintStatistics() async {
     try {
-      print('[DocumentService] 서류 통계 조회');
+      print('[ComplaintService] 민원 통계 조회');
 
-      final response = await DioClient.get('/documents/statistics');
+      final response = await DioClient.get('/complaints/statistics');
       final responseData = response.data;
 
       if (responseData['success'] == true && responseData['data'] != null) {
@@ -212,8 +211,8 @@ class DocumentService {
       }
       return {};
     } catch (e) {
-      print('[DocumentService] 서류 통계 조회 실패: $e');
-      throw Exception('서류 통계 조회 실패: $e');
+      print('[ComplaintService] 민원 통계 조회 실패: $e');
+      throw Exception('민원 통계 조회 실패: $e');
     }
   }
 }
