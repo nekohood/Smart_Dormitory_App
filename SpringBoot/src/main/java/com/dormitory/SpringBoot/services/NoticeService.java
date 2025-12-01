@@ -2,8 +2,6 @@ package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.Notice;
 import com.dormitory.SpringBoot.repository.NoticeRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +28,6 @@ public class NoticeService {
     @Autowired
     private NoticeRepository noticeRepository;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
     private final String uploadDirectory = "uploads/notices/";
 
     /**
@@ -50,17 +45,15 @@ public class NoticeService {
     @Transactional
     public Notice getNoticeById(Long id) {
         // 1. 먼저 공지사항 존재 여부 확인
-        Notice notice = noticeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id));
+        if (!noticeRepository.existsById(id)) {
+            throw new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id);
+        }
 
         // 2. Native Query로 조회수만 증가 (updated_at은 변경되지 않음)
+        // @Modifying(clearAutomatically = true)로 인해 자동으로 영속성 컨텍스트 초기화
         noticeRepository.incrementViewCountOnly(id);
 
-        // 3. 영속성 컨텍스트 동기화를 위해 flush 및 clear
-        entityManager.flush();
-        entityManager.clear();
-
-        // 4. 증가된 조회수를 반영하여 다시 조회
+        // 3. 증가된 조회수를 반영하여 조회
         return noticeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id));
     }

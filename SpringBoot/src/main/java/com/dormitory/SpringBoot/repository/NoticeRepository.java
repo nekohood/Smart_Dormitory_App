@@ -95,8 +95,9 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
     /**
      * ✅ 신규: 조회수만 증가 (updated_at은 변경하지 않음)
      * Native Query를 사용하여 @LastModifiedDate 자동 갱신을 우회
+     * clearAutomatically = true로 영속성 컨텍스트 자동 초기화
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE notices SET view_count = view_count + 1 WHERE id = :id", nativeQuery = true)
     void incrementViewCountOnly(@Param("id") Long id);
 }
