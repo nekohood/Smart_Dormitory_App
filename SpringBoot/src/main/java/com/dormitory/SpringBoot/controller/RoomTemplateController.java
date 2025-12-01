@@ -23,6 +23,7 @@ import java.util.Map;
  * 방 템플릿 관리 API (관리자용)
  * - 기준 방 사진 등록/수정/삭제
  * - AI 점호 평가 시 비교 기준으로 사용
+ * ✅ 수정: 삭제 시 완전 삭제(hardDelete) 사용
  */
 @RestController
 @RequestMapping("/api/admin/room-templates")
@@ -178,18 +179,42 @@ public class RoomTemplateController {
     }
 
     /**
-     * 템플릿 삭제 (비활성화)
+     * 템플릿 삭제 (완전 삭제)
+     * ✅ 수정: hardDeleteTemplate 사용하여 DB에서 완전 삭제
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> deleteTemplate(@PathVariable Long id) {
         try {
-            logger.info("템플릿 삭제 요청 - ID: {}", id);
-            templateService.deleteTemplate(id);
+            logger.info("템플릿 완전 삭제 요청 - ID: {}", id);
+
+            // ✅ hardDeleteTemplate 호출하여 DB에서 완전 삭제
+            templateService.hardDeleteTemplate(id);
+
             return ResponseEntity.ok(ApiResponse.success("템플릿이 삭제되었습니다.", null));
         } catch (Exception e) {
             logger.error("템플릿 삭제 실패 - ID: {}", id, e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("템플릿 삭제 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 템플릿 비활성화 (소프트 삭제)
+     * ✅ 추가: 비활성화만 하고 싶을 때 사용
+     */
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deactivateTemplate(@PathVariable Long id) {
+        try {
+            logger.info("템플릿 비활성화 요청 - ID: {}", id);
+            templateService.deleteTemplate(id);  // 기존 소프트 삭제 메서드
+
+            return templateService.getTemplateById(id)
+                    .map(template -> ResponseEntity.ok(ApiResponse.success("템플릿이 비활성화되었습니다.", convertToResponse(template))))
+                    .orElseGet(() -> ResponseEntity.ok(ApiResponse.success("템플릿이 비활성화되었습니다.", null)));
+        } catch (Exception e) {
+            logger.error("템플릿 비활성화 실패 - ID: {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("템플릿 비활성화 실패: " + e.getMessage()));
         }
     }
 
