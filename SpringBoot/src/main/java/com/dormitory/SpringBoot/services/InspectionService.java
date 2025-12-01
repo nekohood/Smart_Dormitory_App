@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
  * ✅ 시간 제한, EXIF 검증, 방 사진 검증 기능 통합
  * ✅ 통계 메서드 포함 (getTotalStatistics, getStatisticsByDate)
  * ✅ 기숙사별 점호 현황 테이블 기능 추가
+ * ✅ 예시 테이블에 다양한 상태(통과/실패/반려/미제출/빈방) 표시 추가
  */
 @Service
 @Transactional
@@ -99,18 +100,21 @@ public class InspectionService {
             // 3. 오늘 이미 점호를 완료했는지 확인
             List<Inspection> todayInspections = inspectionRepository.findTodayInspectionByUserId(userId);
             if (!todayInspections.isEmpty()) {
-                throw new RuntimeException("오늘 이미 점호를 완료했습니다.");
+                Inspection existing = todayInspections.get(0);
+                if ("PASS".equals(existing.getStatus())) {
+                    throw new RuntimeException("오늘 이미 점호를 완료했습니다.");
+                }
             }
 
             // 4. EXIF 검증 (설정에 따라)
             InspectionSettings currentSettings = timeCheck.getSettings();
-            if (currentSettings != null && currentSettings.getExifValidationEnabled()) {
+            if (currentSettings != null && Boolean.TRUE.equals(currentSettings.getExifValidationEnabled())) {
                 // EXIF 검증 파라미터 설정
                 int toleranceMinutes = currentSettings.getExifTimeToleranceMinutes() != null
                         ? currentSettings.getExifTimeToleranceMinutes() : 30;
-                Double expectedLatitude = currentSettings.getGpsValidationEnabled()
+                Double expectedLatitude = Boolean.TRUE.equals(currentSettings.getGpsValidationEnabled())
                         ? currentSettings.getDormitoryLatitude() : null;
-                Double expectedLongitude = currentSettings.getGpsValidationEnabled()
+                Double expectedLongitude = Boolean.TRUE.equals(currentSettings.getGpsValidationEnabled())
                         ? currentSettings.getDormitoryLongitude() : null;
                 int radiusMeters = currentSettings.getGpsRadiusMeters() != null
                         ? currentSettings.getGpsRadiusMeters() : 100;
@@ -550,6 +554,7 @@ public class InspectionService {
     /**
      * ✅ 기숙사별 점호 현황 테이블 데이터 조회 (테이블 설정 적용)
      * 층/호실 매트릭스 형태로 점호 상태 반환
+     * ✅ 수정: 예시 테이블에 다양한 상태(통과/실패/반려/미제출/빈방) 표시
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getBuildingInspectionStatus(String building, String dateStr) {
@@ -579,8 +584,8 @@ public class InspectionService {
             int endRoom = tableConfig.getEndRoom();
             String roomNumberFormat = tableConfig.getRoomNumberFormat();
 
-            logger.info("테이블 설정 - 층: {}~{}, 호실: {}~{}, 형식: {}",
-                    startFloor, endFloor, startRoom, endRoom, roomNumberFormat);
+            logger.info("테이블 설정 - 층: {}~{}, 호실: {}~{}, 형식: {}, 예시: {}",
+                    startFloor, endFloor, startRoom, endRoom, roomNumberFormat, isDefaultConfig);
 
             // 해당 기숙사의 모든 사용자 조회
             List<User> buildingUsers = userRepository.findByDormitoryBuildingAndIsActiveTrue(building);
@@ -608,6 +613,19 @@ public class InspectionService {
                 rooms.add(r);
             }
 
+            // ✅ 예시 테이블용 상태 배열 (다양한 상태 순환 표시)
+            String[] exampleStatuses = {"PASS", "FAIL", "NOT_SUBMITTED", "REJECTED", "EMPTY"};
+            String[] exampleStatusTexts = {"통과", "실패", "미제출", "반려", "빈 방"};
+            String[] exampleDescriptions = {
+                    "점호 통과",
+                    "점호 실패",
+                    "점호 미제출",
+                    "점호 반려",
+                    "빈 방"
+            };
+            int[] exampleScores = {85, 45, 0, 30, 0};
+            int exampleStatusIndex = 0;
+
             // 호실별 상태 매트릭스 생성
             Map<String, Map<String, Object>> matrix = new LinkedHashMap<>();
 
@@ -623,68 +641,123 @@ public class InspectionService {
                         roomNumber = String.valueOf(floor * 100 + room);
                     }
 
-                    // 해당 호실의 사용자 찾기
-                    List<User> roomUsers = buildingUsers.stream()
-                            .filter(u -> roomNumber.equals(u.getRoomNumber()))
-                            .collect(Collectors.toList());
-
                     Map<String, Object> roomStatus = new HashMap<>();
                     roomStatus.put("roomNumber", roomNumber);
                     roomStatus.put("floor", floor);
                     roomStatus.put("room", room);
 
-                    if (roomUsers.isEmpty()) {
-                        roomStatus.put("status", "EMPTY");
-                        roomStatus.put("statusText", "빈 방");
-                        roomStatus.put("userCount", 0);
-                    } else {
-                        List<Map<String, Object>> userStatuses = new ArrayList<>();
-                        String overallStatus = "NOT_SUBMITTED";
+                    // ✅ 예시 테이블일 경우 다양한 상태 표시
+                    if (isDefaultConfig) {
+                        String status = exampleStatuses[exampleStatusIndex % exampleStatuses.length];
+                        String statusText = exampleStatusTexts[exampleStatusIndex % exampleStatusTexts.length];
+                        String description = exampleDescriptions[exampleStatusIndex % exampleDescriptions.length];
+                        int score = exampleScores[exampleStatusIndex % exampleScores.length];
 
-                        boolean hasPass = false;
-                        boolean hasFail = false;
-                        boolean hasRejected = false;
-                        boolean hasPending = false;
-                        int submittedCount = 0;
+                        roomStatus.put("status", status);
+                        roomStatus.put("statusText", statusText);
+                        roomStatus.put("description", description);  // ✅ 상태 설명 추가
 
-                        for (User user : roomUsers) {
-                            Map<String, Object> userStatus = new HashMap<>();
-                            userStatus.put("userId", user.getId());
-                            userStatus.put("userName", decryptUserName(user.getName()));
+                        // 빈 방이 아닌 경우 예시 사용자 데이터 추가
+                        if (!"EMPTY".equals(status)) {
+                            roomStatus.put("userCount", 1);
+                            roomStatus.put("submittedCount", "NOT_SUBMITTED".equals(status) ? 0 : 1);
 
-                            Inspection inspection = userInspectionMap.get(user.getId());
+                            // 예시 사용자 정보
+                            List<Map<String, Object>> exampleUsers = new ArrayList<>();
+                            Map<String, Object> exampleUser = new HashMap<>();
+                            exampleUser.put("userId", "example_user_" + roomNumber);
+                            exampleUser.put("userName", "예시학생" + roomNumber);
+                            exampleUser.put("inspectionStatus", status);
+                            exampleUser.put("statusText", statusText);
 
-                            if (inspection != null) {
-                                submittedCount++;
-                                userStatus.put("inspectionId", inspection.getId());
-                                userStatus.put("status", inspection.getStatus());
-                                userStatus.put("score", inspection.getScore());
-                                userStatus.put("inspectionTime", inspection.getInspectionDate());
-
-                                String status = inspection.getStatus();
-                                if ("PASS".equals(status)) hasPass = true;
-                                else if ("FAIL".equals(status)) hasFail = true;
-                                else if ("REJECTED".equals(status)) hasRejected = true;
-                                else if ("PENDING".equals(status)) hasPending = true;
-                            } else {
-                                userStatus.put("status", "NOT_SUBMITTED");
+                            // 제출한 경우 점호 정보 추가
+                            if (!"NOT_SUBMITTED".equals(status)) {
+                                Map<String, Object> exampleInspection = new HashMap<>();
+                                exampleInspection.put("score", score);
+                                exampleInspection.put("inspectionDate", LocalDateTime.now().minusHours(2).toString());
+                                exampleInspection.put("geminiFeedback", getExampleFeedback(status));
+                                exampleUser.put("inspection", exampleInspection);
                             }
 
-                            userStatuses.add(userStatus);
+                            exampleUsers.add(exampleUser);
+                            roomStatus.put("users", exampleUsers);
+                        } else {
+                            roomStatus.put("userCount", 0);
+                            roomStatus.put("submittedCount", 0);
                         }
 
-                        // 호실 전체 상태 결정
-                        if (hasRejected) overallStatus = "REJECTED";
-                        else if (hasFail) overallStatus = "FAIL";
-                        else if (hasPending) overallStatus = "PENDING";
-                        else if (submittedCount < roomUsers.size()) overallStatus = "NOT_SUBMITTED";
-                        else if (hasPass && submittedCount == roomUsers.size()) overallStatus = "PASS";
+                        exampleStatusIndex++;
+                    } else {
+                        // ✅ 실제 데이터 처리 (기존 로직)
+                        // 해당 호실의 사용자 찾기
+                        List<User> roomUsers = buildingUsers.stream()
+                                .filter(u -> roomNumber.equals(u.getRoomNumber()))
+                                .collect(Collectors.toList());
 
-                        roomStatus.put("status", overallStatus);
-                        roomStatus.put("statusText", getStatusText(overallStatus));
-                        roomStatus.put("userCount", roomUsers.size());
-                        roomStatus.put("submittedCount", submittedCount);
-                        roomStatus.put("users", userStatuses);
+                        if (roomUsers.isEmpty()) {
+                            roomStatus.put("status", "EMPTY");
+                            roomStatus.put("statusText", "빈 방");
+                            roomStatus.put("userCount", 0);
+                        } else {
+                            List<Map<String, Object>> userStatuses = new ArrayList<>();
+                            String overallStatus = "NOT_SUBMITTED";
+
+                            boolean hasPass = false;
+                            boolean hasFail = false;
+                            boolean hasRejected = false;
+                            boolean hasPending = false;
+                            int submittedCount = 0;
+
+                            for (User user : roomUsers) {
+                                Map<String, Object> userStatus = new HashMap<>();
+                                userStatus.put("userId", user.getId());
+                                userStatus.put("userName", decryptUserName(user.getName()));
+
+                                Inspection inspection = userInspectionMap.get(user.getId());
+
+                                if (inspection != null) {
+                                    submittedCount++;
+                                    userStatus.put("inspectionId", inspection.getId());
+                                    userStatus.put("inspectionStatus", inspection.getStatus());
+                                    userStatus.put("statusText", getStatusText(inspection.getStatus()));
+                                    userStatus.put("score", inspection.getScore());
+                                    userStatus.put("inspectionTime", inspection.getInspectionDate());
+
+                                    // ✅ inspection 상세 정보 추가
+                                    Map<String, Object> inspectionData = new HashMap<>();
+                                    inspectionData.put("id", inspection.getId());
+                                    inspectionData.put("score", inspection.getScore());
+                                    inspectionData.put("status", inspection.getStatus());
+                                    inspectionData.put("geminiFeedback", inspection.getGeminiFeedback());
+                                    inspectionData.put("inspectionDate", inspection.getInspectionDate());
+                                    userStatus.put("inspection", inspectionData);
+
+                                    String status = inspection.getStatus();
+                                    if ("PASS".equals(status)) hasPass = true;
+                                    else if ("FAIL".equals(status)) hasFail = true;
+                                    else if ("REJECTED".equals(status)) hasRejected = true;
+                                    else if ("PENDING".equals(status)) hasPending = true;
+                                } else {
+                                    userStatus.put("inspectionStatus", "NOT_SUBMITTED");
+                                    userStatus.put("statusText", "미제출");
+                                }
+
+                                userStatuses.add(userStatus);
+                            }
+
+                            // 호실 전체 상태 결정
+                            if (hasRejected) overallStatus = "REJECTED";
+                            else if (hasFail) overallStatus = "FAIL";
+                            else if (hasPending) overallStatus = "PENDING";
+                            else if (submittedCount < roomUsers.size()) overallStatus = "NOT_SUBMITTED";
+                            else if (hasPass && submittedCount == roomUsers.size()) overallStatus = "PASS";
+
+                            roomStatus.put("status", overallStatus);
+                            roomStatus.put("statusText", getStatusText(overallStatus));
+                            roomStatus.put("userCount", roomUsers.size());
+                            roomStatus.put("submittedCount", submittedCount);
+                            roomStatus.put("users", userStatuses);
+                        }
                     }
 
                     floorData.put(String.valueOf(room), roomStatus);
@@ -905,6 +978,22 @@ public class InspectionService {
             case "NOT_SUBMITTED": return "미제출";
             case "EMPTY": return "빈 방";
             default: return status;
+        }
+    }
+
+    /**
+     * ✅ 예시 테이블용 AI 피드백 생성
+     */
+    private String getExampleFeedback(String status) {
+        switch (status) {
+            case "PASS":
+                return "방이 깨끗하게 정리되어 있습니다. 침대 정돈 상태와 바닥 청결도가 양호합니다.";
+            case "FAIL":
+                return "책상 위에 물건이 정리되지 않았고, 바닥에 쓰레기가 보입니다. 재정리 후 재검을 요청해주세요.";
+            case "REJECTED":
+                return "제출된 사진이 흐릿하거나 방 전체가 보이지 않습니다. 다시 촬영하여 제출해주세요.";
+            default:
+                return "";
         }
     }
 

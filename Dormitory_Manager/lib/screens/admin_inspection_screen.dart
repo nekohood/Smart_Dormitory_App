@@ -5,11 +5,12 @@ import '../models/inspection.dart';
 import '../services/inspection_service.dart';
 import '../utils/auth_provider.dart';
 import '../api/dio_client.dart';
-import 'admin_building_config_screen.dart';  // ✅ 테이블 설정 화면 추가
+import 'admin_building_config_screen.dart';
 
 /// 관리자용 점호 관리 화면 (통합 버전)
 /// - 리스트 뷰: 기존 스크롤 방식
 /// - 테이블 뷰: 기숙사별 층/호실 매트릭스
+/// ✅ 수정: 다인실 거주자 전체 명단 표시 개선
 class AdminInspectionScreen extends StatefulWidget {
   const AdminInspectionScreen({super.key});
 
@@ -161,7 +162,6 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
           _statusData = response.data['data'];
         });
       } else {
-        // 에러 메시지 표시
         final message = response.data['message'] ?? '데이터를 불러올 수 없습니다.';
         _showSnackBar(message, isError: true);
         setState(() {
@@ -171,7 +171,6 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     } catch (e) {
       print('[ERROR] 점호 현황 로드 실패: $e');
 
-      // 에러 메시지에서 설정 없음 여부 확인
       String errorMsg = e.toString();
       if (errorMsg.contains('테이블 설정이 없습니다')) {
         _showSnackBar('$_selectedBuilding의 테이블 설정이 없습니다.\n설정 버튼을 눌러 추가해주세요.', isError: true);
@@ -552,7 +551,6 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
         builder: (context) => const AdminBuildingConfigScreen(),
       ),
     ).then((_) {
-      // ✅ 설정 화면에서 돌아오면 기숙사 목록 + 상태 데이터 새로고침
       _loadBuildings().then((_) {
         if (_selectedBuilding != null) {
           _loadBuildingStatus();
@@ -607,13 +605,13 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     final rooms = (_statusData!['rooms'] as List<dynamic>?)?.cast<int>() ??
         List.generate(20, (i) => i + 1);
 
-    // ✅ 기본값(예시 테이블) 여부 확인
+    // 기본값(예시 테이블) 여부 확인
     final tableConfig = _statusData!['tableConfig'] as Map<String, dynamic>?;
     final isDefault = tableConfig?['isDefault'] == true;
 
     return Column(
       children: [
-        // ✅ 예시 테이블일 경우 안내 배너 표시
+        // 예시 테이블일 경우 안내 배너 표시
         if (isDefault)
           Container(
             width: double.infinity,
@@ -630,16 +628,9 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '⚠️ 예시 테이블입니다. 설정 버튼(⚙️)을 눌러 실제 층/호실 범위를 설정해주세요.',
-                    style: TextStyle(
-                      color: Colors.orange[800],
-                      fontSize: 13,
-                    ),
+                    '⚠️ 예시 테이블입니다. 각 색상은 점호 상태를 나타냅니다. 설정 버튼(⚙️)을 눌러 실제 층/호실 범위를 설정해주세요.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange[700]),
                   ),
-                ),
-                TextButton(
-                  onPressed: _openTableConfigScreen,
-                  child: const Text('설정하기'),
                 ),
               ],
             ),
@@ -650,31 +641,75 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 헤더 행
+                    // 헤더 행 (호실 번호)
                     Row(
                       children: [
-                        _buildHeaderCell('층\\호', isCorner: true),
-                        ...rooms.map((room) => _buildHeaderCell('$room호')),
+                        // 좌측 상단 코너 셀
+                        Container(
+                          width: 44,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            border: Border.all(color: Colors.blue[300]!),
+                          ),
+                          child: const Text(
+                            '층\\호',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                          ),
+                        ),
+                        // 호실 번호 헤더
+                        ...rooms.map((room) => Container(
+                          width: 44,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            border: Border.all(color: Colors.blue[300]!),
+                          ),
+                          child: Text(
+                            '$room',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        )),
                       ],
                     ),
 
                     // 데이터 행
                     ...floors.map((floor) {
-                      final floorData = matrix[floor.toString()] as Map<String, dynamic>? ?? {};
+                      // 백엔드 matrix 구조에 맞게 접근 (floor -> room -> data)
+                      final floorData = matrix['$floor'] as Map<String, dynamic>? ?? {};
 
                       return Row(
                         children: [
-                          _buildHeaderCell('$floor층'),
+                          // 층 번호 셀
+                          Container(
+                            width: 44,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.blue[100],
+                              border: Border.all(color: Colors.blue[300]!),
+                            ),
+                            child: Text(
+                              '${floor}F',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                          // 호실 데이터 셀
                           ...rooms.map((room) {
-                            final roomData = floorData[room.toString()] as Map<String, dynamic>?;
-                            final status = roomData?['status'] ?? 'EMPTY';
+                            // floorData에서 room 데이터 가져오기
+                            final cellData = floorData['$room'] as Map<String, dynamic>?;
+                            final status = cellData?['status'] ?? 'EMPTY';
+                            final userCount = cellData?['userCount'] ?? 0;
 
-                            return _buildRoomCell(floor, room, status);
+                            return _buildTableCell(floor, room, status, userCount, tableConfig);
                           }),
                         ],
                       );
@@ -689,29 +724,8 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     );
   }
 
-  Widget _buildHeaderCell(String text, {bool isCorner = false}) {
-    return Container(
-      width: 44,  // 모든 셀 동일한 너비
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.blue[100],
-        border: Border.all(color: Colors.blue[300]!, width: 0.5),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoomCell(int floor, int room, String status) {
-    // 방 번호 계산 (테이블 설정의 형식에 따라)
+  Widget _buildTableCell(int floor, int room, String status, int userCount, Map<String, dynamic>? tableConfig) {
     String roomNumber;
-    final tableConfig = _statusData?['tableConfig'] as Map<String, dynamic>?;
     final format = tableConfig?['roomNumberFormat'] ?? 'FLOOR_ROOM';
 
     if (format == 'FLOOR_ZERO_ROOM') {
@@ -723,20 +737,34 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     return InkWell(
       onTap: () => _showRoomDetail(floor, room),
       child: Container(
-        width: 44,  // 모든 셀 동일한 너비
+        width: 44,
         height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: _getStatusColor(status),
           border: Border.all(color: Colors.grey[400]!, width: 0.5),
         ),
-        child: Text(
-          roomNumber,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: status == 'EMPTY' ? Colors.grey[600] : Colors.white,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              roomNumber,
+              style: TextStyle(
+                fontSize: userCount > 1 ? 9 : 10,
+                fontWeight: FontWeight.w500,
+                color: status == 'EMPTY' ? Colors.grey[600] : Colors.white,
+              ),
+            ),
+            // 다인실인 경우 인원 수 표시
+            if (userCount > 1)
+              Text(
+                '($userCount명)',
+                style: TextStyle(
+                  fontSize: 7,
+                  color: status == 'EMPTY' ? Colors.grey[500] : Colors.white70,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -758,6 +786,26 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
         return Colors.grey[300]!;
       default:
         return Colors.grey;
+    }
+  }
+
+  // ✅ 상태별 아이콘 반환
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'PASS':
+        return Icons.check_circle;
+      case 'FAIL':
+        return Icons.cancel;
+      case 'REJECTED':
+        return Icons.block;
+      case 'PENDING':
+        return Icons.hourglass_empty;
+      case 'NOT_SUBMITTED':
+        return Icons.schedule;
+      case 'EMPTY':
+        return Icons.meeting_room_outlined;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -794,7 +842,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     );
   }
 
-  /// 호실 상세 정보 표시
+  /// ✅ 호실 상세 정보 표시
   Future<void> _showRoomDetail(int floor, int room) async {
     if (_selectedBuilding == null) return;
 
@@ -823,50 +871,287 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     }
   }
 
+  /// ✅ 호실 상세 정보 다이얼로그 (다인실 거주자 전체 표시 개선)
   void _showRoomDetailDialog(Map<String, dynamic> roomData) {
     final roomNumber = roomData['roomNumber'] ?? '';
     final overallStatus = roomData['overallStatus'] ?? 'EMPTY';
     final users = roomData['users'] as List<dynamic>? ?? [];
+    final userCount = roomData['userCount'] ?? users.length;
 
-    // ✅ 예시 템플릿인지 확인
+    // 예시 템플릿인지 확인
     final tableConfig = _statusData?['tableConfig'] as Map<String, dynamic>?;
     final isDefault = tableConfig?['isDefault'] == true;
     final displayBuilding = isDefault ? '예시 화면' : _selectedBuilding;
 
+    // ✅ 예시 테이블일 때 호실별 설명 하드코딩
+    String? exampleDescription;
+    if (isDefault) {
+      // 호실 번호에서 끝자리 추출 (예: 101 -> 1, 102 -> 2, 201 -> 1)
+      final roomNum = int.tryParse(roomNumber) ?? 0;
+      final roomSuffix = roomNum % 10;  // 끝자리
+
+      switch (roomSuffix) {
+        case 1:
+          exampleDescription = '점호 통과';
+          break;
+        case 2:
+          exampleDescription = '점호 실패';
+          break;
+        case 3:
+          exampleDescription = '점호 미제출';
+          break;
+        case 4:
+          exampleDescription = '점호 반려';
+          break;
+        case 5:
+          exampleDescription = '빈 방';
+          break;
+        default:
+        // 6호실 이상은 순환
+          final cycleIndex = (roomSuffix - 1) % 5;
+          switch (cycleIndex) {
+            case 0:
+              exampleDescription = '점호 통과';
+              break;
+            case 1:
+              exampleDescription = '점호 실패';
+              break;
+            case 2:
+              exampleDescription = '점호 미제출';
+              break;
+            case 3:
+              exampleDescription = '점호 반려';
+              break;
+            case 4:
+              exampleDescription = '빈 방';
+              break;
+          }
+      }
+    }
+
+    // 거주 형태 판단
+    String roomType;
+    if (userCount == 0) {
+      roomType = '빈 방';
+    } else if (userCount == 1) {
+      roomType = '1인실';
+    } else if (userCount == 2) {
+      roomType = '2인실';
+    } else {
+      roomType = '${userCount}인실';
+    }
+
+    // 점호 상태별 카운트
+    int passCount = 0;
+    int failCount = 0;
+    int notSubmittedCount = 0;
+
+    for (var user in users) {
+      final status = user['inspectionStatus'] ?? 'NOT_SUBMITTED';
+      if (status == 'PASS') {
+        passCount++;
+      } else if (status == 'FAIL' || status == 'REJECTED') {
+        failCount++;
+      } else {
+        notSubmittedCount++;
+      }
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: _getStatusColor(overallStatus),
-                shape: BoxShape.circle,
-              ),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _getStatusColor(overallStatus).withOpacity(0.1),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
             ),
-            Text('$displayBuilding $roomNumber호'),  // ✅ 예시일 때 "예시 화면" 표시
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 호실 정보
+              Row(
+                children: [
+                  Container(
+                    width: 14,
+                    height: 14,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(overallStatus),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Text(
+                    '$displayBuilding $roomNumber호',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  // 거주 형태 배지
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: userCount >= 6
+                          ? Colors.purple.withOpacity(0.2)
+                          : userCount >= 2
+                          ? Colors.blue.withOpacity(0.2)
+                          : Colors.grey.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: userCount >= 6
+                            ? Colors.purple
+                            : userCount >= 2
+                            ? Colors.blue
+                            : Colors.grey,
+                      ),
+                    ),
+                    child: Text(
+                      roomType,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: userCount >= 6
+                            ? Colors.purple
+                            : userCount >= 2
+                            ? Colors.blue
+                            : Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // ✅ 예시 테이블 상태 설명 (isDefault일 때만 표시)
+              if (isDefault && exampleDescription != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(overallStatus).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _getStatusColor(overallStatus).withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _getStatusIcon(overallStatus),
+                        size: 24,
+                        color: _getStatusColor(overallStatus),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        exampleDescription!,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _getStatusColor(overallStatus),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // 점호 현황 요약 (거주자가 있을 때만)
+              if (users.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildRoomStatusBadge('통과', passCount, Colors.green),
+                    const SizedBox(width: 8),
+                    _buildRoomStatusBadge('실패', failCount, Colors.red),
+                    const SizedBox(width: 8),
+                    _buildRoomStatusBadge('미제출', notSubmittedCount, Colors.amber),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
         content: SizedBox(
           width: double.maxFinite,
+          height: users.isEmpty
+              ? 100
+              : (users.length <= 2 ? 200 : (users.length <= 4 ? 300 : 400)),
           child: users.isEmpty
-              ? const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: Text('해당 호실에 거주자가 없습니다.')),
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person_off, size: 40, color: Colors.grey),
+                const SizedBox(height: 8),
+                Text(
+                  isDefault
+                      ? '빈 방 예시입니다.\n해당 호실에 거주자가 없는 상태를 나타냅니다.'
+                      : '해당 호실에 거주자가 없습니다.',
+                  style: const TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           )
-              : ListView.builder(
-            shrinkWrap: true,
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final user = users[index] as Map<String, dynamic>;
-              return _buildUserDetailCard(user);
-            },
+              : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 거주자 목록 헤더
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      isDefault ? Icons.school : Icons.people,
+                      size: 18,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isDefault
+                          ? '예시 거주자 정보'
+                          : '거주자 명단 (${users.length}명)',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              // 거주자 리스트
+              Expanded(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: users.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final user = users[index] as Map<String, dynamic>;
+                    return _buildUserDetailCard(user, index + 1);
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
+          if (isDefault)
+            TextButton.icon(
+              onPressed: _openTableConfigScreen,
+              icon: const Icon(Icons.settings, size: 18),
+              label: const Text('테이블 설정'),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
@@ -876,66 +1161,204 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     );
   }
 
-  Widget _buildUserDetailCard(Map<String, dynamic> user) {
+  /// ✅ 상태 요약 배지 위젯 (호실 상세용)
+  Widget _buildRoomStatusBadge(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: count > 0 ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: count > 0 ? color : Colors.grey,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$label $count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: count > 0 ? color : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ✅ 사용자 상세 정보 카드 (순번 표시 추가, 레이아웃 개선)
+  Widget _buildUserDetailCard(Map<String, dynamic> user, int index) {
+    final userId = user['userId'] ?? '';
     final userName = user['userName'] ?? '이름 없음';
     final status = user['inspectionStatus'] ?? 'NOT_SUBMITTED';
     final statusText = user['statusText'] ?? '미제출';
     final inspection = user['inspection'] as Map<String, dynamic>?;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getStatusColor(status)),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: _getStatusColor(status),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 사용자 기본 정보
+          Row(
+            children: [
+              // 순번
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$index',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
                   ),
                 ),
-              ],
-            ),
-            if (inspection != null) ...[
-              const SizedBox(height: 8),
-              Row(
+              ),
+              const SizedBox(width: 10),
+
+              // 이름 & 학번
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      userId,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 점호 상태 배지
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(status).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _getStatusColor(status)),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    color: _getStatusColor(status),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 점호 상세 정보 (제출한 경우)
+          if (inspection != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.star, size: 14, color: Colors.amber),
-                  Text(' ${inspection['score'] ?? 0}점'),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                  Text(' ${_formatTime(inspection['inspectionDate'])}'),
+                  // 점수 & 제출 시간
+                  Row(
+                    children: [
+                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${inspection['score'] ?? 0}점',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (inspection['inspectionDate'] != null) ...[
+                        Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatInspectionDateTime(inspection['inspectionDate']),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // AI 피드백 (있는 경우)
+                  if (inspection['geminiFeedback'] != null &&
+                      inspection['geminiFeedback'].toString().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    const Divider(height: 1),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.smart_toy, size: 14, color: Colors.blue[300]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            inspection['geminiFeedback'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
-              if (inspection['geminiFeedback'] != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  inspection['geminiFeedback'],
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
+  }
+
+  /// ✅ 날짜/시간 포맷 헬퍼 (호실 상세용)
+  String _formatInspectionDateTime(dynamic dateTime) {
+    if (dateTime == null) return '';
+    try {
+      if (dateTime is String) {
+        final dt = DateTime.parse(dateTime);
+        return DateFormat('MM/dd HH:mm').format(dt);
+      }
+      return dateTime.toString();
+    } catch (e) {
+      return dateTime.toString();
+    }
   }
 
   String _formatTime(dynamic dateTime) {

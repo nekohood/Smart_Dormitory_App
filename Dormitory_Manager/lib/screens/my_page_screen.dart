@@ -316,7 +316,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  // 엑셀 양식 안내 다이얼로그
+  // =====================================================
+// my_page_screen.dart 파일에서 _showExcelFormatGuide 메서드를
+// 아래 코드로 교체하세요
+// =====================================================
+
+  /// 엑셀 양식 안내 다이얼로그
+  /// ✅ 수정: 필수 필드 변경 (학번, 이름, 기숙사명, 호실번호)
   void _showExcelFormatGuide() {
     showDialog(
       context: context,
@@ -338,6 +344,36 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 style: TextStyle(fontSize: 14),
               ),
               SizedBox(height: 16),
+
+              // ✅ 필수 항목 안내
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.red, size: 16),
+                        SizedBox(width: 4),
+                        Text('필수 항목', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700])),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    _buildColumnInfo('A열', '학번', '필수'),
+                    _buildColumnInfo('B열', '이름', '필수'),
+                    _buildColumnInfo('C열', '기숙사명', '필수'),
+                    _buildColumnInfo('D열', '호실번호', '필수'),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
+
+              // ✅ 선택 항목 안내
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -348,18 +384,22 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('컬럼 순서:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Icon(Icons.add_circle_outline, color: Colors.grey[600], size: 16),
+                        SizedBox(width: 4),
+                        Text('선택 항목', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                      ],
+                    ),
                     SizedBox(height: 8),
-                    _buildColumnInfo('A열', '학번 *', '필수'),
-                    _buildColumnInfo('B열', '이름 *', '필수'),
-                    _buildColumnInfo('C열', '거주 동', '선택'),
-                    _buildColumnInfo('D열', '호실 번호', '선택'),
                     _buildColumnInfo('E열', '전화번호', '선택'),
                     _buildColumnInfo('F열', '이메일', '선택'),
                   ],
                 ),
               ),
               SizedBox(height: 16),
+
+              // 주의사항
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -379,7 +419,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 16),
+
+              // 예시 테이블
               Text(
                 '예시:',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -389,31 +431,33 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(Colors.blue.withOpacity(0.1)),
-                  columnSpacing: 12,
+                  columnSpacing: 10,
+                  dataRowMinHeight: 36,
+                  dataRowMaxHeight: 36,
                   columns: [
-                    DataColumn(label: Text('학번', style: TextStyle(fontSize: 12))),
-                    DataColumn(label: Text('이름', style: TextStyle(fontSize: 12))),
-                    DataColumn(label: Text('거주동', style: TextStyle(fontSize: 12))),
-                    DataColumn(label: Text('호실', style: TextStyle(fontSize: 12))),
-                    DataColumn(label: Text('전화번호', style: TextStyle(fontSize: 12))),
-                    DataColumn(label: Text('이메일', style: TextStyle(fontSize: 12))),
+                    DataColumn(label: Text('학번*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('이름*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('기숙사*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('호실*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('전화번호', style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
+                    DataColumn(label: Text('이메일', style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
                   ],
                   rows: [
                     DataRow(cells: [
-                      DataCell(Text('20231234', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('20211234', style: TextStyle(fontSize: 11))),
                       DataCell(Text('홍길동', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('A동', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('인재동', style: TextStyle(fontSize: 11))),
                       DataCell(Text('101', style: TextStyle(fontSize: 11))),
                       DataCell(Text('010-1234-5678', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('hong@univ.ac.kr', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('hong@email.com', style: TextStyle(fontSize: 11))),
                     ]),
                     DataRow(cells: [
-                      DataCell(Text('20235678', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('20215678', style: TextStyle(fontSize: 11))),
                       DataCell(Text('김철수', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('B동', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('205', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('010-8765-4321', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('kim@univ.ac.kr', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('소망동', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('203', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('', style: TextStyle(fontSize: 11))),
+                      DataCell(Text('', style: TextStyle(fontSize: 11))),
                     ]),
                   ],
                 ),
@@ -424,7 +468,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('닫기'),
+            child: Text('확인'),
           ),
         ],
       ),
@@ -432,27 +476,43 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   Widget _buildColumnInfo(String column, String name, String required) {
+    final isRequired = required == '필수';
     return Padding(
-      padding: EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          SizedBox(
+          Container(
             width: 40,
-            child: Text(column, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              column,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.blue[700]),
+              textAlign: TextAlign.center,
+            ),
           ),
-          Expanded(child: Text(name, style: TextStyle(fontSize: 13))),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: required == '필수' ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+              color: isRequired ? Colors.red[100] : Colors.grey[200],
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               required,
               style: TextStyle(
                 fontSize: 10,
-                color: required == '필수' ? Colors.red : Colors.grey,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
+                color: isRequired ? Colors.red[700] : Colors.grey[600],
               ),
             ),
           ),

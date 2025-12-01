@@ -1,4 +1,3 @@
-import 'package:http/http.dart';
 
 import '../api/dio_client.dart';
 import '../models/inspection_settings.dart';
@@ -63,7 +62,7 @@ class InspectionSettingsService {
       return [];
     } catch (e) {
       print('[ERROR] 전체 설정 조회 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -84,7 +83,7 @@ class InspectionSettingsService {
       return null;
     } catch (e) {
       print('[ERROR] 설정 생성 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -105,7 +104,7 @@ class InspectionSettingsService {
       return null;
     } catch (e) {
       print('[ERROR] 설정 수정 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -119,7 +118,7 @@ class InspectionSettingsService {
       return response.data['success'] == true;
     } catch (e) {
       print('[ERROR] 설정 삭제 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -137,7 +136,7 @@ class InspectionSettingsService {
       return null;
     } catch (e) {
       print('[ERROR] 설정 토글 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -155,7 +154,7 @@ class InspectionSettingsService {
       return null;
     } catch (e) {
       print('[ERROR] 기본 설정 초기화 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 }

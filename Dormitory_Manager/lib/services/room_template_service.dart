@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../api/dio_client.dart';
@@ -22,7 +21,7 @@ class RoomTemplateService {
       return [];
     } catch (e) {
       print('[ERROR] 템플릿 목록 조회 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -41,7 +40,7 @@ class RoomTemplateService {
       return [];
     } catch (e) {
       print('[ERROR] 활성 템플릿 목록 조회 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -60,7 +59,7 @@ class RoomTemplateService {
       return [];
     } catch (e) {
       print('[ERROR] 타입별 템플릿 조회 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -78,7 +77,7 @@ class RoomTemplateService {
       return null;
     } catch (e) {
       print('[ERROR] 템플릿 조회 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -122,7 +121,7 @@ class RoomTemplateService {
       return null;
     } catch (e) {
       print('[ERROR] 템플릿 등록 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -169,7 +168,7 @@ class RoomTemplateService {
       return null;
     } catch (e) {
       print('[ERROR] 템플릿 수정 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -183,7 +182,7 @@ class RoomTemplateService {
       return response.data['success'] == true;
     } catch (e) {
       print('[ERROR] 템플릿 삭제 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -201,7 +200,7 @@ class RoomTemplateService {
       return null;
     } catch (e) {
       print('[ERROR] 템플릿 토글 실패: $e');
-      throw e;
+      rethrow;
     }
   }
 
