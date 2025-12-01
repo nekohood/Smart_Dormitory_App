@@ -938,7 +938,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     } else if (userCount == 2) {
       roomType = '2인실';
     } else {
-      roomType = '${userCount}인실';
+      roomType = '$userCount인실';
     }
 
     // 점호 상태별 카운트
@@ -1051,7 +1051,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        exampleDescription!,
+                        exampleDescription,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1394,11 +1394,10 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${inspection.roomNumber}호 • ${inspection.score}점'),
-            if (inspection.inspectionDate != null)
-              Text(
-                DateFormat('MM/dd HH:mm').format(inspection.inspectionDate!),
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
+            Text(
+              DateFormat('MM/dd HH:mm').format(inspection.inspectionDate),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
           ],
         ),
         trailing: Container(
@@ -1430,9 +1429,8 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
               _buildDetailRow('방 번호', '${inspection.roomNumber}호'),
               _buildDetailRow('점수', '${inspection.score}점'),
               _buildDetailRow('상태', inspection.status == 'PASS' ? '통과' : '실패'),
-              if (inspection.inspectionDate != null)
-                _buildDetailRow('제출 시간',
-                    DateFormat('yyyy-MM-dd HH:mm').format(inspection.inspectionDate!)),
+              _buildDetailRow('제출 시간',
+                  DateFormat('yyyy-MM-dd HH:mm').format(inspection.inspectionDate)),
               if (inspection.geminiFeedback != null) ...[
                 const SizedBox(height: 12),
                 const Text('AI 피드백:', style: TextStyle(fontWeight: FontWeight.bold)),

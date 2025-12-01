@@ -168,7 +168,7 @@ class _AdminInspectionTableScreenState extends State<AdminInspectionTableScreen>
     } else if (userCount == 2) {
       roomType = '2인실';
     } else {
-      roomType = '${userCount}인실';
+      roomType = '$userCount인실';
     }
 
     // 점호 상태별 카운트

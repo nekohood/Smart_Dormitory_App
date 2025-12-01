@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/admin_home_screen.dart';
 import 'screens/admin_inspection_screen.dart';
 import 'screens/admin_schedule_screen.dart';
-import 'screens/admin_room_template_screen.dart';  // 관리자 홈에서 기준 사진 관리 접근용 (유지)
+// 관리자 홈에서 기준 사진 관리 접근용 (유지)
 import 'screens/home_screen.dart';
 import 'screens/inspection_screen.dart';
 import 'screens/notice_screen.dart';

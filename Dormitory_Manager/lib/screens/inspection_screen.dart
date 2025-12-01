@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -12,7 +11,7 @@ import '../services/inspection_settings_service.dart';
 import '../utils/storage_helper.dart';
 
 /// 점호 메인 화면
-/// ✅ 수정: 점호 시간/날짜 체크 기능 추가
+/// ✅ 수정: 웹/앱 환경 모두 지원 (dart:io 제거)
 class InspectionScreen extends StatefulWidget {
   const InspectionScreen({super.key});
 
@@ -26,7 +25,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
   final TextEditingController _dormitoryBuildingController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  File? _selectedImage;
+  // ✅ 수정: File 제거, Uint8List만 사용 (웹/앱 호환)
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
 
@@ -41,7 +40,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
   String? _dormitoryBuilding;
   String? _roomNumber;
 
-  // ✅ 신규: 점호 시간 체크 결과
+  // ✅ 점호 시간 체크 결과
   InspectionTimeCheckResult? _timeCheckResult;
   bool _isInspectionAllowed = false;
 
@@ -51,10 +50,17 @@ class _InspectionScreenState extends State<InspectionScreen> {
     _initializeAndLoadData();
   }
 
+  @override
+  void dispose() {
+    _roomNumberController.dispose();
+    _dormitoryBuildingController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeAndLoadData() async {
     await _initializeService();
     await _loadUserInfo();
-    await _checkInspectionTime();  // ✅ 점호 시간 체크 추가
+    await _checkInspectionTime();
     await _loadTodayStatus();
     await _loadRecentInspections();
     if (mounted) {
@@ -98,7 +104,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
     }
   }
 
-  // ✅ 신규: 점호 시간 체크
+  // ✅ 점호 시간 체크
   Future<void> _checkInspectionTime() async {
     try {
       print('[DEBUG] 점호 시간 체크 시작');
@@ -186,7 +192,19 @@ class _InspectionScreenState extends State<InspectionScreen> {
     }
   }
 
+  // ✅ 수정: 웹/앱 호환 이미지 선택
   Future<void> _pickImage(ImageSource source) async {
+    // ✅ 웹에서는 카메라 사용 불가
+    if (kIsWeb && source == ImageSource.camera) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('웹 환경에서는 카메라를 사용할 수 없습니다. 갤러리에서 선택해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     try {
       final image = await _picker.pickImage(
         source: source,
@@ -200,10 +218,8 @@ class _InspectionScreenState extends State<InspectionScreen> {
         setState(() {
           _selectedImageBytes = bytes;
           _selectedImageName = image.name;
-          if (!kIsWeb) {
-            _selectedImage = File(image.path);
-          }
         });
+        print('[DEBUG] 이미지 선택 완료: ${image.name}');
       }
     } catch (e) {
       _showErrorSnackBar('이미지 처리 중 오류가 발생했습니다: $e');
@@ -242,7 +258,6 @@ class _InspectionScreenState extends State<InspectionScreen> {
         await _loadTodayStatus();
         await _loadRecentInspections();
         setState(() {
-          _selectedImage = null;
           _selectedImageBytes = null;
           _selectedImageName = null;
         });
@@ -281,29 +296,15 @@ class _InspectionScreenState extends State<InspectionScreen> {
               child: Icon(
                 inspection.isPassed ? Icons.check_circle : Icons.warning,
                 color: inspection.getStatusColor(),
-                size: 28,
               ),
             ),
             SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '점호 제출 완료',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    inspection.isPassed ? '합격' : '불합격',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: inspection.getStatusColor(),
-                    ),
-                  ),
-                ],
+              child: Text(
+                inspection.isPassed ? '점호 통과!' : '점호 실패',
+                style: TextStyle(
+                  color: inspection.getStatusColor(),
+                ),
               ),
             ),
           ],
@@ -318,22 +319,25 @@ class _InspectionScreenState extends State<InspectionScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text(
-                    '${inspection.score}',
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: inspection.getStatusColor(),
-                    ),
-                  ),
-                  Text(
-                    ' / 10점',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.grey[600],
-                    ),
+                  Column(
+                    children: [
+                      Text(
+                        '${inspection.score}',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: inspection.getStatusColor(),
+                        ),
+                      ),
+                      Text(
+                        '점',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -396,7 +400,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
             icon: Icon(Icons.refresh),
             onPressed: () async {
               setState(() => _isLoading = true);
-              await _checkInspectionTime();  // ✅ 새로고침 시 시간 체크
+              await _checkInspectionTime();
               await _loadTodayStatus();
               await _loadRecentInspections();
               setState(() => _isLoading = false);
@@ -418,7 +422,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ✅ 신규: 점호 시간 안내 배너
+              // ✅ 점호 시간 안내 배너
               _buildInspectionTimeBanner(),
               SizedBox(height: 16),
               _buildTodayStatusCard(),
@@ -433,7 +437,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
     );
   }
 
-  // ✅ 신규: 점호 시간 안내 배너
+  // ✅ 점호 시간 안내 배너
   Widget _buildInspectionTimeBanner() {
     if (_timeCheckResult == null) return SizedBox.shrink();
 
@@ -484,47 +488,14 @@ class _InspectionScreenState extends State<InspectionScreen> {
               color: isAllowed ? Colors.green[600] : Colors.orange[600],
             ),
           ),
-          // ✅ 다음 점호 날짜 표시
-          if (!isAllowed && nextDate != null) ...[
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.event, size: 18, color: Colors.blue),
-                  SizedBox(width: 6),
-                  Text(
-                    '다음 점호: ${DateFormat('M월 d일 (E)', 'ko').format(nextDate)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.blue[700],
-                    ),
-                  ),
-                  if (daysUntil != null && daysUntil > 0) ...[
-                    SizedBox(width: 8),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'D-$daysUntil',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+          if (!isAllowed && nextDate != null && daysUntil != null) ...[
+            SizedBox(height: 8),
+            Text(
+              '다음 점호: ${DateFormat('MM월 dd일 (E)', 'ko_KR').format(nextDate)} (D-$daysUntil)',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.orange[700],
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -534,73 +505,87 @@ class _InspectionScreenState extends State<InspectionScreen> {
   }
 
   Widget _buildTodayStatusCard() {
-    final isCompleted = _todayStatus?.completed ?? false;
+    final hasSubmitted = _todayStatus?.completed ?? false;
+    final inspection = _todayStatus?.inspection;
 
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isCompleted ? Colors.green[100] : Colors.orange[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isCompleted ? Icons.check_circle : Icons.pending,
-                color: isCompleted ? Colors.green : Colors.orange,
-                size: 32,
-              ),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '오늘 점호',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    isCompleted ? '점호가 완료되었습니다.' : '점호를 제출해주세요.',
-                    style: TextStyle(
-                      color: isCompleted ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (_dormitoryBuilding != null || _roomNumber != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        '${_dormitoryBuilding ?? ''} ${_roomNumber ?? ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (_todayStatus?.inspection != null)
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _todayStatus!.inspection!.getStatusColor(),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${_todayStatus!.inspection!.score}점',
+            Row(
+              children: [
+                Icon(Icons.today, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  '오늘의 점호',
                   style: TextStyle(
-                    color: Colors.white,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            if (hasSubmitted && inspection != null)
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: inspection.isPassed ? Colors.green[50] : Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      inspection.isPassed ? Icons.check_circle : Icons.cancel,
+                      color: inspection.isPassed ? Colors.green : Colors.red,
+                      size: 32,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            inspection.isPassed ? '점호 완료' : '재검 필요',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: inspection.isPassed
+                                  ? Colors.green[700]
+                                  : Colors.red[700],
+                            ),
+                          ),
+                          Text(
+                            '${inspection.score}점',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.pending, color: Colors.grey, size: 32),
+                    SizedBox(width: 12),
+                    Text(
+                      '아직 점호를 제출하지 않았습니다',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -610,12 +595,11 @@ class _InspectionScreenState extends State<InspectionScreen> {
   }
 
   Widget _buildSubmissionForm() {
-    final isCompleted = _todayStatus?.completed ?? false;
-    // ✅ 점호 불가 시 비활성화
-    final canSubmit = _isInspectionAllowed && !isCompleted;
+    final hasSubmitted = _todayStatus?.completed ?? false;
+    final canSubmit = _isInspectionAllowed && !hasSubmitted && _selectedImageBytes != null;
 
     return Card(
-      elevation: 4,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -624,6 +608,8 @@ class _InspectionScreenState extends State<InspectionScreen> {
           children: [
             Row(
               children: [
+                Icon(Icons.camera_alt, color: Colors.blue),
+                SizedBox(width: 8),
                 Text(
                   '점호 제출',
                   style: TextStyle(
@@ -631,188 +617,136 @@ class _InspectionScreenState extends State<InspectionScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Spacer(),
-                // ✅ 점호 불가 시 상태 표시
-                if (!_isInspectionAllowed)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock, size: 14, color: Colors.grey[600]),
-                        SizedBox(width: 4),
-                        Text(
-                          '제출 불가',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
             SizedBox(height: 16),
 
-            // ✅ 점호 불가 시 오버레이 표시
-            Opacity(
-              opacity: canSubmit ? 1.0 : 0.5,
-              child: AbsorbPointer(
-                absorbing: !canSubmit,
-                child: Column(
+            // 방 번호 입력
+            TextField(
+              controller: _roomNumberController,
+              decoration: InputDecoration(
+                labelText: '방 번호',
+                hintText: '예: 101',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: Icon(Icons.room),
+              ),
+              keyboardType: TextInputType.number,
+              enabled: !hasSubmitted,
+            ),
+            SizedBox(height: 16),
+
+            // 이미지 선택 영역
+            GestureDetector(
+              onTap: hasSubmitted ? null : _showImageSourceDialog,
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 2,
+                  ),
+                ),
+                child: _selectedImageBytes != null
+                    ? Stack(
                   children: [
-                    // 거주 동 입력 필드
-                    TextField(
-                      controller: _dormitoryBuildingController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: '거주 동',
-                        hintText: '거주 동이 자동으로 입력됩니다',
-                        prefixIcon: Icon(Icons.apartment),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                      ),
-                    ),
-                    SizedBox(height: 12),
-
-                    // 방 번호 입력 필드
-                    TextField(
-                      controller: _roomNumberController,
-                      decoration: InputDecoration(
-                        labelText: '방 번호',
-                        hintText: '방 번호가 자동으로 입력됩니다',
-                        prefixIcon: Icon(Icons.meeting_room),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        filled: _roomNumber != null,
-                        fillColor: _roomNumber != null ? Colors.grey[100] : null,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-
-                    // 이미지 선택 영역
-                    GestureDetector(
-                      onTap: () => _showImageSourceDialog(),
-                      child: Container(
-                        height: 200,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      // ✅ Image.memory 사용 (웹/앱 모두 지원)
+                      child: Image.memory(
+                        _selectedImageBytes!,
                         width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 2,
-                          ),
-                        ),
-                        child: _selectedImageBytes != null
-                            ? Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.memory(
-                                _selectedImageBytes!,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedImage = null;
-                                    _selectedImageBytes = null;
-                                    _selectedImageName = null;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                            : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              '방 사진을 선택해주세요',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              '카메라로 촬영하거나 갤러리에서 선택',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[400],
-                              ),
-                            ),
-                          ],
-                        ),
+                        height: double.infinity,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    SizedBox(height: 16),
-
-                    // 제출 버튼
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: (_isSubmitting || !canSubmit) ? null : _submitInspection,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: canSubmit ? Colors.blue : Colors.grey,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedImageBytes = null;
+                            _selectedImageName = null;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
                           ),
-                          disabledBackgroundColor: Colors.grey[300],
-                        ),
-                        child: _isSubmitting
-                            ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
                           ),
-                        )
-                            : Text(
-                          canSubmit
-                              ? '점호 제출'
-                              : (_isInspectionAllowed ? '이미 제출 완료' : '점호 시간이 아닙니다'),
-                          style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
                   ],
+                )
+                    : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '방 사진을 선택해주세요',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '카메라로 촬영하거나 갤러리에서 선택',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // 제출 버튼
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: (_isSubmitting || !canSubmit) ? null : _submitInspection,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canSubmit ? Colors.blue : Colors.grey,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
+                child: _isSubmitting
+                    ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                    : Text(
+                  canSubmit
+                      ? '점호 제출'
+                      : (_isInspectionAllowed ? '이미 제출 완료' : '점호 시간이 아닙니다'),
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ),
@@ -822,6 +756,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
     );
   }
 
+  // ✅ 수정: 웹에서는 카메라 옵션 비활성화
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
@@ -834,14 +769,16 @@ class _InspectionScreenState extends State<InspectionScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.camera_alt, color: Colors.blue),
-                title: Text('카메라로 촬영'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
+              // ✅ 카메라 옵션 (웹이 아닌 경우에만)
+              if (!kIsWeb)
+                ListTile(
+                  leading: Icon(Icons.camera_alt, color: Colors.blue),
+                  title: Text('카메라로 촬영'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
               ListTile(
                 leading: Icon(Icons.photo_library, color: Colors.green),
                 title: Text('갤러리에서 선택'),
@@ -876,62 +813,52 @@ class _InspectionScreenState extends State<InspectionScreen> {
               child: Center(
                 child: Text(
                   '점호 기록이 없습니다.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.grey[600]),
                 ),
               ),
             ),
           )
         else
-          ...(_recentInspections.map((inspection) => _buildInspectionItem(inspection))),
+          ..._recentInspections.map((inspection) => _buildInspectionCard(inspection)),
       ],
     );
   }
 
-  Widget _buildInspectionItem(InspectionModel inspection) {
+  Widget _buildInspectionCard(InspectionModel inspection) {
     return Card(
       margin: EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: inspection.getStatusColor().withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
+        leading: CircleAvatar(
+          backgroundColor: inspection.getStatusColor().withOpacity(0.2),
           child: Icon(
             inspection.isPassed ? Icons.check : Icons.close,
             color: inspection.getStatusColor(),
           ),
         ),
         title: Text(
-          DateFormat('yyyy년 M월 d일').format(inspection.inspectionDate),
-          style: TextStyle(fontWeight: FontWeight.w500),
+          '${inspection.score}점',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '방 ${inspection.roomNumber}',
-          style: TextStyle(color: Colors.grey[600]),
+          inspection.inspectionDate != null
+              ? DateFormat('MM월 dd일 HH:mm').format(inspection.inspectionDate!)
+              : '날짜 없음',
         ),
         trailing: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: inspection.getStatusColor(),
-            borderRadius: BorderRadius.circular(12),
+            color: inspection.getStatusColor().withOpacity(0.2),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
-            '${inspection.score}점',
+            inspection.isPassed ? '통과' : '실패',
             style: TextStyle(
-              color: Colors.white,
+              color: inspection.getStatusColor(),
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _roomNumberController.dispose();
-    _dormitoryBuildingController.dispose();
-    super.dispose();
   }
 }
