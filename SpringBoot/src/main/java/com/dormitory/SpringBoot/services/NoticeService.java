@@ -2,6 +2,8 @@ package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.Notice;
 import com.dormitory.SpringBoot.repository.NoticeRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,9 @@ public class NoticeService {
     @Autowired
     private NoticeRepository noticeRepository;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final String uploadDirectory = "uploads/notices/";
 
     /**
@@ -51,7 +56,11 @@ public class NoticeService {
         // 2. Native Query로 조회수만 증가 (updated_at은 변경되지 않음)
         noticeRepository.incrementViewCountOnly(id);
 
-        // 3. 증가된 조회수를 반영하여 다시 조회
+        // 3. 영속성 컨텍스트 동기화를 위해 flush 및 clear
+        entityManager.flush();
+        entityManager.clear();
+
+        // 4. 증가된 조회수를 반영하여 다시 조회
         return noticeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다. ID: " + id));
     }
@@ -182,7 +191,7 @@ public class NoticeService {
             long pinnedNotices = noticeRepository.findByIsPinnedTrueOrderByCreatedAtDesc().size();
             statistics.put("pinnedNotices", pinnedNotices);
 
-            // 오늘 작성된 공지사항 수
+            // 오늘 작성된 공지사항 개수
             long todayNotices = noticeRepository.countTodayNotices();
             statistics.put("todayNotices", todayNotices);
 
