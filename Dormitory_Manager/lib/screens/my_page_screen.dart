@@ -7,6 +7,9 @@ import '../services/user_service.dart';
 import '../services/allowed_user_service.dart';
 import 'admin_allowed_users_screen.dart';
 
+/// 마이페이지 화면
+/// ✅ 수정: 일반 사용자는 기숙사/호실 정보 수정 불가 (읽기 전용)
+/// - 관리자가 허용 사용자 관리에서만 기숙사/호실 정보 수정 가능
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
 
@@ -18,10 +21,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final AllowedUserService _allowedUserService = AllowedUserService();
 
-  // 사용자 정보 수정용 컨트롤러들
+  // 사용자 정보 수정용 컨트롤러들 (이름, 이메일, 전화번호만 수정 가능)
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+
+  // ✅ 기숙사/호실 정보는 표시용 (수정 불가)
+  final TextEditingController _dormitoryBuildingController = TextEditingController();
   final TextEditingController _roomNumberController = TextEditingController();
 
   // 비밀번호 변경용 컨트롤러들
@@ -49,6 +55,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _dormitoryBuildingController.dispose();
     _roomNumberController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
@@ -70,23 +77,25 @@ class _MyPageScreenState extends State<MyPageScreen> {
           _nameController.text = user.name ?? '';
           _emailController.text = user.email ?? '';
           _phoneController.text = user.phoneNumber ?? '';
+          _dormitoryBuildingController.text = user.dormitoryBuilding ?? '';
           _roomNumberController.text = user.roomNumber ?? '';
+          _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('사용자 정보를 불러오는데 실패했습니다: $e');
-      }
-    } finally {
+      print('[ERROR] 사용자 정보 로드 실패: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사용자 정보를 불러올 수 없습니다')),
+        );
       }
     }
   }
 
-  // 사용자 정보 업데이트
+  // 사용자 정보 수정 (이름, 이메일, 전화번호만)
   Future<void> _updateUserInfo() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -95,26 +104,29 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
 
     try {
-      final updateData = {
+      // ✅ 기숙사/호실 정보는 전송하지 않음 (서버에서도 무시됨)
+      await DioClient.put('/users/me', data: {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
-        'roomNumber': _roomNumberController.text.trim(),
-      };
-
-      final updatedUser = await UserService.updateUser(_user!.id, updateData);
+        // dormitoryBuilding과 roomNumber는 전송하지 않음
+      });
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('정보가 성공적으로 수정되었습니다')),
+        );
         setState(() {
-          _user = updatedUser;
           _isEditing = false;
         });
-        _showSuccessSnackBar('개인정보가 성공적으로 업데이트되었습니다.');
         await _loadUserInfo();
       }
     } catch (e) {
+      print('[ERROR] 사용자 정보 수정 실패: $e');
       if (mounted) {
-        _showErrorSnackBar('개인정보 업데이트에 실패했습니다: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('정보 수정에 실패했습니다')),
+        );
       }
     } finally {
       if (mounted) {
@@ -127,40 +139,47 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   // 비밀번호 변경
   Future<void> _changePassword() async {
-    if (_currentPasswordController.text.isEmpty ||
-        _newPasswordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      _showErrorSnackBar('모든 비밀번호 필드를 입력해주세요.');
-      return;
-    }
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      _showErrorSnackBar('새 비밀번호가 일치하지 않습니다.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('새 비밀번호가 일치하지 않습니다')),
+      );
       return;
     }
+
+    if (_newPasswordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('비밀번호는 6자 이상이어야 합니다')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
+
     try {
-      await DioClient.put(
-        '/users/me/password',
-        data: {
-          'oldPassword': _currentPasswordController.text,
-          'newPassword': _newPasswordController.text,
-          'confirmPassword': _confirmPasswordController.text,
-        },
-      );
+      await DioClient.put('/users/me/password', data: {
+        'currentPassword': _currentPasswordController.text,
+        'newPassword': _newPasswordController.text,
+      });
+
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('비밀번호가 성공적으로 변경되었습니다')),
+        );
         setState(() {
           _isChangingPassword = false;
-          _currentPasswordController.clear();
-          _newPasswordController.clear();
-          _confirmPasswordController.clear();
         });
-        _showSuccessSnackBar('비밀번호가 성공적으로 변경되었습니다.');
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
       }
     } catch (e) {
+      print('[ERROR] 비밀번호 변경 실패: $e');
       if (mounted) {
-        _showErrorSnackBar('비밀번호 변경에 실패했습니다: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인하세요.')),
+        );
       }
     } finally {
       if (mounted) {
@@ -171,56 +190,24 @@ class _MyPageScreenState extends State<MyPageScreen> {
     }
   }
 
-  // 로그아웃
-  Future<void> _logout() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('로그아웃'),
-        content: Text('정말 로그아웃하시겠습니까?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('취소')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('로그아웃', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      try {
-        await UserRepository.logout();
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } catch (e) {
-        _showErrorSnackBar('로그아웃 중 오류가 발생했습니다.');
-      }
-    }
-  }
-
-  // ===============================================
-  // 관리자 전용: 엑셀 파일 업로드
-  // ===============================================
+  // 엑셀 파일 업로드 (관리자용)
   Future<void> _uploadStudentExcel() async {
     try {
-      // 파일 선택
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx'],
+        withData: true,
       );
 
-      if (result == null) return;
+      if (result == null || result.files.isEmpty) return;
 
       setState(() {
         _isUploadingExcel = true;
       });
 
-      // 파일 업로드
-      final uploadResult = await _allowedUserService.uploadExcelFile(result.files.first);
+      final file = result.files.first;
+      final response = await _allowedUserService.uploadExcelFile(file);
 
-      // 결과 다이얼로그 표시
       if (mounted) {
         showDialog(
           context: context,
@@ -229,41 +216,26 @@ class _MyPageScreenState extends State<MyPageScreen> {
               children: [
                 Icon(Icons.check_circle, color: Colors.green),
                 SizedBox(width: 8),
-                Text('업로드 결과'),
+                Text('업로드 완료'),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildUploadResultRow('전체', uploadResult.totalCount, Colors.blue),
-                SizedBox(height: 8),
-                _buildUploadResultRow('성공', uploadResult.successCount, Colors.green),
-                SizedBox(height: 8),
-                _buildUploadResultRow('실패', uploadResult.failCount, Colors.red),
-                if (uploadResult.errors.isNotEmpty) ...[
+                Text('전체: ${response.totalCount}건'),
+                Text('성공: ${response.successCount}건', style: TextStyle(color: Colors.green)),
+                Text('실패: ${response.failCount}건', style: TextStyle(color: Colors.red)),
+                if (response.errors.isNotEmpty) ...[
                   SizedBox(height: 16),
-                  Text('오류 내역:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
+                  Text('오류 목록:', style: TextStyle(fontWeight: FontWeight.bold)),
                   Container(
-                    constraints: BoxConstraints(maxHeight: 200),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: uploadResult.errors.map((error) =>
-                            Padding(
-                              padding: EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '• $error',
-                                style: TextStyle(fontSize: 12, color: Colors.red.shade700),
-                              ),
-                            )
-                        ).toList(),
+                    height: 100,
+                    child: ListView.builder(
+                      itemCount: response.errors.length,
+                      itemBuilder: (context, index) => Text(
+                        response.errors[index],
+                        style: TextStyle(fontSize: 12, color: Colors.red),
                       ),
                     ),
                   ),
@@ -279,10 +251,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
         );
       }
-
     } catch (e) {
+      print('[ERROR] 엑셀 업로드 실패: $e');
       if (mounted) {
-        _showErrorSnackBar('엑셀 파일 업로드 실패: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('엑셀 파일 업로드에 실패했습니다')),
+        );
       }
     } finally {
       if (mounted) {
@@ -293,36 +267,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     }
   }
 
-  Widget _buildUploadResultRow(String label, int count, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(fontSize: 16)),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            '$count건',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // =====================================================
-// my_page_screen.dart 파일에서 _showExcelFormatGuide 메서드를
-// 아래 코드로 교체하세요
-// =====================================================
-
-  /// 엑셀 양식 안내 다이얼로그
-  /// ✅ 수정: 필수 필드 변경 (학번, 이름, 기숙사명, 호실번호)
+  // 엑셀 양식 안내
   void _showExcelFormatGuide() {
     showDialog(
       context: context,
@@ -339,126 +284,35 @@ class _MyPageScreenState extends State<MyPageScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '엑셀 파일(.xlsx)의 첫 번째 시트에 다음 형식으로 데이터를 입력해주세요:',
-                style: TextStyle(fontSize: 14),
-              ),
-              SizedBox(height: 16),
-
-              // ✅ 필수 항목 안내
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.red, size: 16),
-                        SizedBox(width: 4),
-                        Text('필수 항목', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700])),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    _buildColumnInfo('A열', '학번', '필수'),
-                    _buildColumnInfo('B열', '이름', '필수'),
-                    _buildColumnInfo('C열', '기숙사명', '필수'),
-                    _buildColumnInfo('D열', '호실번호', '필수'),
-                  ],
-                ),
-              ),
+              Text('엑셀 파일 형식 (.xlsx)', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 12),
-
-              // ✅ 선택 항목 안내
+              Text('필수 컬럼:', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text('• A열: 학번'),
+              Text('• B열: 이름'),
+              Text('• C열: 기숙사명'),
+              Text('• D열: 호실번호'),
+              SizedBox(height: 8),
+              Text('선택 컬럼:', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text('• E열: 전화번호'),
+              Text('• F열: 이메일'),
+              SizedBox(height: 12),
               Container(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Colors.yellow.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.add_circle_outline, color: Colors.grey[600], size: 16),
-                        SizedBox(width: 4),
-                        Text('선택 항목', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    _buildColumnInfo('E열', '전화번호', '선택'),
-                    _buildColumnInfo('F열', '이메일', '선택'),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-
-              // 주의사항
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.yellow.shade200),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                    Icon(Icons.warning_amber, color: Colors.orange, size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '첫 번째 행은 헤더로 인식되어 건너뜁니다.',
-                        style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+                        '첫 번째 행은 헤더로 인식됩니다',
+                        style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-
-              // 예시 테이블
-              Text(
-                '예시:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(Colors.blue.withOpacity(0.1)),
-                  columnSpacing: 10,
-                  dataRowMinHeight: 36,
-                  dataRowMaxHeight: 36,
-                  columns: [
-                    DataColumn(label: Text('학번*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('이름*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('기숙사*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('호실*', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('전화번호', style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
-                    DataColumn(label: Text('이메일', style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
-                  ],
-                  rows: [
-                    DataRow(cells: [
-                      DataCell(Text('20211234', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('홍길동', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('인재동', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('101', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('010-1234-5678', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('hong@email.com', style: TextStyle(fontSize: 11))),
-                    ]),
-                    DataRow(cells: [
-                      DataCell(Text('20215678', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('김철수', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('소망동', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('203', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('', style: TextStyle(fontSize: 11))),
-                      DataCell(Text('', style: TextStyle(fontSize: 11))),
-                    ]),
                   ],
                 ),
               ),
@@ -475,135 +329,110 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  Widget _buildColumnInfo(String column, String name, String required) {
-    final isRequired = required == '필수';
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              column,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.blue[700]),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              name,
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isRequired ? Colors.red[100] : Colors.grey[200],
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              required,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: isRequired ? Colors.red[700] : Colors.grey[600],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
-  }
-
+  // 이메일 유효성 검사
   bool _isValidEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
+  // 전화번호 유효성 검사
   bool _isValidPhone(String phone) {
-    return RegExp(r'^[0-9-]{10,13}$').hasMatch(phone);
+    return RegExp(r'^[0-9\-]{9,15}$').hasMatch(phone.replaceAll(' ', ''));
   }
 
+  // 날짜 포맷
   String _formatDate(DateTime date) {
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+    return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading && _user == null) {
-      return Scaffold(appBar: AppBar(title: Text('마이페이지')), body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: Text('마이페이지')),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
+
     if (_user == null) {
       return Scaffold(
         appBar: AppBar(title: Text('마이페이지')),
         body: Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text('사용자 정보를 불러올 수 없습니다.'),
-            ElevatedButton(onPressed: () => Navigator.pushReplacementNamed(context, '/login'), child: Text('로그인 화면으로')),
-          ]),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('사용자 정보를 불러올 수 없습니다'),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserInfo,
+                child: Text('다시 시도'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text('마이페이지'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         actions: [
-          if (!_isEditing && !_isChangingPassword)
-            IconButton(icon: Icon(Icons.logout), onPressed: _logout, tooltip: '로그아웃'),
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _loadUserInfo,
+            tooltip: '새로고침',
+          ),
         ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 프로필 헤더
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade600, Colors.blue.shade400],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
               ),
               child: Column(
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(_user!.isAdmin ? Icons.admin_panel_settings : Icons.person, size: 40, color: Colors.blue),
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      _user!.isAdmin ? Icons.admin_panel_settings : Icons.person,
+                      size: 40,
+                      color: Colors.blue,
+                    ),
                   ),
-                  SizedBox(height: 16),
-                  Text(_user!.id, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 12),
+                  Text(
+                    _user!.name ?? _user!.id,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   SizedBox(height: 4),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _user!.isAdmin ? Colors.orange.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       _user!.isAdmin ? '관리자' : '일반 사용자',
-                      style: TextStyle(color: _user!.isAdmin ? Colors.orange : Colors.blue, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
                 ],
@@ -611,33 +440,23 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
             SizedBox(height: 24),
 
-            // ===============================================
-            // 관리자 전용: 학생 관리 섹션
-            // ===============================================
+            // 관리자 전용 섹션
             if (_user!.isAdmin) ...[
               _buildSectionCard(
-                title: '학생 관리',
-                icon: Icons.people_outline,
+                title: '관리자 기능',
+                icon: Icons.admin_panel_settings,
                 iconColor: Colors.purple,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '학생 명단을 엑셀 파일로 업로드하여 가입 허용 목록을 관리할 수 있습니다.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 16),
-
-                    // 엑셀 업로드 버튼
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isUploadingExcel ? null : _uploadStudentExcel,
                         icon: _isUploadingExcel
                             ? SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                             : Icon(Icons.upload_file),
                         label: Text(_isUploadingExcel ? '업로드 중...' : '학생 명단 엑셀 업로드'),
@@ -650,8 +469,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       ),
                     ),
                     SizedBox(height: 12),
-
-                    // 양식 안내 버튼
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -667,8 +484,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       ),
                     ),
                     SizedBox(height: 12),
-
-                    // 허용 사용자 관리 화면으로 이동
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -702,27 +517,126 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    _buildInfoField(label: '이름', controller: _nameController, icon: Icons.badge_outlined, enabled: _isEditing, validator: (v) => (v != null && v.isNotEmpty && v.length < 2) ? '이름은 2자 이상' : null),
+                    // ✅ 수정 가능한 필드들
+                    _buildInfoField(
+                      label: '이름',
+                      controller: _nameController,
+                      icon: Icons.badge_outlined,
+                      enabled: _isEditing,
+                      validator: (v) => (v != null && v.isNotEmpty && v.length < 2) ? '이름은 2자 이상' : null,
+                    ),
                     SizedBox(height: 16),
-                    _buildInfoField(label: '이메일', controller: _emailController, icon: Icons.email_outlined, enabled: _isEditing, keyboardType: TextInputType.emailAddress, validator: (v) => (v != null && v.isNotEmpty && !_isValidEmail(v)) ? '올바른 이메일 형식' : null),
+                    _buildInfoField(
+                      label: '이메일',
+                      controller: _emailController,
+                      icon: Icons.email_outlined,
+                      enabled: _isEditing,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) => (v != null && v.isNotEmpty && !_isValidEmail(v)) ? '올바른 이메일 형식' : null,
+                    ),
                     SizedBox(height: 16),
-                    _buildInfoField(label: '전화번호', controller: _phoneController, icon: Icons.phone_outlined, enabled: _isEditing, keyboardType: TextInputType.phone, validator: (v) => (v != null && v.isNotEmpty && !_isValidPhone(v)) ? '올바른 전화번호 형식' : null),
+                    _buildInfoField(
+                      label: '전화번호',
+                      controller: _phoneController,
+                      icon: Icons.phone_outlined,
+                      enabled: _isEditing,
+                      keyboardType: TextInputType.phone,
+                      validator: (v) => (v != null && v.isNotEmpty && !_isValidPhone(v)) ? '올바른 전화번호 형식' : null,
+                    ),
                     SizedBox(height: 16),
-                    _buildInfoField(label: '방번호', controller: _roomNumberController, icon: Icons.home_outlined, enabled: _isEditing),
+
+                    // ✅ 기숙사/호실 정보 - 읽기 전용 (수정 불가)
+                    _buildReadOnlyField(
+                      label: '거주 기숙사',
+                      value: _user!.dormitoryBuilding ?? '-',
+                      icon: Icons.apartment,
+                    ),
+                    SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: '호실',
+                      value: _user!.roomNumber != null ? '${_user!.roomNumber}호' : '-',
+                      icon: Icons.door_front_door,
+                    ),
+
+                    // ✅ 안내 메시지 (일반 사용자에게만)
+                    if (!_user!.isAdmin) ...[
+                      SizedBox(height: 12),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '기숙사/호실 정보는 관리자만 수정할 수 있습니다.\n변경이 필요하시면 관리자에게 문의하세요.',
+                                style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     SizedBox(height: 20),
+
+                    // 수정 버튼들
                     if (!_isEditing && !_isChangingPassword)
-                      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => setState(() => _isEditing = true), icon: Icon(Icons.edit), label: Text('개인정보 수정'), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 12)))),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => setState(() => _isEditing = true),
+                          icon: Icon(Icons.edit),
+                          label: Text('개인정보 수정'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
                     if (_isEditing)
-                      Row(children: [
-                        Expanded(child: OutlinedButton(onPressed: () { setState(() => _isEditing = false); _loadUserInfo(); }, child: Text('취소'))),
-                        SizedBox(width: 12),
-                        Expanded(child: ElevatedButton(onPressed: _isLoading ? null : _updateUserInfo, style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white), child: _isLoading ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('저장'))),
-                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                setState(() => _isEditing = false);
+                                _loadUserInfo();
+                              },
+                              child: Text('취소'),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _updateUserInfo,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: _isLoading
+                                  ? SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                                  : Text('저장'),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 24),
+
             // 비밀번호 변경 섹션
             _buildSectionCard(
               title: '비밀번호 변경',
@@ -730,25 +644,82 @@ class _MyPageScreenState extends State<MyPageScreen> {
               child: Column(
                 children: [
                   if (!_isChangingPassword && !_isEditing)
-                    SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => setState(() => _isChangingPassword = true), icon: Icon(Icons.lock_reset), label: Text('비밀번호 변경'), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 12)))),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => setState(() => _isChangingPassword = true),
+                        icon: Icon(Icons.lock_reset),
+                        label: Text('비밀번호 변경'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
                   if (_isChangingPassword)
-                    Column(children: [
-                      _buildPasswordField(label: '현재 비밀번호', controller: _currentPasswordController, obscureText: _obscureCurrentPassword, onToggleVisibility: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword)),
-                      SizedBox(height: 16),
-                      _buildPasswordField(label: '새 비밀번호', controller: _newPasswordController, obscureText: _obscureNewPassword, onToggleVisibility: () => setState(() => _obscureNewPassword = !_obscureNewPassword)),
-                      SizedBox(height: 16),
-                      _buildPasswordField(label: '새 비밀번호 확인', controller: _confirmPasswordController, obscureText: _obscureConfirmPassword, onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword)),
-                      SizedBox(height: 20),
-                      Row(children: [
-                        Expanded(child: OutlinedButton(onPressed: () { setState(() => _isChangingPassword = false); _currentPasswordController.clear(); _newPasswordController.clear(); _confirmPasswordController.clear(); }, child: Text('취소'))),
-                        SizedBox(width: 12),
-                        Expanded(child: ElevatedButton(onPressed: _isLoading ? null : _changePassword, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white), child: _isLoading ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('변경'))),
-                      ]),
-                    ]),
+                    Column(
+                      children: [
+                        _buildPasswordField(
+                          label: '현재 비밀번호',
+                          controller: _currentPasswordController,
+                          obscureText: _obscureCurrentPassword,
+                          onToggleVisibility: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
+                        ),
+                        SizedBox(height: 16),
+                        _buildPasswordField(
+                          label: '새 비밀번호',
+                          controller: _newPasswordController,
+                          obscureText: _obscureNewPassword,
+                          onToggleVisibility: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                        ),
+                        SizedBox(height: 16),
+                        _buildPasswordField(
+                          label: '새 비밀번호 확인',
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        ),
+                        SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  setState(() => _isChangingPassword = false);
+                                  _currentPasswordController.clear();
+                                  _newPasswordController.clear();
+                                  _confirmPasswordController.clear();
+                                },
+                                child: Text('취소'),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _changePassword,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: _isLoading
+                                    ? SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                                    : Text('변경'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
             SizedBox(height: 24),
+
             // 계정 정보 섹션
             _buildSectionCard(
               title: '계정 정보',
@@ -773,14 +744,25 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   // 섹션 카드 위젯
-  Widget _buildSectionCard({required String title, required IconData icon, required Widget child, Color? iconColor}) {
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Color? iconColor,
+  }) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,8 +781,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  // 정보 입력 필드
-  Widget _buildInfoField({required String label, required TextEditingController controller, required IconData icon, bool enabled = true, TextInputType? keyboardType, String? Function(String?)? validator}) {
+  // 정보 입력 필드 (수정 가능)
+  Widget _buildInfoField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool enabled = true,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
@@ -810,27 +799,100 @@ class _MyPageScreenState extends State<MyPageScreen> {
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.grey[600]),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue, width: 2)),
-        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
         filled: true,
         fillColor: enabled ? Colors.white : Colors.grey[100],
       ),
     );
   }
 
+  // ✅ 읽기 전용 필드 (기숙사/호실 정보용)
+  Widget _buildReadOnlyField({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey[600]),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ✅ 잠금 아이콘으로 수정 불가 표시
+          Icon(Icons.lock, color: Colors.grey[400], size: 18),
+        ],
+      ),
+    );
+  }
+
   // 비밀번호 입력 필드
-  Widget _buildPasswordField({required String label, required TextEditingController controller, required bool obscureText, required VoidCallback onToggleVisibility}) {
+  Widget _buildPasswordField({
+    required String label,
+    required TextEditingController controller,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
+  }) {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
-        suffixIcon: IconButton(icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.grey[600]), onPressed: onToggleVisibility),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscureText ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey[600],
+          ),
+          onPressed: onToggleVisibility,
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.orange, width: 2)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.orange, width: 2),
+        ),
         filled: true,
         fillColor: Colors.white,
       ),

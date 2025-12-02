@@ -22,8 +22,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpMethod;
 import java.util.Arrays;
 
+/**
+ * Spring Security 설정
+ * ✅ 수정: allowed-users PUT/DELETE 경로 ADMIN 전용 명시적 설정
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -113,6 +118,13 @@ public class SecurityConfig {
 
                         // ✅ 학번 허용 여부 확인 (회원가입 시 사용 - 인증 불필요)
                         .requestMatchers("/api/allowed-users/check/**").permitAll()
+
+                        // ✅ 허용 사용자 관리 - 관리자 전용 (GET/POST/PUT/DELETE 모두)
+                        .requestMatchers(HttpMethod.GET, "/api/allowed-users/list").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/allowed-users/{userId}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/allowed-users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/allowed-users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/allowed-users/**").hasRole("ADMIN")
 
                         // ✅ 민원 제출 허용 (JWT 필터에서 인증 확인, 컨트롤러에서 권한 확인)
                         .requestMatchers("/api/complaints").permitAll()

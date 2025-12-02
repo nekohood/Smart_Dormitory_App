@@ -1,8 +1,10 @@
 package com.dormitory.SpringBoot.services;
 
 import com.dormitory.SpringBoot.domain.AllowedUser;
+import com.dormitory.SpringBoot.domain.User;
 import com.dormitory.SpringBoot.dto.AllowedUserRequest;
 import com.dormitory.SpringBoot.repository.AllowedUserRepository;
+import com.dormitory.SpringBoot.repository.UserRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -13,13 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * 허용된 사용자 관리 서비스
  * ✅ 수정: CRUD 완전 지원 (Update 기능 추가)
+ * ✅ 수정: 등록된 사용자도 수정/삭제 가능
+ * ✅ 추가: 등록된 사용자 정보 수정 시 User 테이블도 자동 업데이트
  * ✅ 필수 필드: 학번, 이름, 기숙사명, 호실번호
  */
 @Service
@@ -30,6 +36,9 @@ public class AllowedUserService {
 
     @Autowired
     private AllowedUserRepository allowedUserRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * 엑셀 파일로부터 허용 사용자 목록 업로드
@@ -174,38 +183,102 @@ public class AllowedUserService {
     }
 
     /**
-     * ✅ 허용 사용자 정보 수정 (신규 추가)
+     * ✅ 허용 사용자 정보 수정
+     * ✅ 등록된 사용자도 수정 가능
+     * ✅ 추가: 등록된 사용자인 경우 User 테이블도 자동 업데이트
      */
     public AllowedUserRequest.AllowedUserResponse updateAllowedUser(
             String userId, AllowedUserRequest.UpdateUserRequest request) {
 
         logger.info("허용 사용자 수정 - 학번: {}", userId);
 
-        AllowedUser user = allowedUserRepository.findByUserId(userId)
+        AllowedUser allowedUser = allowedUserRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
 
         // 수정 가능한 필드 업데이트 (null이 아닌 경우만)
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
-            user.setName(request.getName().trim());
+            allowedUser.setName(request.getName().trim());
         }
         if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
-            user.setDormitoryBuilding(request.getDormitoryBuilding().trim());
+            allowedUser.setDormitoryBuilding(request.getDormitoryBuilding().trim());
         }
         if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
-            user.setRoomNumber(request.getRoomNumber().trim());
+            allowedUser.setRoomNumber(request.getRoomNumber().trim());
         }
         // phoneNumber와 email은 빈 문자열도 허용 (null일 때만 무시)
         if (request.getPhoneNumber() != null) {
-            user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
+            allowedUser.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
         }
         if (request.getEmail() != null) {
-            user.setEmail(request.getEmail().trim().isEmpty() ? null : request.getEmail().trim());
+            allowedUser.setEmail(request.getEmail().trim().isEmpty() ? null : request.getEmail().trim());
         }
 
-        AllowedUser saved = allowedUserRepository.save(user);
-        logger.info("허용 사용자 수정 완료 - 학번: {}", userId);
+        AllowedUser saved = allowedUserRepository.save(allowedUser);
+
+        // ✅ 등록된 사용자인 경우 User 테이블도 업데이트
+        if (Boolean.TRUE.equals(allowedUser.getIsRegistered())) {
+            updateRegisteredUser(userId, request);
+        }
+
+        logger.info("허용 사용자 수정 완료 - 학번: {}, 등록상태: {}", userId, allowedUser.getIsRegistered() ? "등록됨" : "미등록");
 
         return convertToResponse(saved);
+    }
+
+    /**
+     * ✅ 등록된 사용자의 User 테이블 정보 업데이트
+     * - 관리자가 AllowedUser 수정 시 자동으로 User 테이블도 업데이트
+     */
+    private void updateRegisteredUser(String userId, AllowedUserRequest.UpdateUserRequest request) {
+        try {
+            Optional<User> userOptional = userRepository.findById(userId);
+
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                boolean updated = false;
+
+                // 이름 업데이트
+                if (request.getName() != null && !request.getName().trim().isEmpty()) {
+                    user.setName(request.getName().trim());
+                    updated = true;
+                }
+
+                // 기숙사 업데이트
+                if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
+                    user.setDormitoryBuilding(request.getDormitoryBuilding().trim());
+                    updated = true;
+                }
+
+                // 호실 업데이트
+                if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
+                    user.setRoomNumber(request.getRoomNumber().trim());
+                    updated = true;
+                }
+
+                // 전화번호 업데이트
+                if (request.getPhoneNumber() != null) {
+                    user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
+                    updated = true;
+                }
+
+                // 이메일 업데이트
+                if (request.getEmail() != null) {
+                    user.setEmail(request.getEmail().trim().isEmpty() ? null : request.getEmail().trim());
+                    updated = true;
+                }
+
+                if (updated) {
+                    user.setUpdatedAt(LocalDateTime.now());
+                    userRepository.save(user);
+                    logger.info("등록된 사용자 정보 자동 업데이트 완료 - 학번: {}", userId);
+                }
+            } else {
+                logger.warn("등록된 사용자이지만 User 테이블에서 찾을 수 없음 - 학번: {}", userId);
+            }
+        } catch (Exception e) {
+            logger.error("등록된 사용자 정보 업데이트 중 오류 발생 - 학번: {}, 오류: {}", userId, e.getMessage());
+            // User 테이블 업데이트 실패해도 AllowedUser 업데이트는 유지
+        }
     }
 
     /**
@@ -273,7 +346,8 @@ public class AllowedUserService {
     }
 
     /**
-     * 허용 사용자 삭제
+     * ✅ 허용 사용자 삭제
+     * ✅ 수정: 등록된 사용자도 삭제 가능
      */
     public void deleteAllowedUser(String userId) {
         logger.info("허용 사용자 삭제 - 학번: {}", userId);
@@ -281,13 +355,11 @@ public class AllowedUserService {
         AllowedUser user = allowedUserRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
 
-        // 이미 등록된 사용자는 삭제 불가
-        if (user.getIsRegistered()) {
-            throw new RuntimeException("이미 등록된 사용자는 삭제할 수 없습니다: " + userId);
-        }
+        // ✅ 등록 여부와 관계없이 삭제 가능
+        boolean wasRegistered = user.getIsRegistered();
 
         allowedUserRepository.delete(user);
-        logger.info("허용 사용자 삭제 완료 - 학번: {}", userId);
+        logger.info("허용 사용자 삭제 완료 - 학번: {}, 기존등록상태: {}", userId, wasRegistered ? "등록됨" : "미등록");
     }
 
     /**

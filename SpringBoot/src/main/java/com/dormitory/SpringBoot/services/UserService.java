@@ -8,7 +8,7 @@ import com.dormitory.SpringBoot.dto.UserResponse;
 import com.dormitory.SpringBoot.repository.UserRepository;
 import com.dormitory.SpringBoot.utils.EncryptionUtil;
 import com.dormitory.SpringBoot.utils.JwtUtil;
-import com.dormitory.SpringBoot.utils.SecurityUtils; // SecurityUtils 임포트
+import com.dormitory.SpringBoot.utils.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * 사용자 관련 비즈니스 로직 서비스 - 수정된 버전
+ * 사용자 관련 비즈니스 로직 서비스
+ * ✅ 수정: 일반 사용자는 기숙사/호실 정보 수정 불가 (관리자만 가능)
  */
 @Service
 @Transactional
@@ -122,7 +124,7 @@ public class UserService {
     }
 
     /**
-     * 사용자 로그인 - 수정된 메서드명 사용
+     * 사용자 로그인
      */
     public String login(LoginRequest request) {
         try {
@@ -137,7 +139,7 @@ public class UserService {
                 throw new RuntimeException("비활성화된 계정입니다.");
             }
 
-            // 계정 잠금 상태 확인 - 수정된 메서드명 사용
+            // 계정 잠금 상태 확인
             if (user.isAccountLocked()) {
                 throw new RuntimeException("계정이 잠겨있습니다. 잠시 후 다시 시도해주세요.");
             }
@@ -150,7 +152,7 @@ public class UserService {
                 throw new RuntimeException("비밀번호가 일치하지 않습니다.");
             }
 
-            // 로그인 성공 처리 - 수정된 메서드명 사용
+            // 로그인 성공 처리
             user.onLoginSuccess();
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
@@ -186,10 +188,11 @@ public class UserService {
         }
     }
 
-// UserService.java의 updateUser 메서드를 아래 내용으로 교체하세요
-
     /**
-     * 사용자 정보 수정
+     * 사용자 정보 수정 (일반 사용자용)
+     * ✅ 수정: 일반 사용자는 기숙사/호실 정보 수정 불가
+     * - 수정 가능: 이름, 이메일, 전화번호
+     * - 수정 불가: 기숙사(dormitoryBuilding), 호실(roomNumber) - 관리자만 수정 가능
      */
     public UserResponse updateUser(String userId, UpdateUserRequest request) {
         try {
@@ -198,7 +201,7 @@ public class UserService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
 
-            // 정보 업데이트
+            // ✅ 수정 가능한 필드만 업데이트 (이름, 이메일, 전화번호)
             if (request.getName() != null && !request.getName().trim().isEmpty()) {
                 user.setName(encryptionUtil.encrypt(request.getName()));
             }
@@ -209,12 +212,13 @@ public class UserService {
             if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
                 user.setPhoneNumber(encryptionUtil.encrypt(request.getPhoneNumber()));
             }
-            // ✅ 거주 동 업데이트 추가
-            if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
-                user.setDormitoryBuilding(request.getDormitoryBuilding());
-            }
-            if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
-                user.setRoomNumber(request.getRoomNumber());
+
+            // ✅ 기숙사/호실 정보는 일반 사용자가 수정할 수 없음
+            // request.getDormitoryBuilding()과 request.getRoomNumber()는 무시됨
+            // 이 정보는 관리자가 AllowedUser를 통해서만 수정 가능
+            if (request.getDormitoryBuilding() != null || request.getRoomNumber() != null) {
+                logger.warn("일반 사용자가 기숙사/호실 정보 수정 시도 - 사용자ID: {} (무시됨)", userId);
+                // 수정 요청은 무시하고 경고 로그만 남김
             }
 
             user.setUpdatedAt(LocalDateTime.now());
@@ -305,44 +309,104 @@ public class UserService {
     }
 
     /**
-     * 모든 활성 사용자 조회 (관리자용)
+     * 사용자 활성화 (관리자용)
      */
-    @Transactional(readOnly = true)
-    public List<UserResponse> getAllActiveUsers() {
+    public void activateUser(String userId) {
         try {
-            logger.info("모든 활성 사용자 조회");
+            logger.info("사용자 활성화 - 사용자ID: {}", userId);
 
-            List<User> users = userRepository.findByIsActiveTrueOrderByCreatedAtDesc();
-            return users.stream()
-                    .map(this::convertToResponse)
-                    .collect(Collectors.toList());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
+
+            user.setIsActive(true);
+            user.setUpdatedAt(LocalDateTime.now());
+
+            userRepository.save(user);
+            logger.info("사용자 활성화 완료 - 사용자ID: {}", userId);
 
         } catch (Exception e) {
-            logger.error("사용자 목록 조회 중 오류 발생", e);
-            throw new RuntimeException("사용자 목록 조회에 실패했습니다: " + e.getMessage());
+            logger.error("사용자 활성화 중 오류 발생", e);
+            throw new RuntimeException("사용자 활성화에 실패했습니다: " + e.getMessage());
         }
     }
 
     /**
-     * User 엔티티를 UserResponse DTO로 변환 - 알림 설정 제거
+     * 로그인 실패 횟수 증가
+     */
+    public void incrementLoginAttempts(String userId) {
+        try {
+            Optional<User> userOptional = userRepository.findById(userId);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                int attempts = (user.getLoginAttempts() != null ? user.getLoginAttempts() : 0) + 1;
+                user.setLoginAttempts(attempts);
+
+                // 5회 이상 실패 시 계정 잠금 (30분)
+                if (attempts >= 5) {
+                    user.setIsLocked(true);
+                    user.setLockedUntil(LocalDateTime.now().plusMinutes(30));
+                    logger.warn("계정 잠금 - 사용자ID: {}, 잠금해제시간: {}", userId, user.getLockedUntil());
+                }
+
+                user.setUpdatedAt(LocalDateTime.now());
+                userRepository.save(user);
+            }
+        } catch (Exception e) {
+            logger.error("로그인 실패 횟수 증가 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 로그인 성공 시 호출
+     */
+    public void onLoginSuccess(String userId) {
+        try {
+            Optional<User> userOptional = userRepository.findById(userId);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                user.setLoginAttempts(0);
+                user.setIsLocked(false);
+                user.setLockedUntil(null);
+                user.setLastLoginAt(LocalDateTime.now());
+                user.setUpdatedAt(LocalDateTime.now());
+                userRepository.save(user);
+            }
+        } catch (Exception e) {
+            logger.error("로그인 성공 처리 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 전체 사용자 목록 조회 (관리자용)
+     */
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUsers() {
+        logger.info("전체 사용자 목록 조회");
+        return userRepository.findAll().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 활성 사용자 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<UserResponse> getActiveUsers() {
+        logger.info("활성 사용자 목록 조회");
+        return userRepository.findByIsActiveTrue().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * User Entity를 UserResponse DTO로 변환
      */
     private UserResponse convertToResponse(User user) {
-        try {
-            UserResponse response = new UserResponse();
-            response.setId(user.getId());
-            response.setIsAdmin(user.getIsAdmin());
-            response.setDormitoryBuilding(user.getDormitoryBuilding()); // ✅ 거주 동 추가
-            response.setRoomNumber(user.getRoomNumber());
-            response.setProfileImagePath(user.getProfileImagePath());
-            response.setIsActive(user.getIsActive());
-            response.setIsLocked(user.getIsLocked());
-            response.setLastLoginAt(user.getLastLoginAt());
-            response.setCreatedAt(user.getCreatedAt());
-            response.setUpdatedAt(user.getUpdatedAt());
-            response.setPasswordChangedAt(user.getPasswordChangedAt());
-            response.setLoginAttempts(user.getLoginAttempts());
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
 
-            // 암호화된 개인정보 복호화
+        // 암호화된 필드 복호화
+        try {
             if (user.getName() != null) {
                 response.setName(encryptionUtil.decrypt(user.getName()));
             }
@@ -352,22 +416,26 @@ public class UserService {
             if (user.getPhoneNumber() != null) {
                 response.setPhoneNumber(encryptionUtil.decrypt(user.getPhoneNumber()));
             }
-
-            return response;
-
         } catch (Exception e) {
-            logger.warn("사용자 정보 변환 중 일부 오류 발생 - 사용자ID: {}", user.getId());
-
-            // 최소한의 정보라도 반환
-            UserResponse response = new UserResponse();
-            response.setId(user.getId());
-            response.setIsAdmin(user.getIsAdmin());
-            response.setDormitoryBuilding(user.getDormitoryBuilding()); // ✅ 거주 동 추가
-            response.setRoomNumber(user.getRoomNumber());
-            response.setIsActive(user.getIsActive());
-            response.setCreatedAt(user.getCreatedAt());
-
-            return response;
+            logger.warn("사용자 정보 복호화 실패 - 사용자ID: {}", user.getId());
+            // 복호화 실패 시 원본 값 사용
+            response.setName(user.getName());
+            response.setEmail(user.getEmail());
+            response.setPhoneNumber(user.getPhoneNumber());
         }
+
+        response.setDormitoryBuilding(user.getDormitoryBuilding());
+        response.setRoomNumber(user.getRoomNumber());
+        response.setIsAdmin(user.getIsAdmin());
+        response.setIsActive(user.getIsActive());
+        response.setIsLocked(user.getIsLocked());
+        response.setProfileImagePath(user.getProfileImagePath());
+        response.setLastLoginAt(user.getLastLoginAt());
+        response.setPasswordChangedAt(user.getPasswordChangedAt());
+        response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
+        response.setLoginAttempts(user.getLoginAttempts());
+
+        return response;
     }
 }

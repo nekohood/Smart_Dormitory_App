@@ -7,11 +7,19 @@ import '../models/allowed_user.dart';
 /// ✅ 수정: CRUD 완전 지원 (Update 기능 추가)
 /// ✅ 수정: 등록된 사용자도 수정/삭제 가능
 /// ✅ 수정: 리스트 표시 정보 변경 (이름/학번/거주 기숙사/거주 호실)
+/// ✅ 추가: 통계 카드 탭으로 필터링 (전체/등록완료/미등록)
 class AdminAllowedUsersScreen extends StatefulWidget {
   const AdminAllowedUsersScreen({super.key});
 
   @override
   State<AdminAllowedUsersScreen> createState() => _AdminAllowedUsersScreenState();
+}
+
+/// ✅ 필터 타입 enum
+enum UserFilterType {
+  all,        // 전체
+  registered, // 등록 완료
+  unregistered, // 미등록
 }
 
 class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
@@ -26,6 +34,9 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
   // 검색 기능
   final TextEditingController _searchController = TextEditingController();
   List<AllowedUser> _filteredUsers = [];
+
+  // ✅ 현재 선택된 필터 타입
+  UserFilterType _currentFilter = UserFilterType.all;
 
   @override
   void initState() {
@@ -50,10 +61,11 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
 
       setState(() {
         _users = response.users;
-        _filteredUsers = response.users;
         _totalCount = response.totalCount;
         _registeredCount = response.registeredCount;
         _unregisteredCount = response.unregisteredCount;
+        // 필터 적용
+        _applyFilters();
       });
     } catch (e) {
       print('[ERROR] 허용 사용자 목록 로드 실패: $e');
@@ -69,21 +81,52 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
     }
   }
 
+  /// ✅ 필터 및 검색 적용
+  void _applyFilters() {
+    List<AllowedUser> result = _users;
+
+    // 1. 등록 상태 필터 적용
+    switch (_currentFilter) {
+      case UserFilterType.registered:
+        result = result.where((user) => user.isRegistered).toList();
+        break;
+      case UserFilterType.unregistered:
+        result = result.where((user) => !user.isRegistered).toList();
+        break;
+      case UserFilterType.all:
+      default:
+      // 전체 - 필터링 없음
+        break;
+    }
+
+    // 2. 검색어 필터 적용
+    final query = _searchController.text;
+    if (query.isNotEmpty) {
+      final lowerQuery = query.toLowerCase();
+      result = result.where((user) {
+        return user.name.toLowerCase().contains(lowerQuery) ||
+            user.userId.toLowerCase().contains(lowerQuery) ||
+            (user.dormitoryBuilding?.toLowerCase().contains(lowerQuery) ?? false) ||
+            (user.roomNumber?.toLowerCase().contains(lowerQuery) ?? false);
+      }).toList();
+    }
+
+    setState(() {
+      _filteredUsers = result;
+    });
+  }
+
+  /// ✅ 필터 타입 변경
+  void _setFilter(UserFilterType filterType) {
+    setState(() {
+      _currentFilter = filterType;
+    });
+    _applyFilters();
+  }
+
   /// 검색 필터링
   void _filterUsers(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredUsers = _users;
-      } else {
-        _filteredUsers = _users.where((user) {
-          final lowerQuery = query.toLowerCase();
-          return user.name.toLowerCase().contains(lowerQuery) ||
-              user.userId.toLowerCase().contains(lowerQuery) ||
-              (user.dormitoryBuilding?.toLowerCase().contains(lowerQuery) ?? false) ||
-              (user.roomNumber?.toLowerCase().contains(lowerQuery) ?? false);
-        }).toList();
-      }
-    });
+    _applyFilters();
   }
 
   /// 엑셀 파일 업로드
@@ -633,6 +676,9 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
         children: [
           _buildStatistics(),
           _buildSearchBar(),
+          // ✅ 현재 필터 표시
+          if (_currentFilter != UserFilterType.all)
+            _buildCurrentFilterChip(),
           Expanded(child: _buildUserList()),
         ],
       ),
@@ -646,6 +692,7 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
     );
   }
 
+  /// ✅ 통계 위젯 - 탭 가능하도록 수정
   Widget _buildStatistics() {
     return Container(
       padding: EdgeInsets.all(16),
@@ -664,34 +711,122 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('전체', _totalCount.toString(), Colors.blue),
-          _buildStatItem('등록 완료', _registeredCount.toString(), Colors.green),
-          _buildStatItem('미등록', _unregisteredCount.toString(), Colors.orange),
+          _buildStatItem(
+            '전체',
+            _totalCount.toString(),
+            Colors.blue,
+            UserFilterType.all,
+          ),
+          _buildStatItem(
+            '등록 완료',
+            _registeredCount.toString(),
+            Colors.green,
+            UserFilterType.registered,
+          ),
+          _buildStatItem(
+            '미등록',
+            _unregisteredCount.toString(),
+            Colors.orange,
+            UserFilterType.unregistered,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+  /// ✅ 통계 아이템 - 탭 가능하도록 수정
+  Widget _buildStatItem(String label, String value, Color color, UserFilterType filterType) {
+    final bool isSelected = _currentFilter == filterType;
+
+    return InkWell(
+      onTap: () => _setFilter(filterType),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: isSelected
+              ? Border.all(color: color, width: 2)
+              : Border.all(color: Colors.transparent, width: 2),
         ),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? color : Colors.grey.shade600,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                if (isSelected) ...[
+                  SizedBox(width: 4),
+                  Icon(Icons.check_circle, size: 14, color: color),
+                ],
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  /// ✅ 현재 필터 칩 표시
+  Widget _buildCurrentFilterChip() {
+    String filterLabel;
+    Color filterColor;
+
+    switch (_currentFilter) {
+      case UserFilterType.registered:
+        filterLabel = '등록 완료만 보기';
+        filterColor = Colors.green;
+        break;
+      case UserFilterType.unregistered:
+        filterLabel = '미등록만 보기';
+        filterColor = Colors.orange;
+        break;
+      default:
+        return SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Chip(
+            avatar: Icon(Icons.filter_list, size: 18, color: filterColor),
+            label: Text(
+              filterLabel,
+              style: TextStyle(color: filterColor, fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: filterColor.withOpacity(0.1),
+            deleteIcon: Icon(Icons.close, size: 18, color: filterColor),
+            onDeleted: () => _setFilter(UserFilterType.all),
+            side: BorderSide(color: filterColor.withOpacity(0.3)),
+          ),
+          Spacer(),
+          Text(
+            '${_filteredUsers.length}명',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -708,7 +843,7 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
             icon: Icon(Icons.clear),
             onPressed: () {
               _searchController.clear();
-              _filterUsers('');
+              _applyFilters();
             },
           )
               : null,
@@ -725,6 +860,23 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
 
   Widget _buildUserList() {
     if (_filteredUsers.isEmpty) {
+      String emptyMessage;
+      String emptySubMessage;
+
+      if (_searchController.text.isNotEmpty) {
+        emptyMessage = '검색 결과가 없습니다';
+        emptySubMessage = '다른 검색어로 시도해보세요';
+      } else if (_currentFilter == UserFilterType.registered) {
+        emptyMessage = '등록 완료된 사용자가 없습니다';
+        emptySubMessage = '아직 가입한 사용자가 없습니다';
+      } else if (_currentFilter == UserFilterType.unregistered) {
+        emptyMessage = '미등록 사용자가 없습니다';
+        emptySubMessage = '모든 허용 사용자가 가입 완료했습니다';
+      } else {
+        emptyMessage = '등록된 허용 사용자가 없습니다';
+        emptySubMessage = '엑셀 파일을 업로드하거나 개별 추가하세요';
+      }
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -732,16 +884,12 @@ class _AdminAllowedUsersScreenState extends State<AdminAllowedUsersScreen> {
             Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
             SizedBox(height: 16),
             Text(
-              _searchController.text.isNotEmpty
-                  ? '검색 결과가 없습니다'
-                  : '등록된 허용 사용자가 없습니다',
+              emptyMessage,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
             SizedBox(height: 8),
             Text(
-              _searchController.text.isNotEmpty
-                  ? '다른 검색어로 시도해보세요'
-                  : '엑셀 파일을 업로드하거나 개별 추가하세요',
+              emptySubMessage,
               style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
