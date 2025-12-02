@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import '../api/dio_client.dart';
 import '../data/user_repository.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../services/allowed_user_service.dart';
+import '../utils/auth_provider.dart';
 import 'admin_allowed_users_screen.dart';
 
 /// 마이페이지 화면
 /// ✅ 수정: 일반 사용자는 기숙사/호실 정보 수정 불가 (읽기 전용)
 /// - 관리자가 허용 사용자 관리에서만 기숙사/호실 정보 수정 가능
+/// ✅ 수정: 로그아웃 버튼 추가
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
 
@@ -523,7 +526,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       controller: _nameController,
                       icon: Icons.badge_outlined,
                       enabled: _isEditing,
-                      validator: (v) => (v != null && v.isNotEmpty && v.length < 2) ? '이름은 2자 이상' : null,
+                      validator: (v) => (v != null && v.isNotEmpty && v.length < 2) ? '이름은 2자 이상이어야 합니다' : null,
                     ),
                     SizedBox(height: 16),
                     _buildInfoField(
@@ -532,7 +535,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       icon: Icons.email_outlined,
                       enabled: _isEditing,
                       keyboardType: TextInputType.emailAddress,
-                      validator: (v) => (v != null && v.isNotEmpty && !_isValidEmail(v)) ? '올바른 이메일 형식' : null,
+                      validator: (v) => (v != null && v.isNotEmpty && !_isValidEmail(v)) ? '유효한 이메일을 입력해주세요' : null,
                     ),
                     SizedBox(height: 16),
                     _buildInfoField(
@@ -541,24 +544,24 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       icon: Icons.phone_outlined,
                       enabled: _isEditing,
                       keyboardType: TextInputType.phone,
-                      validator: (v) => (v != null && v.isNotEmpty && !_isValidPhone(v)) ? '올바른 전화번호 형식' : null,
+                      validator: (v) => (v != null && v.isNotEmpty && !_isValidPhone(v)) ? '유효한 전화번호를 입력해주세요' : null,
                     ),
                     SizedBox(height: 16),
 
-                    // ✅ 기숙사/호실 정보 - 읽기 전용 (수정 불가)
+                    // ✅ 읽기 전용 필드들 (기숙사/호실)
                     _buildReadOnlyField(
-                      label: '거주 기숙사',
-                      value: _user!.dormitoryBuilding ?? '-',
+                      label: '기숙사',
+                      value: _user!.dormitoryBuilding ?? '미지정',
                       icon: Icons.apartment,
                     ),
                     SizedBox(height: 16),
                     _buildReadOnlyField(
                       label: '호실',
-                      value: _user!.roomNumber != null ? '${_user!.roomNumber}호' : '-',
+                      value: _user!.roomNumber ?? '미지정',
                       icon: Icons.door_front_door,
                     ),
 
-                    // ✅ 안내 메시지 (일반 사용자에게만)
+                    // ✅ 기숙사/호실 안내 메시지
                     if (!_user!.isAdmin) ...[
                       SizedBox(height: 12),
                       Container(
@@ -570,11 +573,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '기숙사/호실 정보는 관리자만 수정할 수 있습니다.\n변경이 필요하시면 관리자에게 문의하세요.',
+                                '기숙사 및 호실 정보는 관리자만 수정할 수 있습니다.',
                                 style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                               ),
                             ),
@@ -734,6 +737,49 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     _buildInfoRow('가입일', _formatDate(_user!.createdAt!)),
                   ],
                 ],
+              ),
+            ),
+            SizedBox(height: 24),
+
+            // ✅ 로그아웃 버튼 추가
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('로그아웃'),
+                      content: Text('정말 로그아웃 하시겠습니까?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text('취소'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          child: Text('로그아웃'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    await authProvider.logout();
+                    if (mounted) {
+                      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                    }
+                  }
+                },
+                icon: Icon(Icons.logout),
+                label: Text('로그아웃'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
             SizedBox(height: 40),
