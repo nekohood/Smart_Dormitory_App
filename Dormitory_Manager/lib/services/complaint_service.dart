@@ -82,8 +82,19 @@ class ComplaintService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> complaintsData = responseData['data'] ?? [];
-        return complaintsData.map((data) => Complaint.fromJson(data)).toList();
+        final data = responseData['data'];
+
+        // ✅ API 응답 구조: { data: { complaints: [...], count: N } }
+        List<dynamic> complaintsData = [];
+        if (data is Map && data.containsKey('complaints')) {
+          complaintsData = data['complaints'] ?? [];
+        } else if (data is List) {
+          // 혹시 직접 리스트로 오는 경우 대비
+          complaintsData = data;
+        }
+
+        print('[ComplaintService] 사용자 민원 ${complaintsData.length}건 조회됨');
+        return complaintsData.map((item) => Complaint.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
@@ -101,8 +112,19 @@ class ComplaintService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> complaintsData = responseData['data'] ?? [];
-        return complaintsData.map((data) => Complaint.fromJson(data)).toList();
+        final data = responseData['data'];
+
+        // ✅ API 응답 구조: { data: { complaints: [...], count: N } }
+        List<dynamic> complaintsData = [];
+        if (data is Map && data.containsKey('complaints')) {
+          complaintsData = data['complaints'] ?? [];
+        } else if (data is List) {
+          // 혹시 직접 리스트로 오는 경우 대비
+          complaintsData = data;
+        }
+
+        print('[ComplaintService] 민원 ${complaintsData.length}건 조회됨');
+        return complaintsData.map((item) => Complaint.fromJson(item)).toList();
       }
       return [];
     } catch (e) {

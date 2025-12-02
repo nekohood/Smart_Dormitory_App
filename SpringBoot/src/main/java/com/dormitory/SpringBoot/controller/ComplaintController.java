@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +21,7 @@ import java.util.Map;
 
 /**
  * 민원 관련 API 컨트롤러 - JSON과 Form-data 모두 지원
+ * ✅ 수정: 관리자 권한 추가, PATCH 메서드 지원
  */
 @RestController
 @RequestMapping("/api/complaints")
@@ -172,15 +174,18 @@ public class ComplaintController {
     }
 
     /**
-     * 민원 상태 업데이트 (관리자용)
+     * 민원 상태 업데이트 (관리자용) - PUT 방식 (RequestParam)
+     * ✅ 관리자 권한 필요
      */
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> updateComplaintStatus(
             @PathVariable Long id,
             @RequestParam("status") String status,
             @RequestParam(value = "adminComment", required = false) String adminComment) {
 
         try {
+            logger.info("민원 상태 업데이트 (PUT) - ID: {}, 상태: {}", id, status);
             Complaint complaint = complaintService.updateComplaintStatus(id, status, adminComment);
             return ResponseEntity.ok(ApiResponse.success("민원 상태가 성공적으로 변경되었습니다.", complaint));
         } catch (RuntimeException e) {
@@ -193,11 +198,49 @@ public class ComplaintController {
     }
 
     /**
+     * 민원 상태 업데이트 (관리자용) - PATCH 방식 (JSON Body)
+     * ✅ 신규 추가: 프론트엔드 PATCH 요청 지원
+     * ✅ 관리자 권한 필요
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> patchComplaintStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+
+        try {
+            String status = request.get("status");
+            String adminComment = request.get("adminComment");
+
+            logger.info("민원 상태 업데이트 (PATCH) - ID: {}, 상태: {}", id, status);
+
+            if (status == null || status.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("상태 값이 필요합니다."));
+            }
+
+            Complaint complaint = complaintService.updateComplaintStatus(id, status, adminComment);
+            return ResponseEntity.ok(ApiResponse.success("민원 상태가 성공적으로 변경되었습니다.", complaint));
+        } catch (RuntimeException e) {
+            logger.warn("민원 상태 업데이트 실패 - ID: {}, 사유: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.notFound(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("민원 상태 업데이트 중 오류 발생 - ID: {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.internalServerError("상태 변경 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 민원 삭제 (관리자용)
+     * ✅ 관리자 권한 필요
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> deleteComplaint(@PathVariable Long id) {
         try {
+            logger.info("민원 삭제 요청 - ID: {}", id);
             complaintService.deleteComplaint(id);
             return ResponseEntity.ok(ApiResponse.success("민원이 성공적으로 삭제되었습니다.", null));
         } catch (RuntimeException e) {

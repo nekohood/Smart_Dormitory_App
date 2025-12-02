@@ -55,9 +55,10 @@ class DocumentService {
       final response = await DioClient.post('/documents', data: formData);
       final responseData = response.data;
 
-      // ✅ ApiResponse 구조 처리
+      // ✅ ApiResponse 구조 처리: 'data' 또는 'document' 필드에서 서류 데이터 추출
       if (responseData['success'] == true) {
-        final documentData = responseData['data'];
+        // 'data' 필드 먼저 확인, 없으면 'document' 필드 확인
+        final documentData = responseData['data'] ?? responseData['document'];
         if (documentData != null) {
           print('[DocumentService] 서류 제출 성공 - ID: ${documentData['id']}');
           return Document.fromJson(documentData);
@@ -82,8 +83,24 @@ class DocumentService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> documentsData = responseData['data'] ?? [];
-        return documentsData.map((data) => Document.fromJson(data)).toList();
+        // ✅ API 응답 구조 다양하게 처리
+        List<dynamic> documentsData = [];
+
+        // 1. 최상위 'documents' 필드 확인 (현재 API 구조)
+        if (responseData.containsKey('documents') && responseData['documents'] is List) {
+          documentsData = responseData['documents'];
+        }
+        // 2. 'data.documents' 구조 확인
+        else if (responseData['data'] is Map && responseData['data'].containsKey('documents')) {
+          documentsData = responseData['data']['documents'] ?? [];
+        }
+        // 3. 'data'가 직접 리스트인 경우
+        else if (responseData['data'] is List) {
+          documentsData = responseData['data'];
+        }
+
+        print('[DocumentService] 사용자 서류 ${documentsData.length}건 조회됨');
+        return documentsData.map((item) => Document.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
@@ -101,8 +118,24 @@ class DocumentService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final List<dynamic> documentsData = responseData['data'] ?? [];
-        return documentsData.map((data) => Document.fromJson(data)).toList();
+        // ✅ API 응답 구조 다양하게 처리
+        List<dynamic> documentsData = [];
+
+        // 1. 최상위 'documents' 필드 확인 (현재 API 구조)
+        if (responseData.containsKey('documents') && responseData['documents'] is List) {
+          documentsData = responseData['documents'];
+        }
+        // 2. 'data.documents' 구조 확인
+        else if (responseData['data'] is Map && responseData['data'].containsKey('documents')) {
+          documentsData = responseData['data']['documents'] ?? [];
+        }
+        // 3. 'data'가 직접 리스트인 경우
+        else if (responseData['data'] is List) {
+          documentsData = responseData['data'];
+        }
+
+        print('[DocumentService] 서류 ${documentsData.length}건 조회됨');
+        return documentsData.map((item) => Document.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
