@@ -161,9 +161,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
 
     try {
+      // ✅ 수정: oldPassword와 confirmPassword도 함께 전송 (백엔드 호환성)
       await DioClient.put('/users/me/password', data: {
+        'oldPassword': _currentPasswordController.text,
         'currentPassword': _currentPasswordController.text,
         'newPassword': _newPasswordController.text,
+        'confirmPassword': _confirmPasswordController.text,
       });
 
       if (mounted) {

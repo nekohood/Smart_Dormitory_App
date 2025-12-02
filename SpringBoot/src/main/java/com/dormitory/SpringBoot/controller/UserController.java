@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 사용자 관련 API 컨트롤러
+ * ✅ 수정: 비밀번호 변경 API - currentPassword/oldPassword 모두 지원
+ */
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
@@ -101,7 +105,6 @@ public class UserController {
 
         } catch (RuntimeException e) {
             logger.warn("사용자 정보 수정 실패: {}", e.getMessage());
-            // 수정된 부분: ApiResponse.error() 사용
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error("UPDATE_FAILED", e.getMessage()));
 
@@ -114,41 +117,60 @@ public class UserController {
 
     /**
      * 비밀번호 변경
+     * ✅ 수정: @Valid 제거, 수동 검증으로 변경
+     * ✅ 수정: currentPassword와 oldPassword 모두 지원
      */
     @PutMapping("/me/password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            @Valid @RequestBody ChangePasswordRequest request,
-            BindingResult bindingResult) {
+            @RequestBody ChangePasswordRequest request) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+                logger.warn("비밀번호 변경 시도 - 인증되지 않은 사용자");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(ApiResponse.unauthorized("인증이 필요합니다."));
             }
 
-            if (bindingResult.hasErrors()) {
-                Map<String, String> errors = bindingResult.getFieldErrors().stream()
-                        .collect(Collectors.toMap(
-                                fieldError -> fieldError.getField(),
-                                fieldError -> fieldError.getDefaultMessage()
-                        ));
+            // ✅ 수동 검증: 현재 비밀번호 확인 (oldPassword 또는 currentPassword)
+            String currentPassword = request.getEffectiveCurrentPassword();
+            if (currentPassword == null || currentPassword.isEmpty()) {
+                Map<String, String> errors = new HashMap<>();
+                errors.put("currentPassword", "현재 비밀번호는 필수입니다.");
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.validationError(errors));
             }
 
-            // 새 비밀번호와 확인 비밀번호가 일치하는지 확인
-            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            // ✅ 수동 검증: 새 비밀번호 확인
+            if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
                 Map<String, String> errors = new HashMap<>();
-                errors.put("confirmPassword", "새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+                errors.put("newPassword", "새 비밀번호는 필수입니다.");
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.validationError(errors));
+            }
+
+            // ✅ 수동 검증: 새 비밀번호 길이 확인 (4자 이상)
+            if (request.getNewPassword().length() < 4) {
+                Map<String, String> errors = new HashMap<>();
+                errors.put("newPassword", "새 비밀번호는 4자 이상이어야 합니다.");
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.validationError(errors));
+            }
+
+            // ✅ confirmPassword가 있는 경우에만 확인
+            if (request.getConfirmPassword() != null && !request.getConfirmPassword().isEmpty()) {
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                    Map<String, String> errors = new HashMap<>();
+                    errors.put("confirmPassword", "새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.validationError(errors));
+                }
             }
 
             String userId = authentication.getName();
             logger.info("비밀번호 변경 요청: {}", userId);
 
-            userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+            userService.changePassword(userId, currentPassword, request.getNewPassword());
 
             logger.info("비밀번호 변경 완료: {}", userId);
             return ResponseEntity.ok(ApiResponse.success("비밀번호가 성공적으로 변경되었습니다."));

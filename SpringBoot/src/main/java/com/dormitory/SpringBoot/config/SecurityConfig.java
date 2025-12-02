@@ -27,7 +27,8 @@ import java.util.Arrays;
 
 /**
  * Spring Security 설정
- * ✅ 수정: allowed-users PUT/DELETE 경로 ADMIN 전용 명시적 설정
+ * ✅ 수정: 비밀번호 변경 경로 명시적 허용 추가
+ * ✅ 수정: 사용자 정보 관련 경로 USER/ADMIN 모두 허용
  */
 @Configuration
 @EnableWebSecurity
@@ -125,6 +126,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/allowed-users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/allowed-users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/allowed-users/**").hasRole("ADMIN")
+
+                        // ✅ [추가] 사용자 정보 관련 - 인증된 사용자 모두 허용 (USER, ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me/password").hasAnyRole("USER", "ADMIN")
 
                         // ✅ 민원 제출 허용 (JWT 필터에서 인증 확인, 컨트롤러에서 권한 확인)
                         .requestMatchers("/api/complaints").permitAll()
