@@ -55,9 +55,10 @@ class ComplaintService {
       final response = await DioClient.post('/complaints', data: formData);
       final responseData = response.data;
 
-      // ✅ ApiResponse 구조 처리: data 필드에서 민원 데이터 추출
+      // ✅ ApiResponse 구조 처리: 'data' 또는 'complaint' 필드에서 민원 데이터 추출
       if (responseData['success'] == true) {
-        final complaintData = responseData['data'];
+        // 'data' 필드 먼저 확인, 없으면 'complaint' 필드 확인
+        final complaintData = responseData['data'] ?? responseData['complaint'];
         if (complaintData != null) {
           print('[ComplaintService] 민원 제출 성공 - ID: ${complaintData['id']}');
           return Complaint.fromJson(complaintData);
@@ -82,15 +83,20 @@ class ComplaintService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final data = responseData['data'];
-
-        // ✅ API 응답 구조: { data: { complaints: [...], count: N } }
+        // ✅ API 응답 구조 다양하게 처리
         List<dynamic> complaintsData = [];
-        if (data is Map && data.containsKey('complaints')) {
-          complaintsData = data['complaints'] ?? [];
-        } else if (data is List) {
-          // 혹시 직접 리스트로 오는 경우 대비
-          complaintsData = data;
+
+        // 1. 최상위 'complaints' 필드 확인 (현재 API 구조)
+        if (responseData.containsKey('complaints') && responseData['complaints'] is List) {
+          complaintsData = responseData['complaints'];
+        }
+        // 2. 'data.complaints' 구조 확인
+        else if (responseData['data'] is Map && responseData['data'].containsKey('complaints')) {
+          complaintsData = responseData['data']['complaints'] ?? [];
+        }
+        // 3. 'data'가 직접 리스트인 경우
+        else if (responseData['data'] is List) {
+          complaintsData = responseData['data'];
         }
 
         print('[ComplaintService] 사용자 민원 ${complaintsData.length}건 조회됨');
@@ -112,15 +118,20 @@ class ComplaintService {
       final responseData = response.data;
 
       if (responseData['success'] == true) {
-        final data = responseData['data'];
-
-        // ✅ API 응답 구조: { data: { complaints: [...], count: N } }
+        // ✅ API 응답 구조 다양하게 처리
         List<dynamic> complaintsData = [];
-        if (data is Map && data.containsKey('complaints')) {
-          complaintsData = data['complaints'] ?? [];
-        } else if (data is List) {
-          // 혹시 직접 리스트로 오는 경우 대비
-          complaintsData = data;
+
+        // 1. 최상위 'complaints' 필드 확인 (현재 API 구조)
+        if (responseData.containsKey('complaints') && responseData['complaints'] is List) {
+          complaintsData = responseData['complaints'];
+        }
+        // 2. 'data.complaints' 구조 확인
+        else if (responseData['data'] is Map && responseData['data'].containsKey('complaints')) {
+          complaintsData = responseData['data']['complaints'] ?? [];
+        }
+        // 3. 'data'가 직접 리스트인 경우
+        else if (responseData['data'] is List) {
+          complaintsData = responseData['data'];
         }
 
         print('[ComplaintService] 민원 ${complaintsData.length}건 조회됨');
@@ -141,8 +152,14 @@ class ComplaintService {
       final response = await DioClient.get('/complaints/$complaintId');
       final responseData = response.data;
 
-      if (responseData['success'] == true && responseData['data'] != null) {
-        return Complaint.fromJson(responseData['data']);
+      if (responseData['success'] == true) {
+        // ✅ 'data' 또는 'complaint' 필드에서 민원 데이터 추출
+        final complaintData = responseData['data'] ?? responseData['complaint'];
+        if (complaintData != null) {
+          return Complaint.fromJson(complaintData);
+        } else {
+          throw Exception('응답에 민원 데이터가 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '민원을 찾을 수 없습니다.');
       }
@@ -171,8 +188,15 @@ class ComplaintService {
 
       final responseData = response.data;
 
-      if (responseData['success'] == true && responseData['data'] != null) {
-        return Complaint.fromJson(responseData['data']);
+      if (responseData['success'] == true) {
+        // ✅ 'data' 또는 'complaint' 필드에서 민원 데이터 추출
+        final complaintData = responseData['data'] ?? responseData['complaint'];
+        if (complaintData != null) {
+          print('[ComplaintService] 민원 상태 업데이트 성공 - ID: $complaintId');
+          return Complaint.fromJson(complaintData);
+        } else {
+          throw Exception('응답에 민원 데이터가 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '상태 업데이트에 실패했습니다.');
       }

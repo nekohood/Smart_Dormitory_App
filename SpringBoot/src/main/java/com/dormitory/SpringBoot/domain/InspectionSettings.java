@@ -5,17 +5,22 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * 점호 설정 엔티티
- * ✅ 수정: inspectionDate 필드 추가 (특정 날짜에만 점호 가능하도록)
+ * ✅ 수정: 한국 시간대(KST) 적용
  */
 @Entity
 @Table(name = "inspection_settings")
 public class InspectionSettings {
+
+    // ✅ 한국 시간대 상수
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -91,15 +96,17 @@ public class InspectionSettings {
     }
 
     /**
-     * ✅ 수정: 현재 날짜와 시간이 점호 허용 범위 내인지 확인
+     * ✅ 수정: 현재 날짜와 시간이 점호 허용 범위 내인지 확인 (한국 시간 기준)
      */
     public boolean isWithinAllowedTime() {
         if (!Boolean.TRUE.equals(isEnabled)) {
             return false;
         }
 
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        // ✅ 한국 시간대 기준으로 현재 날짜/시간 가져오기
+        ZonedDateTime koreaTime = ZonedDateTime.now(KOREA_ZONE);
+        LocalDate today = koreaTime.toLocalDate();
+        LocalTime now = koreaTime.toLocalTime();
 
         // ✅ 점호 날짜가 설정되어 있으면 해당 날짜인지 확인
         if (inspectionDate != null) {
@@ -118,40 +125,42 @@ public class InspectionSettings {
     }
 
     /**
-     * ✅ 신규: 오늘이 점호 날짜인지 확인
+     * ✅ 신규: 오늘이 점호 날짜인지 확인 (한국 시간 기준)
      */
     public boolean isInspectionDateToday() {
         if (inspectionDate == null) {
             return true;  // 날짜 미설정시 매일 점호 가능 (기존 방식)
         }
-        return LocalDate.now().equals(inspectionDate);
+        LocalDate today = ZonedDateTime.now(KOREA_ZONE).toLocalDate();
+        return today.equals(inspectionDate);
     }
 
     /**
-     * ✅ 신규: 점호 날짜까지 남은 일수 계산
+     * ✅ 신규: 점호 날짜까지 남은 일수 계산 (한국 시간 기준)
      */
     public long getDaysUntilInspection() {
         if (inspectionDate == null) {
             return 0;
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = ZonedDateTime.now(KOREA_ZONE).toLocalDate();
         return java.time.temporal.ChronoUnit.DAYS.between(today, inspectionDate);
     }
 
     /**
-     * 현재 요일에 적용되는 설정인지 확인
+     * 현재 요일에 적용되는 설정인지 확인 (한국 시간 기준)
      */
     public boolean isApplicableToday() {
         // ✅ 점호 날짜가 설정되어 있으면 요일 무시
         if (inspectionDate != null) {
-            return LocalDate.now().equals(inspectionDate);
+            return ZonedDateTime.now(KOREA_ZONE).toLocalDate().equals(inspectionDate);
         }
 
         if (applicableDays == null || "ALL".equalsIgnoreCase(applicableDays)) {
             return true;
         }
 
-        DayOfWeek today = LocalDateTime.now().getDayOfWeek();
+        // ✅ 한국 시간대 기준 요일
+        DayOfWeek today = ZonedDateTime.now(KOREA_ZONE).getDayOfWeek();
         String todayStr = today.toString().substring(0, 3);
 
         Set<String> days = Arrays.stream(applicableDays.split(","))
@@ -213,7 +222,6 @@ public class InspectionSettings {
     public Boolean getIsDefault() { return isDefault; }
     public void setIsDefault(Boolean isDefault) { this.isDefault = isDefault; }
 
-    // ✅ 신규
     public Long getScheduleId() { return scheduleId; }
     public void setScheduleId(Long scheduleId) { this.scheduleId = scheduleId; }
 

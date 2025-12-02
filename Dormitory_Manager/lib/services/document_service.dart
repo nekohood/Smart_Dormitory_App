@@ -152,8 +152,14 @@ class DocumentService {
       final response = await DioClient.get('/documents/$documentId');
       final responseData = response.data;
 
-      if (responseData['success'] == true && responseData['data'] != null) {
-        return Document.fromJson(responseData['data']);
+      if (responseData['success'] == true) {
+        // ✅ 'data' 또는 'document' 필드에서 서류 데이터 추출
+        final documentData = responseData['data'] ?? responseData['document'];
+        if (documentData != null) {
+          return Document.fromJson(documentData);
+        } else {
+          throw Exception('응답에 서류 데이터가 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '서류를 찾을 수 없습니다.');
       }
@@ -182,8 +188,15 @@ class DocumentService {
 
       final responseData = response.data;
 
-      if (responseData['success'] == true && responseData['data'] != null) {
-        return Document.fromJson(responseData['data']);
+      if (responseData['success'] == true) {
+        // ✅ 'data' 또는 'document' 필드에서 서류 데이터 추출
+        final documentData = responseData['data'] ?? responseData['document'];
+        if (documentData != null) {
+          print('[DocumentService] 서류 상태 업데이트 성공 - ID: $documentId');
+          return Document.fromJson(documentData);
+        } else {
+          throw Exception('응답에 서류 데이터가 없습니다.');
+        }
       } else {
         throw Exception(responseData['message'] ?? '상태 업데이트에 실패했습니다.');
       }
