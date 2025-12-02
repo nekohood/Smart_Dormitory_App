@@ -5,6 +5,8 @@ import '../models/allowed_user.dart';
 import '../utils/storage_helper.dart';
 
 /// 허용 사용자 관리 서비스
+/// ✅ 수정: CRUD 완전 지원 (Update 기능 추가)
+/// ✅ 수정: 등록된 사용자도 수정/삭제 가능
 class AllowedUserService {
   String? _authToken;
 
@@ -51,7 +53,6 @@ class AllowedUserService {
         throw Exception('파일 데이터를 읽을 수 없습니다');
       }
 
-      // ✅ DioClient static 메서드 사용
       final response = await DioClient.post(
         '/allowed-users/upload-excel',
         data: formData,
@@ -77,7 +78,8 @@ class AllowedUserService {
   Future<AllowedUser> addAllowedUser({
     required String userId,
     required String name,
-    String? roomNumber,
+    required String dormitoryBuilding,
+    required String roomNumber,
     String? phoneNumber,
     String? email,
   }) async {
@@ -90,9 +92,10 @@ class AllowedUserService {
       final requestData = {
         'userId': userId,
         'name': name,
-        if (roomNumber != null) 'roomNumber': roomNumber,
-        if (phoneNumber != null) 'phoneNumber': phoneNumber,
-        if (email != null) 'email': email,
+        'dormitoryBuilding': dormitoryBuilding,
+        'roomNumber': roomNumber,
+        if (phoneNumber != null && phoneNumber.isNotEmpty) 'phoneNumber': phoneNumber,
+        if (email != null && email.isNotEmpty) 'email': email,
       };
 
       final response = await DioClient.post(
@@ -113,6 +116,55 @@ class AllowedUserService {
         throw Exception(e.response!.data['message'] ?? '허용 사용자 추가 실패');
       }
       throw Exception('허용 사용자 추가 중 오류가 발생했습니다');
+    }
+  }
+
+  /// ✅ 허용 사용자 정보 수정
+  /// ✅ 등록된 사용자도 수정 가능
+  Future<AllowedUser> updateAllowedUser({
+    required String userId,
+    String? name,
+    String? dormitoryBuilding,
+    String? roomNumber,
+    String? phoneNumber,
+    String? email,
+  }) async {
+    try {
+      print('[DEBUG] 허용 사용자 수정 요청 - 학번: $userId');
+
+      // 토큰 확인
+      _authToken ??= await StorageHelper.getToken();
+
+      final requestData = <String, dynamic>{};
+      if (name != null && name.isNotEmpty) requestData['name'] = name;
+      if (dormitoryBuilding != null && dormitoryBuilding.isNotEmpty) {
+        requestData['dormitoryBuilding'] = dormitoryBuilding;
+      }
+      if (roomNumber != null && roomNumber.isNotEmpty) {
+        requestData['roomNumber'] = roomNumber;
+      }
+      // phoneNumber와 email은 빈 문자열도 전송 (삭제 용도)
+      if (phoneNumber != null) requestData['phoneNumber'] = phoneNumber;
+      if (email != null) requestData['email'] = email;
+
+      final response = await DioClient.put(
+        '/allowed-users/$userId',
+        data: requestData,
+      );
+
+      print('[DEBUG] 허용 사용자 수정 성공');
+
+      if (response.data['success'] == true && response.data['data'] != null) {
+        return AllowedUser.fromJson(response.data['data']);
+      } else {
+        throw Exception(response.data['message'] ?? '허용 사용자 수정 실패');
+      }
+    } on DioException catch (e) {
+      print('[ERROR] 허용 사용자 수정 실패: ${e.message}');
+      if (e.response?.data != null) {
+        throw Exception(e.response!.data['message'] ?? '허용 사용자 수정 실패');
+      }
+      throw Exception('허용 사용자 수정 중 오류가 발생했습니다');
     }
   }
 
@@ -188,7 +240,8 @@ class AllowedUserService {
     }
   }
 
-  /// 허용 사용자 삭제
+  /// ✅ 허용 사용자 삭제
+  /// ✅ 등록된 사용자도 삭제 가능
   Future<void> deleteAllowedUser(String userId) async {
     try {
       print('[DEBUG] 허용 사용자 삭제 요청 - 학번: $userId');

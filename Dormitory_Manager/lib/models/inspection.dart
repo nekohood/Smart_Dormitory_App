@@ -1,6 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// ✅ UTC → KST 변환 헬퍼 함수
+DateTime _parseToKST(String? dateTimeString) {
+  if (dateTimeString == null) return DateTime.now();
+
+  try {
+    DateTime parsed = DateTime.parse(dateTimeString);
+
+    // 서버에서 UTC로 오는 경우 KST로 변환
+    // DateTime.parse()가 'Z' 접미사나 타임존 정보 없이 파싱하면 local로 처리됨
+    // 하지만 Railway 서버는 UTC 시간을 보내므로 명시적으로 변환 필요
+    if (!dateTimeString.endsWith('Z') && !dateTimeString.contains('+')) {
+      // 타임존 정보가 없으면 UTC로 간주하고 KST(+9)로 변환
+      parsed = parsed.add(const Duration(hours: 9));
+    } else {
+      // 타임존 정보가 있으면 toLocal()로 변환
+      parsed = parsed.toLocal();
+    }
+
+    return parsed;
+  } catch (e) {
+    return DateTime.now();
+  }
+}
+
 /// 기본 점호 모델
 class InspectionModel {
   final int id;
@@ -40,8 +64,9 @@ class InspectionModel {
       geminiFeedback: json['geminiFeedback'],
       adminComment: json['adminComment'],
       isReInspection: json['isReInspection'] ?? false,
-      inspectionDate: DateTime.parse(json['inspectionDate'] ?? DateTime.now().toIso8601String()),
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      // ✅ UTC → KST 변환 적용
+      inspectionDate: _parseToKST(json['inspectionDate']),
+      createdAt: _parseToKST(json['createdAt']),
     );
   }
 
@@ -152,8 +177,9 @@ class AdminInspectionModel {
       geminiFeedback: json['geminiFeedback'],
       adminComment: json['adminComment'],
       isReInspection: json['isReInspection'] ?? false,
-      inspectionDate: DateTime.parse(json['inspectionDate'] ?? DateTime.now().toIso8601String()),
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      // ✅ UTC → KST 변환 적용
+      inspectionDate: _parseToKST(json['inspectionDate']),
+      createdAt: _parseToKST(json['createdAt']),
     );
   }
 
@@ -253,7 +279,8 @@ class InspectionStatistics {
       failedInspections: json['failedInspections'] ?? 0,
       reInspections: json['reInspections'] ?? 0,
       passRate: (json['passRate'] as num?)?.toDouble() ?? 0.0,
-      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+      // ✅ UTC → KST 변환 적용
+      date: _parseToKST(json['date']),
     );
   }
 
@@ -265,178 +292,6 @@ class InspectionStatistics {
       'reInspections': reInspections,
       'passRate': passRate,
       'date': date.toIso8601String(),
-    };
-  }
-}
-
-/// 점호 통계 응답 모델 (API 응답용) - ✅ 수정됨
-class InspectionStatisticsResponse {
-  final bool success;
-  final InspectionStatistics statistics;
-  final String? message;
-
-  InspectionStatisticsResponse({
-    required this.success,
-    required this.statistics,
-    this.message,
-  });
-
-  factory InspectionStatisticsResponse.fromJson(Map<String, dynamic> json) {
-    print('[DEBUG] InspectionStatisticsResponse.fromJson 호출됨');
-    print('[DEBUG] 받은 JSON keys: ${json.keys}');
-
-    // ✅ ApiResponse 구조 처리: data 필드에서 통계 추출
-    Map<String, dynamic>? statisticsData;
-
-    if (json.containsKey('data') && json['data'] != null) {
-      print('[DEBUG] data 필드 발견');
-      statisticsData = json['data'] as Map<String, dynamic>;
-    } else if (json.containsKey('statistics') && json['statistics'] != null) {
-      print('[DEBUG] statistics 필드 발견');
-      statisticsData = json['statistics'] as Map<String, dynamic>;
-    } else {
-      print('[ERROR] data 또는 statistics 필드를 찾을 수 없음');
-      throw Exception('통계 데이터를 찾을 수 없습니다');
-    }
-
-    print('[DEBUG] statisticsData: $statisticsData');
-
-    return InspectionStatisticsResponse(
-      success: json['success'] ?? true,
-      statistics: InspectionStatistics.fromJson(statisticsData),
-      message: json['message'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'statistics': statistics.toJson(),
-      'message': message,
-    };
-  }
-}
-
-/// 점호 수정 요청 모델
-class InspectionUpdateRequest {
-  final int? score;
-  final String? status;
-  final String? geminiFeedback;
-  final String? adminComment;
-  final bool? isReInspection;
-
-  InspectionUpdateRequest({
-    this.score,
-    this.status,
-    this.geminiFeedback,
-    this.adminComment,
-    this.isReInspection,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (score != null) 'score': score,
-      if (status != null) 'status': status,
-      if (geminiFeedback != null) 'geminiFeedback': geminiFeedback,
-      if (adminComment != null) 'adminComment': adminComment,
-      if (isReInspection != null) 'isReInspection': isReInspection,
-    };
-  }
-}
-
-/// 점호 응답 모델 (수정된 버전)
-class InspectionResponse {
-  final bool success;
-  final InspectionModel? inspection;
-  final String? message;
-  final String? error;
-
-  InspectionResponse({
-    required this.success,
-    this.inspection,
-    this.message,
-    this.error,
-  });
-
-  factory InspectionResponse.fromJson(Map<String, dynamic> json) {
-    print('[DEBUG] InspectionResponse.fromJson 호출됨');
-    print('[DEBUG] 받은 JSON: $json');
-
-    bool isSuccess = false;
-    InspectionModel? inspectionModel;
-    String? message;
-    String? errorMessage;
-
-    try {
-      // success 필드 확인
-      if (json.containsKey('success')) {
-        isSuccess = json['success'] == true;
-      }
-
-      // message 추출
-      if (json.containsKey('message') && json['message'] != null) {
-        message = json['message'].toString();
-      }
-
-      // error 처리
-      if (json.containsKey('error') && json['error'] != null) {
-        if (json['error'] is Map) {
-          errorMessage = json['error']['message']?.toString() ?? json['error'].toString();
-        } else {
-          errorMessage = json['error'].toString();
-        }
-        isSuccess = false;
-      }
-
-      // data 필드에서 inspection 추출 (SpringBoot ApiResponse 구조)
-      if (json.containsKey('data') && json['data'] != null) {
-        print('[DEBUG] data 필드 발견: ${json['data']}');
-        try {
-          inspectionModel = InspectionModel.fromJson(json['data']);
-          isSuccess = true; // data가 있으면 성공으로 처리
-        } catch (e) {
-          print('[DEBUG] data에서 InspectionModel 생성 실패: $e');
-        }
-      }
-
-      // inspection 필드에서 직접 추출
-      else if (json.containsKey('inspection') && json['inspection'] != null) {
-        print('[DEBUG] inspection 필드 발견: ${json['inspection']}');
-        try {
-          inspectionModel = InspectionModel.fromJson(json['inspection']);
-          isSuccess = true; // inspection이 있으면 성공으로 처리
-        } catch (e) {
-          print('[DEBUG] inspection에서 InspectionModel 생성 실패: $e');
-        }
-      }
-
-      // 최종 성공 여부 결정 (inspection이 있으면 성공)
-      if (inspectionModel != null) {
-        isSuccess = true;
-      }
-
-      print('[DEBUG] 파싱 결과 - success: $isSuccess, inspection: ${inspectionModel != null}, message: $message, error: $errorMessage');
-
-    } catch (e) {
-      print('[ERROR] InspectionResponse JSON 파싱 오류: $e');
-      errorMessage = 'JSON 파싱 오류: $e';
-      isSuccess = false;
-    }
-
-    return InspectionResponse(
-      success: isSuccess,
-      inspection: inspectionModel,
-      message: message,
-      error: errorMessage,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      if (inspection != null) 'inspection': inspection!.toJson(),
-      if (message != null) 'message': message,
-      if (error != null) 'error': error,
     };
   }
 }
@@ -549,6 +404,178 @@ class TodayInspectionResponse {
       'completed': completed,
       if (inspection != null) 'inspection': inspection!.toJson(),
       'message': message,
+    };
+  }
+}
+
+/// 점호 응답 모델 (수정된 버전)
+class InspectionResponse {
+  final bool success;
+  final InspectionModel? inspection;
+  final String? message;
+  final String? error;
+
+  InspectionResponse({
+    required this.success,
+    this.inspection,
+    this.message,
+    this.error,
+  });
+
+  factory InspectionResponse.fromJson(Map<String, dynamic> json) {
+    print('[DEBUG] InspectionResponse.fromJson 호출됨');
+    print('[DEBUG] 받은 JSON: $json');
+
+    bool isSuccess = false;
+    InspectionModel? inspectionModel;
+    String? message;
+    String? errorMessage;
+
+    try {
+      // success 필드 확인
+      if (json.containsKey('success')) {
+        isSuccess = json['success'] == true;
+      }
+
+      // message 추출
+      if (json.containsKey('message') && json['message'] != null) {
+        message = json['message'].toString();
+      }
+
+      // error 처리
+      if (json.containsKey('error') && json['error'] != null) {
+        if (json['error'] is Map) {
+          errorMessage = json['error']['message']?.toString() ?? json['error'].toString();
+        } else {
+          errorMessage = json['error'].toString();
+        }
+        isSuccess = false;
+      }
+
+      // data 필드에서 inspection 추출 (SpringBoot ApiResponse 구조)
+      if (json.containsKey('data') && json['data'] != null) {
+        print('[DEBUG] data 필드 발견: ${json['data']}');
+        try {
+          inspectionModel = InspectionModel.fromJson(json['data']);
+          isSuccess = true; // data가 있으면 성공으로 처리
+        } catch (e) {
+          print('[DEBUG] data에서 InspectionModel 생성 실패: $e');
+        }
+      }
+
+      // inspection 필드에서 직접 추출
+      else if (json.containsKey('inspection') && json['inspection'] != null) {
+        print('[DEBUG] inspection 필드 발견: ${json['inspection']}');
+        try {
+          inspectionModel = InspectionModel.fromJson(json['inspection']);
+          isSuccess = true; // inspection이 있으면 성공으로 처리
+        } catch (e) {
+          print('[DEBUG] inspection에서 InspectionModel 생성 실패: $e');
+        }
+      }
+
+      // 최종 성공 여부 결정 (inspection이 있으면 성공)
+      if (inspectionModel != null) {
+        isSuccess = true;
+      }
+
+      print('[DEBUG] 파싱 결과 - success: $isSuccess, inspection: ${inspectionModel != null}, message: $message, error: $errorMessage');
+
+    } catch (e) {
+      print('[ERROR] InspectionResponse JSON 파싱 오류: $e');
+      errorMessage = 'JSON 파싱 오류: $e';
+      isSuccess = false;
+    }
+
+    return InspectionResponse(
+      success: isSuccess,
+      inspection: inspectionModel,
+      message: message,
+      error: errorMessage,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      if (inspection != null) 'inspection': inspection!.toJson(),
+      if (message != null) 'message': message,
+      if (error != null) 'error': error,
+    };
+  }
+}
+
+/// 점호 통계 응답 모델 (API 응답용)
+class InspectionStatisticsResponse {
+  final bool success;
+  final InspectionStatistics statistics;
+  final String? message;
+
+  InspectionStatisticsResponse({
+    required this.success,
+    required this.statistics,
+    this.message,
+  });
+
+  factory InspectionStatisticsResponse.fromJson(Map<String, dynamic> json) {
+    print('[DEBUG] InspectionStatisticsResponse.fromJson 호출됨');
+    print('[DEBUG] 받은 JSON keys: ${json.keys}');
+
+    // ApiResponse 구조 처리: data 필드에서 통계 추출
+    Map<String, dynamic>? statisticsData;
+
+    if (json.containsKey('data') && json['data'] != null) {
+      print('[DEBUG] data 필드 발견');
+      statisticsData = json['data'] as Map<String, dynamic>;
+    } else if (json.containsKey('statistics') && json['statistics'] != null) {
+      print('[DEBUG] statistics 필드 발견');
+      statisticsData = json['statistics'] as Map<String, dynamic>;
+    } else {
+      print('[ERROR] data 또는 statistics 필드를 찾을 수 없음');
+      throw Exception('통계 데이터를 찾을 수 없습니다');
+    }
+
+    print('[DEBUG] statisticsData: $statisticsData');
+
+    return InspectionStatisticsResponse(
+      success: json['success'] ?? true,
+      statistics: InspectionStatistics.fromJson(statisticsData),
+      message: json['message'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'statistics': statistics.toJson(),
+      'message': message,
+    };
+  }
+}
+
+/// 점호 수정 요청 모델
+class InspectionUpdateRequest {
+  final int? score;
+  final String? status;
+  final String? geminiFeedback;
+  final String? adminComment;
+  final bool? isReInspection;
+
+  InspectionUpdateRequest({
+    this.score,
+    this.status,
+    this.geminiFeedback,
+    this.adminComment,
+    this.isReInspection,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (score != null) 'score': score,
+      if (status != null) 'status': status,
+      if (geminiFeedback != null) 'geminiFeedback': geminiFeedback,
+      if (adminComment != null) 'adminComment': adminComment,
+      if (isReInspection != null) 'isReInspection': isReInspection,
     };
   }
 }

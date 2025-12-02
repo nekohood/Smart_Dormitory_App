@@ -7,6 +7,7 @@ import java.util.List;
 
 /**
  * 허용된 사용자 관리 관련 요청/응답 DTO
+ * ✅ 수정: UpdateUserRequest 추가 (CRUD 완전 지원)
  */
 public class AllowedUserRequest {
 
@@ -39,6 +40,68 @@ public class AllowedUserRequest {
 
         public void setUserId(String userId) {
             this.userId = userId;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDormitoryBuilding() {
+            return dormitoryBuilding;
+        }
+
+        public void setDormitoryBuilding(String dormitoryBuilding) {
+            this.dormitoryBuilding = dormitoryBuilding;
+        }
+
+        public String getRoomNumber() {
+            return roomNumber;
+        }
+
+        public void setRoomNumber(String roomNumber) {
+            this.roomNumber = roomNumber;
+        }
+
+        public String getPhoneNumber() {
+            return phoneNumber;
+        }
+
+        public void setPhoneNumber(String phoneNumber) {
+            this.phoneNumber = phoneNumber;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
+
+    /**
+     * ✅ 사용자 수정 요청 (신규 추가)
+     */
+    public static class UpdateUserRequest {
+        private String name;
+        private String dormitoryBuilding;
+        private String roomNumber;
+        private String phoneNumber;
+        private String email;
+
+        public UpdateUserRequest() {}
+
+        public UpdateUserRequest(String name, String dormitoryBuilding,
+                                 String roomNumber, String phoneNumber, String email) {
+            this.name = name;
+            this.dormitoryBuilding = dormitoryBuilding;
+            this.roomNumber = roomNumber;
+            this.phoneNumber = phoneNumber;
+            this.email = email;
         }
 
         public String getName() {
@@ -169,7 +232,6 @@ public class AllowedUserRequest {
             this.createdAt = createdAt;
         }
 
-        // Getters and Setters
         public Long getId() {
             return id;
         }

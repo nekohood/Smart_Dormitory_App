@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 
 /**
  * 허용된 사용자 관리 서비스
- * ✅ 수정: 필수 필드 변경 (학번, 이름, 기숙사명, 호실번호)
+ * ✅ 수정: CRUD 완전 지원 (Update 기능 추가)
+ * ✅ 필수 필드: 학번, 이름, 기숙사명, 호실번호
  */
 @Service
 @Transactional
@@ -33,7 +34,7 @@ public class AllowedUserService {
     /**
      * 엑셀 파일로부터 허용 사용자 목록 업로드
      *
-     * ✅ 수정된 엑셀 형식:
+     * ✅ 엑셀 형식:
      * - 필수: 학번(A) | 이름(B) | 기숙사명(C) | 호실번호(D)
      * - 선택: 전화번호(E) | 이메일(F)
      */
@@ -56,7 +57,7 @@ public class AllowedUserService {
                 totalCount++;
 
                 try {
-                    // ✅ 엑셀에서 데이터 읽기 (컬럼 순서)
+                    // 엑셀에서 데이터 읽기 (컬럼 순서)
                     // 필수: 학번(A), 이름(B), 기숙사명(C), 호실번호(D)
                     // 선택: 전화번호(E), 이메일(F)
                     String userId = getCellValueAsString(row.getCell(0));           // A: 학번 (필수)
@@ -66,7 +67,7 @@ public class AllowedUserService {
                     String phoneNumber = getCellValueAsString(row.getCell(4));      // E: 전화번호 (선택)
                     String email = getCellValueAsString(row.getCell(5));            // F: 이메일 (선택)
 
-                    // ✅ 필수 필드 검증 (4개 모두 필수)
+                    // 필수 필드 검증 (4개 모두 필수)
                     if (userId == null || userId.trim().isEmpty()) {
                         errors.add("행 " + (i + 1) + ": 학번이 비어있습니다.");
                         failCount++;
@@ -132,12 +133,12 @@ public class AllowedUserService {
 
     /**
      * 개별 사용자 추가
-     * ✅ 수정: 기숙사명, 호실번호 필수 검증 추가
+     * ✅ 필수 필드: 학번, 이름, 기숙사명, 호실번호
      */
     public AllowedUserRequest.AllowedUserResponse addAllowedUser(AllowedUserRequest.AddUserRequest request) {
         logger.info("허용 사용자 추가 - 학번: {}", request.getUserId());
 
-        // ✅ 필수 필드 검증
+        // 필수 필드 검증
         if (request.getUserId() == null || request.getUserId().trim().isEmpty()) {
             throw new RuntimeException("학번은 필수입니다.");
         }
@@ -173,14 +174,47 @@ public class AllowedUserService {
     }
 
     /**
+     * ✅ 허용 사용자 정보 수정 (신규 추가)
+     */
+    public AllowedUserRequest.AllowedUserResponse updateAllowedUser(
+            String userId, AllowedUserRequest.UpdateUserRequest request) {
+
+        logger.info("허용 사용자 수정 - 학번: {}", userId);
+
+        AllowedUser user = allowedUserRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("허용되지 않은 사용자입니다: " + userId));
+
+        // 수정 가능한 필드 업데이트 (null이 아닌 경우만)
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+        if (request.getDormitoryBuilding() != null && !request.getDormitoryBuilding().trim().isEmpty()) {
+            user.setDormitoryBuilding(request.getDormitoryBuilding().trim());
+        }
+        if (request.getRoomNumber() != null && !request.getRoomNumber().trim().isEmpty()) {
+            user.setRoomNumber(request.getRoomNumber().trim());
+        }
+        // phoneNumber와 email은 빈 문자열도 허용 (null일 때만 무시)
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail().trim().isEmpty() ? null : request.getEmail().trim());
+        }
+
+        AllowedUser saved = allowedUserRepository.save(user);
+        logger.info("허용 사용자 수정 완료 - 학번: {}", userId);
+
+        return convertToResponse(saved);
+    }
+
+    /**
      * 허용 사용자 목록 조회
-     * ✅ 수정: 올바른 클래스명(AllowedUserListResponse) 및 메서드명(findAll) 사용
      */
     @Transactional(readOnly = true)
     public AllowedUserRequest.AllowedUserListResponse getAllAllowedUsers() {
         logger.info("허용 사용자 목록 조회");
 
-        // ✅ findAll() 사용 (Repository에 존재하는 메서드)
         List<AllowedUser> users = allowedUserRepository.findAll();
 
         List<AllowedUserRequest.AllowedUserResponse> responses = users.stream()
@@ -194,7 +228,6 @@ public class AllowedUserService {
         logger.info("허용 사용자 목록 조회 완료 - 전체: {}, 가입완료: {}, 미가입: {}",
                 totalCount, registeredCount, unregisteredCount);
 
-        // ✅ AllowedUserListResponse 사용 (올바른 클래스명)
         return new AllowedUserRequest.AllowedUserListResponse(
                 responses,
                 totalCount,

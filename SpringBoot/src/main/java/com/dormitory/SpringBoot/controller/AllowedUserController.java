@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 허용된 사용자 관리 컨트롤러
+ * ✅ 수정: CRUD 완전 지원 (Update 기능 추가)
  */
 @RestController
 @RequestMapping("/api/allowed-users")
@@ -37,36 +38,36 @@ public class AllowedUserController {
     public ResponseEntity<ApiResponse<?>> uploadExcel(
             @Parameter(description = "엑셀 파일 (.xlsx)", required = true)
             @RequestParam("file") MultipartFile file) {
-        
+
         try {
             logger.info("엑셀 파일 업로드 요청 - 파일명: {}", file.getOriginalFilename());
 
             // 파일 유효성 검사
             if (file.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("파일이 비어있습니다."));
+                        .body(ApiResponse.error("파일이 비어있습니다."));
             }
 
             String filename = file.getOriginalFilename();
             if (filename == null || !filename.endsWith(".xlsx")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("엑셀 파일(.xlsx)만 업로드 가능합니다."));
+                        .body(ApiResponse.error("엑셀 파일(.xlsx)만 업로드 가능합니다."));
             }
 
-            AllowedUserRequest.UploadResponse response = 
-                allowedUserService.uploadAllowedUsersFromExcel(file);
+            AllowedUserRequest.UploadResponse response =
+                    allowedUserService.uploadAllowedUsersFromExcel(file);
 
-            String message = String.format("업로드 완료 - 전체: %d, 성공: %d, 실패: %d", 
-                response.getTotalCount(), 
-                response.getSuccessCount(), 
-                response.getFailCount());
+            String message = String.format("업로드 완료 - 전체: %d, 성공: %d, 실패: %d",
+                    response.getTotalCount(),
+                    response.getSuccessCount(),
+                    response.getFailCount());
 
             return ResponseEntity.ok(ApiResponse.success(message, response));
 
         } catch (Exception e) {
             logger.error("엑셀 파일 업로드 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
@@ -78,23 +79,23 @@ public class AllowedUserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> addAllowedUser(
             @RequestBody AllowedUserRequest.AddUserRequest request) {
-        
+
         try {
             logger.info("허용 사용자 추가 요청 - 학번: {}", request.getUserId());
 
-            AllowedUserRequest.AllowedUserResponse response = 
-                allowedUserService.addAllowedUser(request);
+            AllowedUserRequest.AllowedUserResponse response =
+                    allowedUserService.addAllowedUser(request);
 
             return ResponseEntity.ok(ApiResponse.success("허용 사용자가 추가되었습니다.", response));
 
         } catch (RuntimeException e) {
             logger.error("허용 사용자 추가 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("허용 사용자 추가 중 예기치 않은 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
@@ -108,15 +109,15 @@ public class AllowedUserController {
         try {
             logger.info("허용 사용자 목록 조회 요청");
 
-            AllowedUserRequest.AllowedUserListResponse response = 
-                allowedUserService.getAllAllowedUsers();
+            AllowedUserRequest.AllowedUserListResponse response =
+                    allowedUserService.getAllAllowedUsers();
 
             return ResponseEntity.ok(ApiResponse.success("허용 사용자 목록 조회 성공", response));
 
         } catch (Exception e) {
             logger.error("허용 사용자 목록 조회 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
@@ -129,23 +130,23 @@ public class AllowedUserController {
     public ResponseEntity<ApiResponse<?>> getAllowedUser(
             @Parameter(description = "사용자 ID (학번)", required = true)
             @PathVariable String userId) {
-        
+
         try {
             logger.info("허용 사용자 조회 요청 - 학번: {}", userId);
 
-            AllowedUserRequest.AllowedUserResponse response = 
-                allowedUserService.getAllowedUser(userId);
+            AllowedUserRequest.AllowedUserResponse response =
+                    allowedUserService.getAllowedUser(userId);
 
             return ResponseEntity.ok(ApiResponse.success("허용 사용자 조회 성공", response));
 
         } catch (RuntimeException e) {
             logger.error("허용 사용자 조회 실패 - 학번: {}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("허용 사용자 조회 중 예기치 않은 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
@@ -157,20 +158,50 @@ public class AllowedUserController {
     public ResponseEntity<ApiResponse<?>> checkUserAllowed(
             @Parameter(description = "사용자 ID (학번)", required = true)
             @PathVariable String userId) {
-        
+
         try {
             logger.info("학번 허용 여부 확인 - 학번: {}", userId);
 
             boolean isAllowed = allowedUserService.isUserAllowed(userId);
 
             return ResponseEntity.ok(ApiResponse.success(
-                isAllowed ? "허용된 학번입니다." : "허용되지 않은 학번입니다.", 
-                isAllowed));
+                    isAllowed ? "허용된 학번입니다." : "허용되지 않은 학번입니다.",
+                    isAllowed));
 
         } catch (Exception e) {
             logger.error("학번 허용 여부 확인 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
+        }
+    }
+
+    /**
+     * ✅ 허용 사용자 정보 수정 (관리자 전용) - 신규 추가
+     */
+    @PutMapping("/{userId}")
+    @Operation(summary = "허용 사용자 수정", description = "특정 학번의 허용 사용자 정보를 수정합니다. (관리자 전용)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> updateAllowedUser(
+            @Parameter(description = "사용자 ID (학번)", required = true)
+            @PathVariable String userId,
+            @RequestBody AllowedUserRequest.UpdateUserRequest request) {
+
+        try {
+            logger.info("허용 사용자 수정 요청 - 학번: {}", userId);
+
+            AllowedUserRequest.AllowedUserResponse response =
+                    allowedUserService.updateAllowedUser(userId, request);
+
+            return ResponseEntity.ok(ApiResponse.success("허용 사용자 정보가 수정되었습니다.", response));
+
+        } catch (RuntimeException e) {
+            logger.error("허용 사용자 수정 실패 - 학번: {}, 오류: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("허용 사용자 수정 중 예기치 않은 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 
@@ -183,7 +214,7 @@ public class AllowedUserController {
     public ResponseEntity<ApiResponse<?>> deleteAllowedUser(
             @Parameter(description = "사용자 ID (학번)", required = true)
             @PathVariable String userId) {
-        
+
         try {
             logger.info("허용 사용자 삭제 요청 - 학번: {}", userId);
 
@@ -194,11 +225,11 @@ public class AllowedUserController {
         } catch (RuntimeException e) {
             logger.error("허용 사용자 삭제 실패 - 학번: {}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("허용 사용자 삭제 중 예기치 않은 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.internalServerError(e.getMessage()));
+                    .body(ApiResponse.internalServerError(e.getMessage()));
         }
     }
 }
