@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../api/dio_client.dart';
-import '../data/user_repository.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../services/allowed_user_service.dart';
@@ -235,7 +234,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 if (response.errors.isNotEmpty) ...[
                   SizedBox(height: 16),
                   Text('오류 목록:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Container(
+                  SizedBox(
                     height: 100,
                     child: ListView.builder(
                       itemCount: response.errors.length,

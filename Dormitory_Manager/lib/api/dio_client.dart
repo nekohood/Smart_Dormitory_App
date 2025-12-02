@@ -15,6 +15,7 @@ class DioClient {
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: ApiConfig.connectTimeout,
       receiveTimeout: ApiConfig.receiveTimeout,
+      sendTimeout: ApiConfig.receiveTimeout,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -36,6 +37,8 @@ class DioClient {
 
     _isInitialized = true;
     print('[ApiClient] DioClient 초기화 완료');
+    print('[ApiClient] connectTimeout: ${ApiConfig.connectTimeout.inSeconds}초');
+    print('[ApiClient] receiveTimeout: ${ApiConfig.receiveTimeout.inSeconds}초');
   }
 
   /// 토큰 설정
@@ -67,6 +70,36 @@ class DioClient {
     try {
       print('[DEBUG] POST 요청: $path');
       return await _dio.post(path, data: data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// ✅ POST 요청 (커스텀 timeout 지원) - 파일 업로드용
+  static Future<Response> postWithTimeout(
+      String path, {
+        dynamic data,
+        Duration? timeout,
+      }) async {
+    try {
+      print('[DEBUG] POST 요청 (timeout: ${timeout?.inSeconds ?? 'default'}초): $path');
+
+      // 임시로 timeout 변경
+      final originalReceiveTimeout = _dio.options.receiveTimeout;
+      final originalSendTimeout = _dio.options.sendTimeout;
+
+      if (timeout != null) {
+        _dio.options.receiveTimeout = timeout;
+        _dio.options.sendTimeout = timeout;
+      }
+
+      try {
+        return await _dio.post(path, data: data);
+      } finally {
+        // 원래 timeout으로 복원
+        _dio.options.receiveTimeout = originalReceiveTimeout;
+        _dio.options.sendTimeout = originalSendTimeout;
+      }
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -113,6 +146,13 @@ class DioClient {
     try {
       print('[DEBUG] 파일 업로드 요청: $path');
 
+      // 파일 업로드용 긴 timeout 적용
+      final originalReceiveTimeout = _dio.options.receiveTimeout;
+      final originalSendTimeout = _dio.options.sendTimeout;
+
+      _dio.options.receiveTimeout = ApiConfig.uploadTimeout;
+      _dio.options.sendTimeout = ApiConfig.uploadTimeout;
+
       final formData = FormData();
 
       // 파일 추가
@@ -128,11 +168,17 @@ class DioClient {
         }
       }
 
-      return await _dio.post(
-        path,
-        data: formData,
-        onSendProgress: onSendProgress,
-      );
+      try {
+        return await _dio.post(
+          path,
+          data: formData,
+          onSendProgress: onSendProgress,
+        );
+      } finally {
+        // 원래 timeout으로 복원
+        _dio.options.receiveTimeout = originalReceiveTimeout;
+        _dio.options.sendTimeout = originalSendTimeout;
+      }
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -198,7 +244,6 @@ class DioClient {
           await clearToken();
         } else if (e.response?.statusCode == 403) {
           print('[DEBUG] 403 권한 오류 - 토큰 유지 (권한 부족)');
-          // 403은 토큰은 유효하지만 권한이 없는 경우이므로 토큰을 삭제하지 않음
         }
         handler.next(e);
       },
@@ -235,10 +280,13 @@ class DioClient {
 
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
-        message = '연결 시간이 초과되었습니다.';
+        message = '서버 연결 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
+        break;
+      case DioExceptionType.sendTimeout:
+        message = '데이터 전송 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
         break;
       case DioExceptionType.receiveTimeout:
-        message = '응답 시간이 초과되었습니다.';
+        message = '서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
         break;
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode;
@@ -268,6 +316,9 @@ class DioClient {
         break;
       case DioExceptionType.cancel:
         message = '요청이 취소되었습니다.';
+        break;
+      case DioExceptionType.connectionError:
+        message = '서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.';
         break;
       case DioExceptionType.unknown:
         message = '네트워크 연결을 확인해주세요.';
@@ -305,6 +356,7 @@ class DioClient {
     print('[DEBUG] Headers: ${_dio.options.headers}');
     print('[DEBUG] Connect Timeout: ${_dio.options.connectTimeout}');
     print('[DEBUG] Receive Timeout: ${_dio.options.receiveTimeout}');
+    print('[DEBUG] Send Timeout: ${_dio.options.sendTimeout}');
     print('[DEBUG] 초기화 상태: $_isInitialized');
   }
 }

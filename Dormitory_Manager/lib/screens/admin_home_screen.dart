@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../models/inspection.dart';
 import '../services/inspection_service.dart';
+import '../utils/auth_provider.dart';
 
 // ✅ 화면 임포트
 import 'admin_schedule_screen.dart';
@@ -9,7 +11,7 @@ import 'admin_inspection_screen.dart';
 import 'admin_complaint_screen.dart';
 import 'admin_document_screen.dart';
 import 'admin_inspection_settings_screen.dart';
-import 'admin_room_template_screen.dart';  // ✅ 기준 방 사진 관리 화면
+import 'admin_room_template_screen.dart';
 
 /// 관리자 전용 홈 화면
 class AdminHomeScreen extends StatefulWidget {
@@ -36,6 +38,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _loadDashboardData() async {
     if (!mounted) return;
 
+    // ✅ 로그아웃 상태 체크 - 로그인되어 있지 않으면 API 호출하지 않음
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isAuthenticated) {
+      print('[DEBUG] 관리자 대시보드: 로그인되어 있지 않음 - API 호출 스킵');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -43,15 +52,38 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     try {
       print('[DEBUG] 관리자 대시보드: 데이터 로드 시작');
 
+      // ✅ API 호출 전 다시 한번 mounted 및 인증 상태 체크
+      if (!mounted) return;
+      final authCheck = Provider.of<AuthProvider>(context, listen: false);
+      if (!authCheck.isAuthenticated) {
+        print('[DEBUG] 관리자 대시보드: API 호출 전 로그아웃 감지 - 중단');
+        return;
+      }
+
       final statsResponse = await _inspectionService.getInspectionStatistics(
         date: DateTime.now(),
       );
+
+      // ✅ 응답 후 다시 체크
+      if (!mounted) return;
+      final authCheck2 = Provider.of<AuthProvider>(context, listen: false);
+      if (!authCheck2.isAuthenticated) {
+        print('[DEBUG] 관리자 대시보드: 첫 번째 API 응답 후 로그아웃 감지 - 중단');
+        return;
+      }
 
       final todayResponse = await _inspectionService.getInspectionsByDate(
         DateTime.now(),
       );
 
       if (!mounted) return;
+
+      // ✅ 최종 상태 업데이트 전 인증 체크
+      final authCheck3 = Provider.of<AuthProvider>(context, listen: false);
+      if (!authCheck3.isAuthenticated) {
+        print('[DEBUG] 관리자 대시보드: 두 번째 API 응답 후 로그아웃 감지 - 중단');
+        return;
+      }
 
       setState(() {
         if (statsResponse.success) {
@@ -72,6 +104,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       print('[ERROR] 관리자 대시보드 데이터 로드 실패: $e');
 
       if (mounted) {
+        // ✅ 에러 발생 시에도 인증 상태 체크
+        final authCheck = Provider.of<AuthProvider>(context, listen: false);
+        if (!authCheck.isAuthenticated) {
+          print('[DEBUG] 관리자 대시보드: 에러 발생 but 로그아웃 상태 - 무시');
+          return;
+        }
+
         setState(() {
           _isLoading = false;
         });
@@ -88,6 +127,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ 빌드 시에도 인증 상태 체크
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (!authProvider.isAuthenticated) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('관리자 대시보드'),
@@ -111,13 +160,26 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTodayStatsCard(),
+              // 오늘 날짜 표시
+              Text(
+                DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR').format(DateTime.now()),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
               SizedBox(height: 16),
-              _buildQuickActionsCard(),
-              SizedBox(height: 16),
-              _buildInspectionSettingsCard(),  // ✅ 점호 설정 카드 추가
-              SizedBox(height: 16),
-              _buildRecentInspectionsCard(),
+
+              // 통계 카드들
+              _buildStatsCards(),
+              SizedBox(height: 24),
+
+              // 빠른 메뉴
+              _buildQuickMenuSection(),
+              SizedBox(height: 24),
+
+              // 최근 점호 기록
+              _buildRecentInspectionsSection(),
             ],
           ),
         ),
@@ -125,208 +187,226 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  /// 오늘의 통계 카드
-  Widget _buildTodayStatsCard() {
-    if (_todayStats == null) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: Text(
-              '통계 데이터가 없습니다.',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+  /// 통계 카드들
+  Widget _buildStatsCards() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '오늘의 점호 현황',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
-      );
-    }
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        SizedBox(height: 12),
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.bar_chart, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '오늘의 점호 통계',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Expanded(
+              child: _buildStatCard(
+                '전체',
+                '${_todayStats?.totalInspections ?? 0}건',
+                Colors.blue,
+                Icons.assignment,
+              ),
             ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  '전체',
-                  _todayStats!.totalInspections.toString(),
-                  Colors.blue,
-                  Icons.assignment,
-                ),
-                _buildStatItem(
-                  '통과',
-                  _todayStats!.passedInspections.toString(),
-                  Colors.green,
-                  Icons.check_circle,
-                ),
-                _buildStatItem(
-                  '실패',
-                  _todayStats!.failedInspections.toString(),
-                  Colors.red,
-                  Icons.cancel,
-                ),
-                _buildStatItem(
-                  '통과율',
-                  '${_todayStats!.passRate.toStringAsFixed(0)}%',
-                  Colors.orange,
-                  Icons.percent,
-                ),
-              ],
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                '통과',
+                '${_todayStats?.passedInspections ?? 0}건',
+                Colors.green,
+                Icons.check_circle,
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// 통계 아이템
-  Widget _buildStatItem(String label, String value, Color color, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                '실패',
+                '${_todayStats?.failedInspections ?? 0}건',
+                Colors.red,
+                Icons.cancel,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                '통과율',
+                '${_todayStats?.passRate.toStringAsFixed(1) ?? 0}%',
+                Colors.orange,
+                Icons.percent,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  /// 빠른 작업 카드
-  Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
+  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flash_on, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '빠른 작업',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
                 ),
-              ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-            SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2.5,
-              children: [
-                // ✅ 점호 관리 버튼
-                _buildQuickActionButton(
-                  '점호 관리',
-                  Icons.assignment_turned_in,
-                  Colors.blue,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminInspectionScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 민원 현황 버튼
-                _buildQuickActionButton(
-                  '민원 현황',
-                  Icons.report_problem,
-                  Colors.orange,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminComplaintScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 서류 관리 버튼
-                _buildQuickActionButton(
-                  '서류 관리',
-                  Icons.description,
-                  Colors.green,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminDocumentScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 일정 관리 버튼
-                _buildQuickActionButton(
-                  '일정 관리',
-                  Icons.calendar_today,
-                  Colors.purple,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminScheduleScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 빠른 메뉴 섹션
+  Widget _buildQuickMenuSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '빠른 메뉴',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 12),
+        GridView.count(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          crossAxisCount: 3,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.0,
+          children: [
+            _buildQuickMenuItem(
+              '점호 설정',
+              Icons.settings,
+              Colors.blue,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminInspectionSettingsScreen()),
+              ),
+            ),
+            _buildQuickMenuItem(
+              '기준 사진',
+              Icons.photo_library,
+              Colors.green,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminRoomTemplateScreen()),
+              ),
+            ),
+            _buildQuickMenuItem(
+              '민원 관리',
+              Icons.support_agent,
+              Colors.orange,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminComplaintScreen()),
+              ),
+            ),
+            _buildQuickMenuItem(
+              '서류 관리',
+              Icons.description,
+              Colors.purple,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminDocumentScreen()),
+              ),
+            ),
+            _buildQuickMenuItem(
+              '일정 관리',
+              Icons.calendar_month,
+              Colors.teal,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminScheduleScreen()),
+              ),
+            ),
+            _buildQuickMenuItem(
+              '점호 관리',
+              Icons.checklist,
+              Colors.indigo,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminInspectionScreen()),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickMenuItem(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -334,158 +414,86 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  /// ✅ 점호 설정 카드 (새로 추가)
-  Widget _buildInspectionSettingsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  /// 최근 점호 기록 섹션
+  Widget _buildRecentInspectionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Icon(Icons.settings, color: Colors.teal),
-                SizedBox(width: 8),
-                Text(
-                  '점호 설정',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Text(
+              '최근 점호 기록',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2.5,
-              children: [
-                // ✅ 점호 시간 설정 버튼
-                _buildQuickActionButton(
-                  '점호 시간 설정',
-                  Icons.access_time,
-                  Colors.teal,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminInspectionSettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                // ✅ 기준 사진 관리 버튼 (새로 추가)
-                _buildQuickActionButton(
-                  '기준 사진 관리',
-                  Icons.photo_library,
-                  Colors.indigo,
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminRoomTemplateScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminInspectionScreen()),
+              ),
+              child: Text('전체 보기'),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// 최근 점호 기록 카드
-  Widget _buildRecentInspectionsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.history, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text(
-                      '최근 점호 기록',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AdminInspectionScreen(),
-                      ),
-                    );
-                  },
-                  child: Text('전체보기'),
-                ),
-              ],
+        SizedBox(height: 12),
+        if (_recentInspections.isEmpty)
+          Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
-            SizedBox(height: 12),
-            if (_recentInspections.isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Text(
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.inbox, size: 48, color: Colors.grey[400]),
+                  SizedBox(height: 8),
+                  Text(
                     '오늘 점호 기록이 없습니다.',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
-                ),
-              )
-            else
-              ..._recentInspections.map((inspection) => _buildInspectionItem(inspection)),
-          ],
-        ),
-      ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...List.generate(
+            _recentInspections.length,
+                (index) => _buildInspectionItem(_recentInspections[index]),
+          ),
+      ],
     );
   }
 
-  /// 점호 아이템
   Widget _buildInspectionItem(AdminInspectionModel inspection) {
-    final statusColor = inspection.status == 'PASS' ? Colors.green : Colors.red;
-    final statusText = inspection.status == 'PASS' ? '통과' : '실패';
+    final isPassed = inspection.status == 'PASS';
+    final statusColor = isPassed ? Colors.green : Colors.red;
 
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: statusColor.withOpacity(0.2),
-            child: Text(
-              inspection.score.toString(),
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.bold,
-              ),
+            backgroundColor: statusColor.withOpacity(0.1),
+            child: Icon(
+              isPassed ? Icons.check : Icons.close,
+              color: statusColor,
+              size: 20,
             ),
           ),
           SizedBox(width: 12),
@@ -494,14 +502,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${inspection.userName} (${inspection.userId})',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  inspection.userName.isNotEmpty ? inspection.userName : inspection.userId,
+                  style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '방 번호: ${inspection.roomNumber} | $statusText',
+                  '${inspection.roomNumber}호 • ${inspection.score}점',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -514,44 +519,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             DateFormat('HH:mm').format(inspection.inspectionDate),
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 빠른 작업 버튼
-  Widget _buildQuickActionButton(
-      String label,
-      IconData icon,
-      Color color,
-      VoidCallback onPressed,
-      ) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
-        foregroundColor: color,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis,
+              color: Colors.grey[600],
             ),
           ),
         ],

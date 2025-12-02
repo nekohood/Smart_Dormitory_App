@@ -841,7 +841,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
         ),
         subtitle: Text(
           inspection.inspectionDate != null
-              ? DateFormat('MM월 dd일 HH:mm').format(inspection.inspectionDate!)
+              ? DateFormat('MM월 dd일 HH:mm').format(inspection.inspectionDate)
               : '날짜 없음',
         ),
         trailing: Container(

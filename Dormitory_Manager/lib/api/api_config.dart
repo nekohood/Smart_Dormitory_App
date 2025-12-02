@@ -53,9 +53,12 @@ class ApiConfig {
   static const String documents = '/documents';
   static const String complaints = '/complaints';
 
-  // 연결 시간 설정
-  static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 15);
+  // ✅ 연결 시간 설정 - 파일 업로드 + AI 분석을 위해 증가
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 90);
+
+  // ✅ 파일 업로드용 별도 timeout (점호, 서류 제출 등)
+  static const Duration uploadTimeout = Duration(seconds: 120);
 
   // 서버 상태 확인용 URL
   static String get healthCheckUrl {

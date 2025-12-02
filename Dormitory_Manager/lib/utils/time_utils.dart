@@ -1,5 +1,6 @@
 /// 시간 변환 유틸리티
 /// ✅ Railway 서버가 UTC를 사용하므로 KST(+9)로 변환 필요
+library;
 
 /// UTC → KST 변환 헬퍼 함수
 DateTime parseToKST(String? dateTimeString) {
