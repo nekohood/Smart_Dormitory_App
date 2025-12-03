@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * ✅ 시간 제한, EXIF 검증, 방 사진 검증 기능 통합
  * ✅ 통계 메서드 포함 (getTotalStatistics, getStatisticsByDate)
  * ✅ 기숙사별 점호 현황 테이블 기능 추가
- * ✅ 수동 FAIL/PASS 처리 기능 추가
+ * ✅ 예시 테이블에 다양한 상태(통과/실패/반려/미제출/빈방) 표시 추가
  */
 @Service
 @Transactional
@@ -64,6 +64,7 @@ public class InspectionService {
     @Autowired
     private EncryptionUtil encryptionUtil;
 
+    // ✅ 테이블 설정 서비스 추가
     @Autowired
     private BuildingTableConfigService buildingConfigService;
 
@@ -138,14 +139,13 @@ public class InspectionService {
                     int score = 0;
                     String geminiFeedback = "❌ 오늘 촬영한 사진이 아닙니다. 과거에 촬영된 사진은 점호로 인정되지 않습니다.";
                     String status = "FAIL";
-
                     return saveInspection(userId, finalRoomNumber, imageFile, score, geminiFeedback, status, false);
                 }
 
                 logger.info("EXIF 검증 통과 - 사용자: {}", userId);
             }
 
-            // 5. AI 평가 - GeminiService의 실제 메서드 사용
+            // 5. AI 평가
             int score = geminiService.evaluateInspection(imageFile);
             String geminiFeedback = geminiService.getInspectionFeedback(imageFile);
             String status = score >= passScore ? "PASS" : "FAIL";
@@ -186,7 +186,6 @@ public class InspectionService {
                 throw new RuntimeException("재검 대상이 아닙니다.");
             }
 
-            // AI 평가 - GeminiService의 실제 메서드 사용
             int score = geminiService.evaluateInspection(imageFile);
             String geminiFeedback = geminiService.getInspectionFeedback(imageFile);
             String status = score >= passScore ? "PASS" : "FAIL";
@@ -211,7 +210,6 @@ public class InspectionService {
                                                       MultipartFile imageFile, int score, String geminiFeedback,
                                                       String status, boolean isReInspection) {
         try {
-            // FileService의 실제 메서드 사용
             String imagePath = fileService.uploadImage(imageFile, "inspections");
 
             Inspection inspection = new Inspection();
@@ -261,7 +259,7 @@ public class InspectionService {
     }
 
     /**
-     * 오늘 점호 조회 - ✅ Optional<Response> 반환
+     * 오늘 점호 조회
      */
     @Transactional(readOnly = true)
     public Optional<InspectionRequest.Response> getTodayInspection(String userId) {
@@ -307,7 +305,7 @@ public class InspectionService {
     }
 
     /**
-     * 특정 점호 기록 상세 조회 (관리자용) - ✅ AdminResponse 반환 (Optional 아님)
+     * 특정 점호 기록 상세 조회 (관리자용)
      */
     @Transactional(readOnly = true)
     public InspectionRequest.AdminResponse getInspectionById(Long inspectionId) {
@@ -337,113 +335,59 @@ public class InspectionService {
     @Transactional(readOnly = true)
     public List<InspectionRequest.AdminResponse> getInspectionsByDate(String dateStr) {
         try {
-            logger.info("날짜별 점호 기록 조회 시작 - 날짜: {}", dateStr);
+            logger.info("특정 날짜 점호 기록 조회 - 날짜: {}", dateStr);
 
-            LocalDate localDate = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            LocalDateTime startOfDay = localDate.atStartOfDay();
+            LocalDateTime date = LocalDateTime.parse(dateStr + " 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            List<Inspection> inspections = inspectionRepository.findByInspectionDate(startOfDay);
-
+            List<Inspection> inspections = inspectionRepository.findByInspectionDate(date);
             List<InspectionRequest.AdminResponse> responses = inspections.stream()
                     .map(this::convertToAdminResponse)
                     .collect(Collectors.toList());
 
-            logger.info("날짜별 점호 기록 조회 완료 - 기록 수: {}", responses.size());
+            logger.info("특정 날짜 점호 기록 조회 완료 - 날짜: {}, 기록 수: {}", dateStr, responses.size());
             return responses;
 
         } catch (Exception e) {
-            logger.error("날짜별 점호 기록 조회 실패 - 날짜: {}", dateStr, e);
-            throw new RuntimeException("날짜별 점호 기록 조회 중 오류가 발생했습니다: " + e.getMessage());
+            logger.error("특정 날짜 점호 기록 조회 실패 - 날짜: {}", dateStr, e);
+            throw new RuntimeException("점호 기록 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
-    // ==================== 수정/삭제 관련 메서드 ====================
+    // ==================== 수정/삭제 메서드 ====================
 
     /**
-     * ✅ 신규 추가: 수동 FAIL 처리
-     * 점호 기록을 삭제하지 않고 상태만 FAIL로 변경
+     * 점호 반려 (관리자)
      */
-    public InspectionRequest.AdminResponse manualFailInspection(Long inspectionId, String adminComment) {
+    public void rejectInspection(Long inspectionId, String reason) {
         try {
-            logger.info("수동 FAIL 처리 - ID: {}", inspectionId);
+            logger.info("점호 반려 시작 - ID: {}, 사유: {}", inspectionId, reason);
 
             Inspection inspection = inspectionRepository.findById(inspectionId)
                     .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
 
-            // 상태를 FAIL로 변경
-            inspection.setStatus("FAIL");
-            inspection.setAdminComment(adminComment != null && !adminComment.isEmpty()
-                    ? adminComment
-                    : "관리자에 의해 수동으로 FAIL 처리됨");
-            inspection.setUpdatedAt(LocalDateTime.now());
+            String userId = inspection.getUserId();
 
-            Inspection updated = inspectionRepository.save(inspection);
-            logger.info("수동 FAIL 처리 완료 - ID: {}", inspectionId);
+            // 이미지 파일 삭제
+            if (inspection.getImagePath() != null) {
+                try {
+                    fileService.deleteFile(inspection.getImagePath());
+                    logger.info("점호 이미지 삭제 완료: {}", inspection.getImagePath());
+                } catch (Exception e) {
+                    logger.warn("점호 이미지 삭제 실패: {}", e.getMessage());
+                }
+            }
 
-            return convertToAdminResponse(updated);
-
-        } catch (RuntimeException e) {
-            logger.error("수동 FAIL 처리 실패 - ID: {}", inspectionId, e);
-            throw e;
-        } catch (Exception e) {
-            logger.error("수동 FAIL 처리 중 예기치 않은 오류 - ID: {}", inspectionId, e);
-            throw new RuntimeException("수동 FAIL 처리 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * ✅ 신규 추가: 수동 PASS 처리
-     * 점호 기록을 삭제하지 않고 상태만 PASS로 변경
-     */
-    public InspectionRequest.AdminResponse manualPassInspection(Long inspectionId, String adminComment) {
-        try {
-            logger.info("수동 PASS 처리 - ID: {}", inspectionId);
-
-            Inspection inspection = inspectionRepository.findById(inspectionId)
-                    .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
-
-            // 상태를 PASS로 변경
-            inspection.setStatus("PASS");
-            inspection.setAdminComment(adminComment != null && !adminComment.isEmpty()
-                    ? adminComment
-                    : "관리자에 의해 수동으로 PASS 처리됨");
-            inspection.setUpdatedAt(LocalDateTime.now());
-
-            Inspection updated = inspectionRepository.save(inspection);
-            logger.info("수동 PASS 처리 완료 - ID: {}", inspectionId);
-
-            return convertToAdminResponse(updated);
-
-        } catch (RuntimeException e) {
-            logger.error("수동 PASS 처리 실패 - ID: {}", inspectionId, e);
-            throw e;
-        } catch (Exception e) {
-            logger.error("수동 PASS 처리 중 예기치 않은 오류 - ID: {}", inspectionId, e);
-            throw new RuntimeException("수동 PASS 처리 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 점호 반려 처리 (삭제)
-     */
-    public void rejectInspection(Long inspectionId, String rejectReason) {
-        try {
-            logger.info("점호 반려 처리 - ID: {}, 사유: {}", inspectionId, rejectReason);
-
-            Inspection inspection = inspectionRepository.findById(inspectionId)
-                    .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
-
-            // 반려 시 점호 기록 삭제
+            // 점호 기록 삭제
             inspectionRepository.delete(inspection);
-
-            logger.info("점호 반려(삭제) 완료 - ID: {}", inspectionId);
+            logger.info("점호 반려 완료 - ID: {}, 사용자: {}", inspectionId, userId);
 
         } catch (RuntimeException e) {
-            logger.error("점호 반려 처리 실패 - ID: {}", inspectionId, e);
+            logger.error("점호 반려 실패 - ID: {}", inspectionId, e);
             throw e;
         } catch (Exception e) {
-            logger.error("점호 반려 처리 중 예기치 않은 오류 - ID: {}", inspectionId, e);
-            throw new RuntimeException("점호 반려 처리 중 오류가 발생했습니다: " + e.getMessage());
+            logger.error("점호 반려 중 예기치 않은 오류 발생 - ID: {}", inspectionId, e);
+            throw new RuntimeException("점호 반려 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -452,30 +396,40 @@ public class InspectionService {
      */
     public void deleteInspection(Long inspectionId) {
         try {
-            logger.info("점호 삭제 - ID: {}", inspectionId);
+            logger.info("점호 삭제 시작 - ID: {}", inspectionId);
 
-            if (!inspectionRepository.existsById(inspectionId)) {
-                throw new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId);
+            Inspection inspection = inspectionRepository.findById(inspectionId)
+                    .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
+
+            // 이미지 파일 삭제
+            if (inspection.getImagePath() != null) {
+                try {
+                    fileService.deleteFile(inspection.getImagePath());
+                    logger.info("점호 이미지 삭제 완료: {}", inspection.getImagePath());
+                } catch (Exception e) {
+                    logger.warn("이미지 파일 삭제 실패: {}", e.getMessage());
+                }
             }
 
-            inspectionRepository.deleteById(inspectionId);
+            // 점호 기록 삭제
+            inspectionRepository.delete(inspection);
             logger.info("점호 삭제 완료 - ID: {}", inspectionId);
 
         } catch (RuntimeException e) {
             logger.error("점호 삭제 실패 - ID: {}", inspectionId, e);
             throw e;
         } catch (Exception e) {
-            logger.error("점호 삭제 중 예기치 않은 오류 - ID: {}", inspectionId, e);
+            logger.error("점호 삭제 중 예기치 않은 오류 발생 - ID: {}", inspectionId, e);
             throw new RuntimeException("점호 삭제 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
     /**
-     * 점호 기록 수정 (관리자용)
+     * 점호 기록 수정
      */
     public InspectionRequest.AdminResponse updateInspection(Long inspectionId, Map<String, Object> updateData) {
         try {
-            logger.info("점호 기록 수정 - ID: {}", inspectionId);
+            logger.info("점호 기록 수정 시작 - ID: {}", inspectionId);
 
             Inspection inspection = inspectionRepository.findById(inspectionId)
                     .orElseThrow(() -> new RuntimeException("점호 기록을 찾을 수 없습니다: " + inspectionId));
@@ -574,8 +528,8 @@ public class InspectionService {
         try {
             logger.info("날짜별 통계 조회 시작 - 날짜: {}", dateStr);
 
-            LocalDate localDate = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            LocalDateTime date = localDate.atStartOfDay();
+            LocalDateTime date = LocalDateTime.parse(dateStr + " 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             long total = inspectionRepository.countTotalInspectionsByDate(date);
             long passed = inspectionRepository.countPassedInspectionsByDate(date);
@@ -598,78 +552,283 @@ public class InspectionService {
     // ==================== 기숙사별 점호 현황 테이블 메서드 ====================
 
     /**
-     * 기숙사별 점호 현황 테이블 데이터 조회
+     * ✅ 기숙사별 점호 현황 테이블 데이터 조회 (테이블 설정 적용)
+     * 층/호실 매트릭스 형태로 점호 상태 반환
+     * ✅ 수정: 예시 테이블에 다양한 상태(통과/실패/반려/미제출/빈방) 표시
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getBuildingInspectionStatus(String building, String dateStr) {
         try {
-            logger.info("기숙사별 점호 현황 조회 - 동: {}, 날짜: {}", building, dateStr);
+            logger.info("기숙사별 점호 현황 조회 시작 - 동: {}, 날짜: {}", building, dateStr);
 
+            // 날짜 파싱 (없으면 오늘)
             LocalDate targetDate;
             if (dateStr == null || dateStr.isEmpty()) {
                 targetDate = LocalDate.now();
             } else {
-                targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                targetDate = LocalDate.parse(dateStr);
             }
 
             LocalDateTime startOfDay = targetDate.atStartOfDay();
             LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
 
-            // 해당 동의 사용자 조회
+            // ✅ 테이블 설정 조회 (없으면 예시용 기본값)
+            BuildingTableConfig tableConfig = buildingConfigService.getConfigOrDefault(building);
+
+            // 기본값 여부 확인
+            boolean isDefaultConfig = (tableConfig.getId() == null);
+
+            int startFloor = tableConfig.getStartFloor();
+            int endFloor = tableConfig.getEndFloor();
+            int startRoom = tableConfig.getStartRoom();
+            int endRoom = tableConfig.getEndRoom();
+            String roomNumberFormat = tableConfig.getRoomNumberFormat();
+
+            logger.info("테이블 설정 - 층: {}~{}, 호실: {}~{}, 형식: {}, 예시: {}",
+                    startFloor, endFloor, startRoom, endRoom, roomNumberFormat, isDefaultConfig);
+
+            // 해당 기숙사의 모든 사용자 조회
             List<User> buildingUsers = userRepository.findByDormitoryBuildingAndIsActiveTrue(building);
 
             // 해당 날짜의 점호 기록 조회
             List<Inspection> inspections = inspectionRepository.findByInspectionDateBetween(startOfDay, endOfDay);
 
-            // 사용자별 점호 상태 매핑
+            // 해당 기숙사 사용자들의 점호 기록만 필터링
             Map<String, Inspection> userInspectionMap = inspections.stream()
-                    .filter(i -> building.equals(getUserBuilding(i.getUserId())))
+                    .filter(i -> buildingUsers.stream().anyMatch(u -> u.getId().equals(i.getUserId())))
                     .collect(Collectors.toMap(
                             Inspection::getUserId,
                             i -> i,
                             (existing, replacement) -> replacement
                     ));
 
-            // 층별 호실 매트릭스 생성
-            Map<Integer, Map<String, Object>> floorMatrix = new LinkedHashMap<>();
-
-            for (User user : buildingUsers) {
-                String roomNumber = user.getRoomNumber();
-                if (roomNumber == null || roomNumber.isEmpty()) continue;
-
-                int floor;
-                try {
-                    floor = Integer.parseInt(roomNumber.substring(0, 1));
-                } catch (Exception e) {
-                    continue;
-                }
-
-                floorMatrix.computeIfAbsent(floor, k -> new LinkedHashMap<>());
-
-                Inspection inspection = userInspectionMap.get(user.getId());
-                String status = inspection != null ? inspection.getStatus() : "NOT_SUBMITTED";
-
-                Map<String, Object> roomInfo = new HashMap<>();
-                roomInfo.put("roomNumber", roomNumber);
-                roomInfo.put("userName", user.getName());
-                roomInfo.put("status", status);
-                roomInfo.put("score", inspection != null ? inspection.getScore() : null);
-
-                floorMatrix.get(floor).put(roomNumber, roomInfo);
+            // ✅ 동적 층/호실 목록 생성
+            List<Integer> floors = new ArrayList<>();
+            for (int f = startFloor; f <= endFloor; f++) {
+                floors.add(f);
             }
 
+            List<Integer> rooms = new ArrayList<>();
+            for (int r = startRoom; r <= endRoom; r++) {
+                rooms.add(r);
+            }
+
+            // ✅ 예시 테이블용 상태 배열 (다양한 상태 순환 표시)
+            String[] exampleStatuses = {"PASS", "FAIL", "NOT_SUBMITTED", "REJECTED", "EMPTY"};
+            String[] exampleStatusTexts = {"통과", "실패", "미제출", "반려", "빈 방"};
+            String[] exampleDescriptions = {
+                    "점호 통과",
+                    "점호 실패",
+                    "점호 미제출",
+                    "점호 반려",
+                    "빈 방"
+            };
+            int[] exampleScores = {85, 45, 0, 30, 0};
+            int exampleStatusIndex = 0;
+
+            // 호실별 상태 매트릭스 생성
+            Map<String, Map<String, Object>> matrix = new LinkedHashMap<>();
+
+            for (int floor : floors) {
+                Map<String, Object> floorData = new LinkedHashMap<>();
+
+                for (int room : rooms) {
+                    // ✅ 방 번호 형식에 따라 생성
+                    String roomNumber;
+                    if ("FLOOR_ZERO_ROOM".equals(roomNumberFormat)) {
+                        roomNumber = String.valueOf(floor * 1000 + room);
+                    } else {
+                        roomNumber = String.valueOf(floor * 100 + room);
+                    }
+
+                    Map<String, Object> roomStatus = new HashMap<>();
+                    roomStatus.put("roomNumber", roomNumber);
+                    roomStatus.put("floor", floor);
+                    roomStatus.put("room", room);
+
+                    // ✅ 예시 테이블일 경우 다양한 상태 표시
+                    if (isDefaultConfig) {
+                        String status = exampleStatuses[exampleStatusIndex % exampleStatuses.length];
+                        String statusText = exampleStatusTexts[exampleStatusIndex % exampleStatusTexts.length];
+                        String description = exampleDescriptions[exampleStatusIndex % exampleDescriptions.length];
+                        int score = exampleScores[exampleStatusIndex % exampleScores.length];
+
+                        roomStatus.put("status", status);
+                        roomStatus.put("statusText", statusText);
+                        roomStatus.put("description", description);  // ✅ 상태 설명 추가
+
+                        // 빈 방이 아닌 경우 예시 사용자 데이터 추가
+                        if (!"EMPTY".equals(status)) {
+                            roomStatus.put("userCount", 1);
+                            roomStatus.put("submittedCount", "NOT_SUBMITTED".equals(status) ? 0 : 1);
+
+                            // 예시 사용자 정보
+                            List<Map<String, Object>> exampleUsers = new ArrayList<>();
+                            Map<String, Object> exampleUser = new HashMap<>();
+                            exampleUser.put("userId", "example_user_" + roomNumber);
+                            exampleUser.put("userName", "예시학생" + roomNumber);
+                            exampleUser.put("inspectionStatus", status);
+                            exampleUser.put("statusText", statusText);
+
+                            // 제출한 경우 점호 정보 추가
+                            if (!"NOT_SUBMITTED".equals(status)) {
+                                Map<String, Object> exampleInspection = new HashMap<>();
+                                exampleInspection.put("score", score);
+                                exampleInspection.put("inspectionDate", LocalDateTime.now().minusHours(2).toString());
+                                exampleInspection.put("geminiFeedback", getExampleFeedback(status));
+                                exampleUser.put("inspection", exampleInspection);
+                            }
+
+                            exampleUsers.add(exampleUser);
+                            roomStatus.put("users", exampleUsers);
+                        } else {
+                            roomStatus.put("userCount", 0);
+                            roomStatus.put("submittedCount", 0);
+                        }
+
+                        exampleStatusIndex++;
+                    } else {
+                        // ✅ 실제 데이터 처리 (기존 로직)
+                        // 해당 호실의 사용자 찾기
+                        List<User> roomUsers = buildingUsers.stream()
+                                .filter(u -> roomNumber.equals(u.getRoomNumber()))
+                                .collect(Collectors.toList());
+
+                        if (roomUsers.isEmpty()) {
+                            roomStatus.put("status", "EMPTY");
+                            roomStatus.put("statusText", "빈 방");
+                            roomStatus.put("userCount", 0);
+                        } else {
+                            List<Map<String, Object>> userStatuses = new ArrayList<>();
+                            String overallStatus = "NOT_SUBMITTED";
+
+                            boolean hasPass = false;
+                            boolean hasFail = false;
+                            boolean hasRejected = false;
+                            boolean hasPending = false;
+                            int submittedCount = 0;
+
+                            for (User user : roomUsers) {
+                                Map<String, Object> userStatus = new HashMap<>();
+                                userStatus.put("userId", user.getId());
+                                userStatus.put("userName", decryptUserName(user.getName()));
+
+                                Inspection inspection = userInspectionMap.get(user.getId());
+
+                                if (inspection != null) {
+                                    submittedCount++;
+                                    userStatus.put("inspectionId", inspection.getId());
+                                    userStatus.put("inspectionStatus", inspection.getStatus());
+                                    userStatus.put("statusText", getStatusText(inspection.getStatus()));
+                                    userStatus.put("score", inspection.getScore());
+                                    userStatus.put("inspectionTime", inspection.getInspectionDate());
+
+                                    // ✅ inspection 상세 정보 추가
+                                    Map<String, Object> inspectionData = new HashMap<>();
+                                    inspectionData.put("id", inspection.getId());
+                                    inspectionData.put("score", inspection.getScore());
+                                    inspectionData.put("status", inspection.getStatus());
+                                    inspectionData.put("geminiFeedback", inspection.getGeminiFeedback());
+                                    inspectionData.put("inspectionDate", inspection.getInspectionDate());
+                                    userStatus.put("inspection", inspectionData);
+
+                                    String status = inspection.getStatus();
+                                    if ("PASS".equals(status)) hasPass = true;
+                                    else if ("FAIL".equals(status)) hasFail = true;
+                                    else if ("REJECTED".equals(status)) hasRejected = true;
+                                    else if ("PENDING".equals(status)) hasPending = true;
+                                } else {
+                                    userStatus.put("inspectionStatus", "NOT_SUBMITTED");
+                                    userStatus.put("statusText", "미제출");
+                                }
+
+                                userStatuses.add(userStatus);
+                            }
+
+                            // 호실 전체 상태 결정
+                            if (hasRejected) overallStatus = "REJECTED";
+                            else if (hasFail) overallStatus = "FAIL";
+                            else if (hasPending) overallStatus = "PENDING";
+                            else if (submittedCount < roomUsers.size()) overallStatus = "NOT_SUBMITTED";
+                            else if (hasPass && submittedCount == roomUsers.size()) overallStatus = "PASS";
+
+                            roomStatus.put("status", overallStatus);
+                            roomStatus.put("statusText", getStatusText(overallStatus));
+                            roomStatus.put("userCount", roomUsers.size());
+                            roomStatus.put("submittedCount", submittedCount);
+                            roomStatus.put("users", userStatuses);
+                        }
+                    }
+
+                    floorData.put(String.valueOf(room), roomStatus);
+                }
+
+                matrix.put(String.valueOf(floor), floorData);
+            }
+
+            // 통계 정보
+            Map<String, Object> statistics = new HashMap<>();
+            int totalRooms = 0;
+            int passCount = 0;
+            int failCount = 0;
+            int rejectedCount = 0;
+            int pendingCount = 0;
+            int notSubmittedCount = 0;
+            int emptyCount = 0;
+
+            for (Map.Entry<String, Map<String, Object>> floorEntry : matrix.entrySet()) {
+                for (Map.Entry<String, Object> roomEntry : floorEntry.getValue().entrySet()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> roomData = (Map<String, Object>) roomEntry.getValue();
+                    String status = (String) roomData.get("status");
+
+                    totalRooms++;
+                    switch (status) {
+                        case "PASS": passCount++; break;
+                        case "FAIL": failCount++; break;
+                        case "REJECTED": rejectedCount++; break;
+                        case "PENDING": pendingCount++; break;
+                        case "NOT_SUBMITTED": notSubmittedCount++; break;
+                        case "EMPTY": emptyCount++; break;
+                    }
+                }
+            }
+
+            statistics.put("totalRooms", totalRooms);
+            statistics.put("occupiedRooms", totalRooms - emptyCount);
+            statistics.put("passCount", passCount);
+            statistics.put("failCount", failCount);
+            statistics.put("rejectedCount", rejectedCount);
+            statistics.put("pendingCount", pendingCount);
+            statistics.put("notSubmittedCount", notSubmittedCount);
+            statistics.put("emptyCount", emptyCount);
+
+            // 결과 구성
             Map<String, Object> result = new HashMap<>();
             result.put("building", building);
             result.put("date", targetDate.toString());
-            result.put("floorMatrix", floorMatrix);
-            result.put("totalUsers", buildingUsers.size());
-            result.put("submittedCount", userInspectionMap.size());
-            result.put("passedCount", userInspectionMap.values().stream()
-                    .filter(i -> "PASS".equals(i.getStatus())).count());
-            result.put("failedCount", userInspectionMap.values().stream()
-                    .filter(i -> "FAIL".equals(i.getStatus())).count());
+            result.put("matrix", matrix);
+            result.put("statistics", statistics);
+            result.put("floors", floors);
+            result.put("rooms", rooms);
 
-            logger.info("기숙사별 점호 현황 조회 완료 - 동: {}", building);
+            // ✅ 테이블 설정 정보 추가
+            Map<String, Object> configInfo = new HashMap<>();
+            configInfo.put("startFloor", startFloor);
+            configInfo.put("endFloor", endFloor);
+            configInfo.put("startRoom", startRoom);
+            configInfo.put("endRoom", endRoom);
+            configInfo.put("roomNumberFormat", roomNumberFormat);
+            configInfo.put("configId", tableConfig.getId());
+            configInfo.put("isDefault", isDefaultConfig);  // ✅ 기본값 여부
+            if (isDefaultConfig) {
+                configInfo.put("message", "⚠️ 예시 테이블입니다. 설정 버튼을 눌러 실제 층/호실 범위를 설정해주세요.");
+            }
+            result.put("tableConfig", configInfo);
+
+            logger.info("기숙사별 점호 현황 조회 완료 - 동: {}, 통과: {}, 실패: {}, 미제출: {}",
+                    building, passCount, failCount, notSubmittedCount);
+
             return result;
 
         } catch (Exception e) {
@@ -679,12 +838,13 @@ public class InspectionService {
     }
 
     /**
-     * 기숙사 동 목록 조회
+     * 전체 기숙사 동 목록 조회
+     * ✅ 사용자 데이터 + 테이블 설정 모두에서 기숙사 목록을 가져옴
      */
     @Transactional(readOnly = true)
     public List<String> getAllBuildings() {
         try {
-            logger.info("기숙사 동 목록 조회 시작");
+            logger.info("전체 기숙사 동 목록 조회");
 
             // 1. 사용자 데이터에서 기숙사 목록 조회
             List<String> userBuildings = userRepository.findDistinctDormitoryBuildings();
@@ -709,29 +869,178 @@ public class InspectionService {
 
             List<String> result = new ArrayList<>(allBuildings);
 
-            logger.info("기숙사 동 목록 조회 완료 - {}개 동", result.size());
-            return result;
+            logger.info("기숙사 동 목록 조회 완료 - {}개 동 (사용자: {}, 설정: {})",
+                    result.size(),
+                    userBuildings != null ? userBuildings.size() : 0,
+                    configBuildings.size());
 
+            return result;
         } catch (Exception e) {
             logger.error("기숙사 동 목록 조회 실패", e);
             throw new RuntimeException("기숙사 동 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
-    // ==================== 유틸리티 메서드 ====================
+    /**
+     * 특정 호실의 점호 상세 정보 조회
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRoomInspectionDetail(String building, String roomNumber, String dateStr) {
+        try {
+            logger.info("호실 점호 상세 조회 - 동: {}, 호실: {}, 날짜: {}", building, roomNumber, dateStr);
+
+            LocalDate targetDate;
+            if (dateStr == null || dateStr.isEmpty()) {
+                targetDate = LocalDate.now();
+            } else {
+                targetDate = LocalDate.parse(dateStr);
+            }
+
+            LocalDateTime startOfDay = targetDate.atStartOfDay();
+            LocalDateTime endOfDay = targetDate.atTime(23, 59, 59);
+
+            // 해당 호실의 사용자들 조회
+            List<User> roomUsers = userRepository.findByDormitoryBuildingAndRoomNumberAndIsActiveTrue(building, roomNumber);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("building", building);
+            result.put("roomNumber", roomNumber);
+            result.put("date", targetDate.toString());
+            result.put("userCount", roomUsers.size());
+
+            if (roomUsers.isEmpty()) {
+                result.put("overallStatus", "EMPTY");
+                result.put("statusText", "빈 방");
+                result.put("users", List.of());
+                return result;
+            }
+
+            List<Map<String, Object>> userDetails = new ArrayList<>();
+
+            for (User user : roomUsers) {
+                Map<String, Object> userDetail = new HashMap<>();
+                userDetail.put("userId", user.getId());
+                userDetail.put("userName", decryptUserName(user.getName()));
+
+                // 해당 날짜의 점호 기록 조회
+                List<Inspection> inspections = inspectionRepository.findByUserIdAndInspectionDateBetween(
+                        user.getId(), startOfDay, endOfDay);
+
+                if (inspections.isEmpty()) {
+                    userDetail.put("inspectionStatus", "NOT_SUBMITTED");
+                    userDetail.put("statusText", "미제출");
+                    userDetail.put("inspection", null);
+                } else {
+                    Inspection inspection = inspections.get(0);
+                    userDetail.put("inspectionStatus", inspection.getStatus());
+                    userDetail.put("statusText", getStatusText(inspection.getStatus()));
+
+                    Map<String, Object> inspectionData = new HashMap<>();
+                    inspectionData.put("id", inspection.getId());
+                    inspectionData.put("score", inspection.getScore());
+                    inspectionData.put("status", inspection.getStatus());
+                    inspectionData.put("geminiFeedback", inspection.getGeminiFeedback());
+                    inspectionData.put("adminComment", inspection.getAdminComment());
+                    inspectionData.put("imagePath", inspection.getImagePath());
+                    inspectionData.put("inspectionDate", inspection.getInspectionDate());
+
+                    userDetail.put("inspection", inspectionData);
+                }
+
+                userDetails.add(userDetail);
+            }
+
+            // 전체 상태 결정
+            String overallStatus = determineOverallStatus(userDetails);
+            result.put("overallStatus", overallStatus);
+            result.put("statusText", getStatusText(overallStatus));
+            result.put("users", userDetails);
+
+            return result;
+
+        } catch (Exception e) {
+            logger.error("호실 점호 상세 조회 실패", e);
+            throw new RuntimeException("호실 점호 상세 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    // ==================== 헬퍼 메서드 ====================
 
     /**
-     * 사용자 ID로 기숙사 동 조회
+     * 상태 코드를 텍스트로 변환
      */
-    private String getUserBuilding(String userId) {
-        return userRepository.findById(userId)
-                .map(User::getDormitoryBuilding)
-                .orElse(null);
+    private String getStatusText(String status) {
+        switch (status) {
+            case "PASS": return "통과";
+            case "FAIL": return "실패";
+            case "REJECTED": return "반려";
+            case "PENDING": return "검토중";
+            case "NOT_SUBMITTED": return "미제출";
+            case "EMPTY": return "빈 방";
+            default: return status;
+        }
     }
 
     /**
-     * Inspection -> Response 변환
+     * ✅ 예시 테이블용 AI 피드백 생성
      */
+    private String getExampleFeedback(String status) {
+        switch (status) {
+            case "PASS":
+                return "방이 깨끗하게 정리되어 있습니다. 침대 정돈 상태와 바닥 청결도가 양호합니다.";
+            case "FAIL":
+                return "책상 위에 물건이 정리되지 않았고, 바닥에 쓰레기가 보입니다. 재정리 후 재검을 요청해주세요.";
+            case "REJECTED":
+                return "제출된 사진이 흐릿하거나 방 전체가 보이지 않습니다. 다시 촬영하여 제출해주세요.";
+            default:
+                return "";
+        }
+    }
+
+    /**
+     * 암호화된 사용자 이름 복호화
+     */
+    private String decryptUserName(String encryptedName) {
+        if (encryptedName == null) return "Unknown";
+        try {
+            return encryptionUtil.decrypt(encryptedName);
+        } catch (Exception e) {
+            logger.warn("사용자 이름 복호화 실패: {}", e.getMessage());
+            return encryptedName;
+        }
+    }
+
+    /**
+     * 호실 전체 상태 결정
+     */
+    private String determineOverallStatus(List<Map<String, Object>> userDetails) {
+        boolean hasPass = false;
+        boolean hasFail = false;
+        boolean hasRejected = false;
+        boolean hasPending = false;
+        boolean hasNotSubmitted = false;
+
+        for (Map<String, Object> user : userDetails) {
+            String status = (String) user.get("inspectionStatus");
+            switch (status) {
+                case "PASS": hasPass = true; break;
+                case "FAIL": hasFail = true; break;
+                case "REJECTED": hasRejected = true; break;
+                case "PENDING": hasPending = true; break;
+                case "NOT_SUBMITTED": hasNotSubmitted = true; break;
+            }
+        }
+
+        if (hasRejected) return "REJECTED";
+        if (hasFail) return "FAIL";
+        if (hasPending) return "PENDING";
+        if (hasNotSubmitted) return "NOT_SUBMITTED";
+        if (hasPass) return "PASS";
+        return "EMPTY";
+    }
+
+    // ==================== 변환 메서드 ====================
+
     private InspectionRequest.Response convertToResponse(Inspection inspection) {
         InspectionRequest.Response response = new InspectionRequest.Response();
         response.setId(inspection.getId());
@@ -745,26 +1054,14 @@ public class InspectionService {
         response.setIsReInspection(inspection.getIsReInspection());
         response.setInspectionDate(inspection.getInspectionDate());
         response.setCreatedAt(inspection.getCreatedAt());
+        response.setUpdatedAt(inspection.getUpdatedAt());
         return response;
     }
 
-    /**
-     * Inspection -> AdminResponse 변환
-     */
     private InspectionRequest.AdminResponse convertToAdminResponse(Inspection inspection) {
-        String userName = userRepository.findById(inspection.getUserId())
-                .map(User::getName)
-                .orElse("알 수 없음");
-
-        String dormitoryBuilding = userRepository.findById(inspection.getUserId())
-                .map(User::getDormitoryBuilding)
-                .orElse(null);
-
         InspectionRequest.AdminResponse response = new InspectionRequest.AdminResponse();
         response.setId(inspection.getId());
         response.setUserId(inspection.getUserId());
-        response.setUserName(userName);
-        response.setDormitoryBuilding(dormitoryBuilding);
         response.setRoomNumber(inspection.getRoomNumber());
         response.setImagePath(inspection.getImagePath());
         response.setScore(inspection.getScore());
@@ -774,6 +1071,26 @@ public class InspectionService {
         response.setIsReInspection(inspection.getIsReInspection());
         response.setInspectionDate(inspection.getInspectionDate());
         response.setCreatedAt(inspection.getCreatedAt());
+        response.setUpdatedAt(inspection.getUpdatedAt());
+
+        // 사용자 이름 조회 및 복호화
+        try {
+            Optional<User> user = userRepository.findById(inspection.getUserId());
+            if (user.isPresent()) {
+                User u = user.get();
+                if (u.getName() != null) {
+                    response.setUserName(decryptUserName(u.getName()));
+                } else {
+                    response.setUserName(u.getId());
+                }
+                response.setDormitoryBuilding(u.getDormitoryBuilding());
+            } else {
+                response.setUserName(inspection.getUserId());
+            }
+        } catch (Exception e) {
+            logger.warn("사용자 정보 조회 실패 - 사용자ID: {}", inspection.getUserId());
+            response.setUserName(inspection.getUserId());
+        }
 
         return response;
     }
