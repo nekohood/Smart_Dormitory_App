@@ -4,13 +4,15 @@ import 'package:provider/provider.dart';
 import '../models/inspection.dart';
 import '../services/inspection_service.dart';
 import '../utils/auth_provider.dart';
+import '../utils/time_utils.dart'; // ✅ 추가: KST 시간 변환 유틸리티
 import '../api/dio_client.dart';
 import 'admin_building_config_screen.dart';
+import 'admin_inspection_detail_screen.dart'; // ✅ 추가: 상세 화면 import
 
 /// 관리자용 점호 관리 화면 (통합 버전)
 /// - 리스트 뷰: 기존 스크롤 방식
 /// - 테이블 뷰: 기숙사별 층/호실 매트릭스
-/// ✅ 수정: 다인실 거주자 전체 명단 표시 개선
+/// ✅ 수정: 점호 상세 보기 버튼 추가 (반려/삭제 기능 접근용)
 class AdminInspectionScreen extends StatefulWidget {
   const AdminInspectionScreen({super.key});
 
@@ -75,6 +77,15 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     }
 
     setState(() => _isLoading = false);
+  }
+
+  /// ✅ 리스트 뷰 데이터 새로고침 (상세 화면에서 돌아올 때 사용)
+  Future<void> _loadListViewData() async {
+    await Future.wait([
+      _loadAllInspections(),
+      _loadTodayInspections(),
+      _loadStatistics(),
+    ]);
   }
 
   Future<void> _loadAllInspections() async {
@@ -336,6 +347,137 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     );
   }
 
+  // ==================== 점호 카드 위젯 ====================
+  Widget _buildInspectionCard(AdminInspectionModel inspection) {
+    final statusColor = inspection.status == 'PASS' ? Colors.green : Colors.red;
+    final statusText = inspection.status == 'PASS' ? '통과' : '실패';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: statusColor.withOpacity(0.2),
+          child: Icon(
+            inspection.status == 'PASS' ? Icons.check : Icons.close,
+            color: statusColor,
+          ),
+        ),
+        title: Text(
+          inspection.userName ?? inspection.userId,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${inspection.roomNumber}호 • ${inspection.score}점'),
+            Text(
+              DateFormat('MM/dd HH:mm').format(inspection.inspectionDate),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            statusText,
+            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+        onTap: () => _showInspectionDetail(inspection),
+      ),
+    );
+  }
+
+  /// ✅ 수정: 점호 상세 다이얼로그 (상세 보기 버튼 추가)
+  void _showInspectionDetail(AdminInspectionModel inspection) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${inspection.userName ?? inspection.userId}님의 점호'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('방 번호', '${inspection.roomNumber}호'),
+              _buildDetailRow('점수', '${inspection.score}점'),
+              _buildDetailRow('상태', inspection.status == 'PASS' ? '통과' : '실패'),
+              _buildDetailRow('제출 시간',
+                  DateFormat('yyyy-MM-dd HH:mm').format(inspection.inspectionDate)),
+              if (inspection.geminiFeedback != null) ...[
+                const SizedBox(height: 12),
+                const Text('AI 피드백:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  inspection.geminiFeedback!,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+          // ✅ 추가: 상세 보기 버튼 (반려/삭제 기능 접근용)
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context); // 다이얼로그 닫기
+              _navigateToInspectionDetail(inspection);
+            },
+            icon: const Icon(Icons.visibility, size: 18),
+            label: const Text('상세 보기'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ✅ 추가: 점호 상세 화면으로 이동 (반려/삭제 기능 포함)
+  Future<void> _navigateToInspectionDetail(AdminInspectionModel inspection) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminInspectionDetailScreen(
+          inspectionId: inspection.id,
+          initialInspection: inspection,
+        ),
+      ),
+    );
+
+    // 상세 화면에서 변경이 있었으면 목록 새로고침
+    if (result == true) {
+      _loadListViewData();
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(label, style: TextStyle(color: Colors.grey[600])),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+
   // ==================== 통계 탭 ====================
   Widget _buildStatisticsTab() {
     if (_statistics == null) {
@@ -371,7 +513,7 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                         ? _statistics!.passedInspections.toDouble() / _statistics!.totalInspections.toDouble()
                         : 0,
                     backgroundColor: Colors.red[100],
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1020,138 +1162,67 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
                             ? Colors.purple
                             : userCount >= 2
                             ? Colors.blue
-                            : Colors.grey[700],
+                            : Colors.grey,
                       ),
                     ),
                   ),
                 ],
               ),
 
-              // ✅ 예시 테이블 상태 설명 (isDefault일 때만 표시)
+              // 예시 테이블일 때 설명 표시
               if (isDefault && exampleDescription != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(overallStatus).withOpacity(0.15),
+                    color: Colors.orange[50],
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _getStatusColor(overallStatus).withOpacity(0.5),
-                      width: 1.5,
-                    ),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        _getStatusIcon(overallStatus),
-                        size: 24,
-                        color: _getStatusColor(overallStatus),
-                      ),
-                      const SizedBox(width: 10),
+                      const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                      const SizedBox(width: 8),
                       Text(
-                        exampleDescription,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: _getStatusColor(overallStatus),
-                        ),
+                        '예시: $exampleDescription 상태',
+                        style: const TextStyle(fontSize: 12, color: Colors.orange),
                       ),
                     ],
                   ),
                 ),
               ],
 
-              // 점호 현황 요약 (거주자가 있을 때만)
-              if (users.isNotEmpty) ...[
+              // 다인실 통계
+              if (userCount >= 2) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildRoomStatusBadge('통과', passCount, Colors.green),
+                    _buildRoomStatChip('통과', passCount, Colors.green),
                     const SizedBox(width: 8),
-                    _buildRoomStatusBadge('실패', failCount, Colors.red),
+                    _buildRoomStatChip('실패', failCount, Colors.red),
                     const SizedBox(width: 8),
-                    _buildRoomStatusBadge('미제출', notSubmittedCount, Colors.amber),
+                    _buildRoomStatChip('미제출', notSubmittedCount, Colors.amber),
                   ],
                 ),
               ],
             ],
           ),
         ),
-        content: SizedBox(
+        content: users.isEmpty
+            ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('이 호실에 거주자가 없습니다.'),
+        )
+            : SizedBox(
           width: double.maxFinite,
-          height: users.isEmpty
-              ? 100
-              : (users.length <= 2 ? 200 : (users.length <= 4 ? 300 : 400)),
-          child: users.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.person_off, size: 40, color: Colors.grey),
-                const SizedBox(height: 8),
-                Text(
-                  isDefault
-                      ? '빈 방 예시입니다.\n해당 호실에 거주자가 없는 상태를 나타냅니다.'
-                      : '해당 호실에 거주자가 없습니다.',
-                  style: const TextStyle(color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          )
-              : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 거주자 목록 헤더
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(
-                      isDefault ? Icons.school : Icons.people,
-                      size: 18,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isDefault
-                          ? '예시 거주자 정보'
-                          : '거주자 명단 (${users.length}명)',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              // 거주자 리스트
-              Expanded(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: users.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final user = users[index] as Map<String, dynamic>;
-                    return _buildUserDetailCard(user, index + 1);
-                  },
-                ),
-              ),
-            ],
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: users.length,
+            itemBuilder: (context, index) {
+              return _buildUserDetailCard(users[index], index);
+            },
           ),
         ),
         actions: [
-          if (isDefault)
-            TextButton.icon(
-              onPressed: _openTableConfigScreen,
-              icon: const Icon(Icons.settings, size: 18),
-              label: const Text('테이블 설정'),
-            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
@@ -1161,13 +1232,12 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     );
   }
 
-  /// ✅ 상태 요약 배지 위젯 (호실 상세용)
-  Widget _buildRoomStatusBadge(String label, int count, Color color) {
+  Widget _buildRoomStatChip(String label, int count, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: count > 0 ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: count > 0 ? color.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1202,267 +1272,165 @@ class _AdminInspectionScreenState extends State<AdminInspectionScreen>
     final statusText = user['statusText'] ?? '미제출';
     final inspection = user['inspection'] as Map<String, dynamic>?;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 사용자 기본 정보
-          Row(
-            children: [
-              // 순번
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$index',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단: 순번, 이름, 상태
+            Row(
+              children: [
+                // 순번 표시
+                Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 8),
 
-              // 이름 & 학번
-              Expanded(
+                // 사용자 이름
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        userId,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 상태 배지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _getStatusIcon(status),
+                        size: 14,
+                        color: _getStatusColor(status),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: _getStatusColor(status),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // 점호 정보 (있는 경우)
+            if (inspection != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      userId,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 점호 상태 배지
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(status).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _getStatusColor(status)),
-                ),
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    color: _getStatusColor(status),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // 점호 상세 정보 (제출한 경우)
-          if (inspection != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 점수 & 제출 시간
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${inspection['score'] ?? 0}점',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (inspection['inspectionDate'] != null) ...[
-                        Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                    // 점수 & 제출 시간
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
                         const SizedBox(width: 4),
                         Text(
-                          _formatInspectionDateTime(inspection['inspectionDate']),
+                          '${inspection['score'] ?? 0}점',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatDateTime(inspection['inspectionDate']),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey[600],
                           ),
                         ),
                       ],
-                    ],
-                  ),
-
-                  // AI 피드백 (있는 경우)
-                  if (inspection['geminiFeedback'] != null &&
-                      inspection['geminiFeedback'].toString().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    const Divider(height: 1),
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.smart_toy, size: 14, color: Colors.blue[300]),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            inspection['geminiFeedback'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
                     ),
+
+                    // AI 피드백 (있는 경우)
+                    if (inspection['geminiFeedback'] != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        inspection['geminiFeedback'],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[700],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// ✅ 날짜/시간 포맷 헬퍼 (호실 상세용)
-  String _formatInspectionDateTime(dynamic dateTime) {
-    if (dateTime == null) return '';
-    try {
-      if (dateTime is String) {
-        final dt = DateTime.parse(dateTime);
-        return DateFormat('MM/dd HH:mm').format(dt);
-      }
-      return dateTime.toString();
-    } catch (e) {
-      return dateTime.toString();
-    }
-  }
-
-  String _formatTime(dynamic dateTime) {
-    if (dateTime == null) return '';
-    try {
-      final dt = DateTime.parse(dateTime.toString());
-      return DateFormat('HH:mm').format(dt);
-    } catch (e) {
-      return '';
-    }
-  }
-
-  // ==================== 점호 카드 (리스트 뷰용) ====================
-  Widget _buildInspectionCard(AdminInspectionModel inspection) {
-    final statusColor = inspection.status == 'PASS' ? Colors.green : Colors.red;
-    final statusText = inspection.status == 'PASS' ? '통과' : '실패';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.2),
-          child: Icon(
-            inspection.status == 'PASS' ? Icons.check : Icons.close,
-            color: statusColor,
-          ),
-        ),
-        title: Text(
-          inspection.userName ?? inspection.userId,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${inspection.roomNumber}호 • ${inspection.score}점'),
-            Text(
-              DateFormat('MM/dd HH:mm').format(inspection.inspectionDate),
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            statusText,
-            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
-          ),
-        ),
-        onTap: () => _showInspectionDetail(inspection),
-      ),
-    );
-  }
-
-  void _showInspectionDetail(AdminInspectionModel inspection) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${inspection.userName ?? inspection.userId}님의 점호'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('방 번호', '${inspection.roomNumber}호'),
-              _buildDetailRow('점수', '${inspection.score}점'),
-              _buildDetailRow('상태', inspection.status == 'PASS' ? '통과' : '실패'),
-              _buildDetailRow('제출 시간',
-                  DateFormat('yyyy-MM-dd HH:mm').format(inspection.inspectionDate)),
-              if (inspection.geminiFeedback != null) ...[
-                const SizedBox(height: 12),
-                const Text('AI 피드백:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(inspection.geminiFeedback!),
-              ],
             ],
-          ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(label, style: TextStyle(color: Colors.grey[600])),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
-        ],
-      ),
-    );
+  /// ✅ 수정: UTC → KST 변환 적용
+  String _formatDateTime(dynamic dateTime) {
+    if (dateTime == null) return '';
+    try {
+      DateTime dt;
+      if (dateTime is String) {
+        // time_utils의 parseToKST 함수 사용하여 KST로 변환
+        dt = parseToKST(dateTime);
+      } else if (dateTime is DateTime) {
+        dt = dateTime;
+      } else {
+        return dateTime.toString();
+      }
+      return DateFormat('MM/dd HH:mm').format(dt);
+    } catch (e) {
+      return dateTime.toString();
+    }
   }
 }
