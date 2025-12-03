@@ -24,6 +24,7 @@ String _getImageUrl(String? imagePath) {
 }
 
 /// 관리자용 점호 상세 화면
+/// ✅ 수정: 수동 FAIL/PASS 처리 기능 추가
 class AdminInspectionDetailScreen extends StatefulWidget {
   final int inspectionId;
   final AdminInspectionModel? initialInspection;
@@ -88,6 +89,190 @@ class _AdminInspectionDetailScreenState
     }
   }
 
+  /// ✅ 신규 추가: 수동 FAIL 처리 다이얼로그
+  Future<void> _showManualFailDialog() async {
+    final TextEditingController commentController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.thumb_down, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('수동 FAIL 처리'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이 점호를 FAIL 처리하시겠습니까?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '점호 기록은 삭제되지 않으며, 상태만 FAIL로 변경됩니다.',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: commentController,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: InputDecoration(
+                labelText: '관리자 코멘트 (선택)',
+                hintText: 'FAIL 처리 사유를 입력하세요',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('FAIL 처리'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _processManualFail(commentController.text.trim());
+    }
+  }
+
+  /// ✅ 신규 추가: 수동 FAIL 처리 실행
+  Future<void> _processManualFail(String? adminComment) async {
+    _showLoadingDialog('FAIL 처리 중...');
+
+    try {
+      final response = await _inspectionService.manualFailInspection(
+        widget.inspectionId,
+        adminComment?.isNotEmpty == true ? adminComment : null,
+      );
+
+      Navigator.pop(context); // 로딩 다이얼로그 닫기
+
+      if (response.success && response.inspection != null) {
+        setState(() {
+          _inspection = response.inspection;
+        });
+        _showSuccessSnackBar('점호가 FAIL 처리되었습니다.');
+      } else {
+        _showErrorSnackBar(response.message ?? 'FAIL 처리 실패');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('FAIL 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// ✅ 신규 추가: 수동 PASS 처리 다이얼로그
+  Future<void> _showManualPassDialog() async {
+    final TextEditingController commentController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.thumb_up, color: Colors.green),
+            SizedBox(width: 8),
+            Text('수동 PASS 처리'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이 점호를 PASS 처리하시겠습니까?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '점호 기록은 삭제되지 않으며, 상태만 PASS로 변경됩니다.',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: commentController,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: InputDecoration(
+                labelText: '관리자 코멘트 (선택)',
+                hintText: 'PASS 처리 사유를 입력하세요',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('PASS 처리'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _processManualPass(commentController.text.trim());
+    }
+  }
+
+  /// ✅ 신규 추가: 수동 PASS 처리 실행
+  Future<void> _processManualPass(String? adminComment) async {
+    _showLoadingDialog('PASS 처리 중...');
+
+    try {
+      final response = await _inspectionService.manualPassInspection(
+        widget.inspectionId,
+        adminComment?.isNotEmpty == true ? adminComment : null,
+      );
+
+      Navigator.pop(context); // 로딩 다이얼로그 닫기
+
+      if (response.success && response.inspection != null) {
+        setState(() {
+          _inspection = response.inspection;
+        });
+        _showSuccessSnackBar('점호가 PASS 처리되었습니다.');
+      } else {
+        _showErrorSnackBar(response.message ?? 'PASS 처리 실패');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('PASS 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// 점호 반려 다이얼로그
   Future<void> _showRejectDialog() async {
     final TextEditingController reasonController = TextEditingController();
@@ -97,7 +282,7 @@ class _AdminInspectionDetailScreenState
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
             SizedBox(width: 8),
             Text('점호 반려'),
           ],
@@ -112,8 +297,8 @@ class _AdminInspectionDetailScreenState
             ),
             SizedBox(height: 8),
             Text(
-              '반려 시 해당 점호 기록이 삭제되며, 사용자에게 반려 사유가 전달됩니다.',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              '⚠️ 반려 시 해당 점호 기록이 삭제됩니다.',
+              style: TextStyle(fontSize: 14, color: Colors.red[600], fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             TextField(
@@ -167,26 +352,7 @@ class _AdminInspectionDetailScreenState
 
   /// 점호 반려 처리
   Future<void> _rejectInspection(String rejectReason) async {
-    // 로딩 다이얼로그 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('반려 처리 중...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    _showLoadingDialog('반려 처리 중...');
 
     try {
       final response = await _inspectionService.rejectInspection(
@@ -197,29 +363,14 @@ class _AdminInspectionDetailScreenState
       Navigator.pop(context); // 로딩 다이얼로그 닫기
 
       if (response.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('점호가 성공적으로 반려되었습니다.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showSuccessSnackBar('점호가 성공적으로 반려되었습니다.');
         Navigator.pop(context, true); // 상세 화면 닫기 (true = 변경됨)
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message ?? '반려 처리 실패'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar(response.message ?? '반려 처리 실패');
       }
     } catch (e) {
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('반려 처리 중 오류가 발생했습니다: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      Navigator.pop(context);
+      _showErrorSnackBar('반려 처리 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -236,7 +387,8 @@ class _AdminInspectionDetailScreenState
           ],
         ),
         content: Text(
-          '이 점호 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.',
+          '이 점호 기록을 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+          style: TextStyle(fontSize: 16),
         ),
         actions: [
           TextButton(
@@ -262,6 +414,27 @@ class _AdminInspectionDetailScreenState
 
   /// 점호 삭제 처리
   Future<void> _deleteInspection() async {
+    _showLoadingDialog('삭제 처리 중...');
+
+    try {
+      final success = await _inspectionService.deleteInspection(widget.inspectionId);
+
+      Navigator.pop(context); // 로딩 다이얼로그 닫기
+
+      if (success) {
+        _showSuccessSnackBar('점호가 성공적으로 삭제되었습니다.');
+        Navigator.pop(context, true); // 상세 화면 닫기 (true = 변경됨)
+      } else {
+        _showErrorSnackBar('삭제 처리 실패');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('삭제 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// 로딩 다이얼로그 표시
+  void _showLoadingDialog(String message) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -274,45 +447,33 @@ class _AdminInspectionDetailScreenState
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('삭제 처리 중...'),
+                Text(message),
               ],
             ),
           ),
         ),
       ),
     );
+  }
 
-    try {
-      final success =
-      await _inspectionService.deleteInspection(widget.inspectionId);
+  /// 성공 스낵바 표시
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
 
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('점호가 성공적으로 삭제되었습니다.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true); // 상세 화면 닫기 (true = 변경됨)
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('삭제 처리 실패'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('삭제 처리 중 오류가 발생했습니다: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  /// 에러 스낵바 표시
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -330,6 +491,12 @@ class _AdminInspectionDetailScreenState
               icon: Icon(Icons.more_vert),
               onSelected: (value) {
                 switch (value) {
+                  case 'manual_fail':
+                    _showManualFailDialog();
+                    break;
+                  case 'manual_pass':
+                    _showManualPassDialog();
+                    break;
                   case 'reject':
                     _showRejectDialog();
                     break;
@@ -340,12 +507,33 @@ class _AdminInspectionDetailScreenState
               },
               itemBuilder: (context) => [
                 PopupMenuItem(
+                  value: 'manual_fail',
+                  child: Row(
+                    children: [
+                      Icon(Icons.thumb_down_outlined, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('수동 FAIL 처리'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'manual_pass',
+                  child: Row(
+                    children: [
+                      Icon(Icons.thumb_up_outlined, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text('수동 PASS 처리'),
+                    ],
+                  ),
+                ),
+                PopupMenuDivider(),
+                PopupMenuItem(
                   value: 'reject',
                   child: Row(
                     children: [
-                      Icon(Icons.cancel_outlined, color: Colors.orange),
+                      Icon(Icons.cancel_outlined, color: Colors.red),
                       SizedBox(width: 8),
-                      Text('반려'),
+                      Text('반려 (삭제)'),
                     ],
                   ),
                 ),
@@ -370,16 +558,7 @@ class _AdminInspectionDetailScreenState
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('점호 정보를 불러오는 중...'),
-          ],
-        ),
-      );
+      return Center(child: CircularProgressIndicator());
     }
 
     if (_errorMessage != null) {
@@ -389,12 +568,8 @@ class _AdminInspectionDetailScreenState
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.red),
             SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 24),
+            Text(_errorMessage!, style: TextStyle(fontSize: 16)),
+            SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadInspectionDetail,
               child: Text('다시 시도'),
@@ -405,9 +580,7 @@ class _AdminInspectionDetailScreenState
     }
 
     if (_inspection == null) {
-      return Center(
-        child: Text('점호 정보가 없습니다.'),
-      );
+      return Center(child: Text('점호 정보를 찾을 수 없습니다.'));
     }
 
     return RefreshIndicator(
@@ -420,9 +593,9 @@ class _AdminInspectionDetailScreenState
           children: [
             _buildStatusCard(),
             SizedBox(height: 16),
-            _buildUserInfoCard(),
-            SizedBox(height: 16),
             _buildImageCard(),
+            SizedBox(height: 16),
+            _buildInfoCard(),
             SizedBox(height: 16),
             _buildFeedbackCard(),
             SizedBox(height: 16),
@@ -434,42 +607,61 @@ class _AdminInspectionDetailScreenState
     );
   }
 
-  /// 상태 카드
   Widget _buildStatusCard() {
-    final statusColor =
-    _inspection!.status == 'PASS' ? Colors.green : Colors.red;
-    final statusText = _inspection!.status == 'PASS' ? '통과' : '실패';
+    final inspection = _inspection!;
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+
+    switch (inspection.status) {
+      case 'PASS':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        statusText = '통과';
+        break;
+      case 'FAIL':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+        statusText = '실패';
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusIcon = Icons.help;
+        statusText = inspection.status;
+    }
 
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
+      child: Padding(
         padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              statusColor.withOpacity(0.1),
-              statusColor.withOpacity(0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(16),
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
+                color: statusColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Text(
-                '${_inspection!.score}',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: statusColor,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${inspection.score}',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                    Text(
+                      '/ 10',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -480,57 +672,44 @@ class _AdminInspectionDetailScreenState
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
+                      Icon(statusIcon, color: statusColor, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                           color: statusColor,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                       ),
-                      if (_inspection!.isReInspection) ...[
-                        SizedBox(width: 8),
-                        Container(
-                          padding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '재검',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   SizedBox(height: 8),
                   Text(
-                    '점수: ${_inspection!.score}/10',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
-                    ),
+                    '사용자: ${inspection.userName}',
+                    style: TextStyle(fontSize: 16),
                   ),
                   Text(
-                    DateFormat('yyyy-MM-dd HH:mm')
-                        .format(_inspection!.inspectionDate),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    '호실: ${inspection.roomNumber}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
+                  if (inspection.isReInspection)
+                    Container(
+                      margin: EdgeInsets.only(top: 8),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '재검',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.purple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -540,33 +719,104 @@ class _AdminInspectionDetailScreenState
     );
   }
 
-  /// 사용자 정보 카드
-  Widget _buildUserInfoCard() {
+  Widget _buildImageCard() {
+    final inspection = _inspection!;
+    final imageUrl = _getImageUrl(inspection.imagePath);
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              '제출 이미지',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              child: Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text('이미지를 불러올 수 없습니다'),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Container(
+              height: 200,
+              color: Colors.grey[200],
+              child: Center(
+                child: Text('이미지 없음'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    final inspection = _inspection!;
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+
+    return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.person, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '사용자 정보',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Text(
+              '상세 정보',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Divider(height: 24),
-            _buildInfoRow('이름', _inspection!.userName),
-            _buildInfoRow('학번', _inspection!.userId),
-            _buildInfoRow('방 번호', _inspection!.roomNumber),
+            SizedBox(height: 16),
+            _buildInfoRow('점호 ID', '${inspection.id}'),
+            _buildInfoRow('사용자 ID', inspection.userId),
+            _buildInfoRow('사용자 이름', inspection.userName),
+            _buildInfoRow('호실', inspection.roomNumber),
+            _buildInfoRow('점호 시간', dateFormat.format(inspection.inspectionDate)),
+            _buildInfoRow('등록 시간', dateFormat.format(inspection.createdAt)),
           ],
         ),
       ),
@@ -580,7 +830,7 @@ class _AdminInspectionDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: Text(
               label,
               style: TextStyle(
@@ -592,9 +842,7 @@ class _AdminInspectionDetailScreenState
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -602,163 +850,57 @@ class _AdminInspectionDetailScreenState
     );
   }
 
-  /// 이미지 카드
-  Widget _buildImageCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.image, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '제출 사진',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _inspection!.imagePath.isNotEmpty
-                  ? Image.network(
-                _getImageUrl(_inspection!.imagePath),
-                width: double.infinity,
-                height: 300,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: double.infinity,
-                    height: 200,
-                    color: Colors.grey[200],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.broken_image,
-                            size: 48, color: Colors.grey),
-                        SizedBox(height: 8),
-                        Text('이미지를 불러올 수 없습니다',
-                            style: TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: double.infinity,
-                    height: 200,
-                    color: Colors.grey[200],
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    ),
-                  );
-                },
-              )
-                  : Container(
-                width: double.infinity,
-                height: 200,
-                color: Colors.grey[200],
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.no_photography,
-                        size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text('이미지가 없습니다',
-                        style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 피드백 카드
   Widget _buildFeedbackCard() {
+    final inspection = _inspection!;
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.feedback, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  'AI 피드백',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Text(
+              'AI 평가 피드백',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Colors.blue.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.2)),
               ),
               child: Text(
-                _inspection!.geminiFeedback ?? '피드백이 없습니다.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+                inspection.geminiFeedback ?? 'AI 피드백 없음',
+                style: TextStyle(fontSize: 14, height: 1.5),
               ),
             ),
-            if (_inspection!.adminComment != null &&
-                _inspection!.adminComment!.isNotEmpty) ...[
+            if (inspection.adminComment != null && inspection.adminComment!.isNotEmpty) ...[
               SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(Icons.admin_panel_settings, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Text(
-                    '관리자 코멘트',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Text(
+                '관리자 코멘트',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 8),
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Colors.orange.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.2)),
                 ),
                 child: Text(
-                  _inspection!.adminComment!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
+                  inspection.adminComment!,
+                  style: TextStyle(fontSize: 14, height: 1.5),
                 ),
               ),
             ],
@@ -768,38 +910,55 @@ class _AdminInspectionDetailScreenState
     );
   }
 
-  /// 액션 버튼들
   Widget _buildActionButtons() {
-    return Row(
+    final inspection = _inspection!;
+
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _showRejectDialog,
-            icon: Icon(Icons.cancel_outlined),
-            label: Text('반려'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        // 상태 변경 버튼
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: inspection.status == 'FAIL' ? null : _showManualFailDialog,
+                icon: Icon(Icons.thumb_down),
+                label: Text('FAIL 처리'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
               ),
             ),
-          ),
+            SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: inspection.status == 'PASS' ? null : _showManualPassDialog,
+                icon: Icon(Icons.thumb_up),
+                label: Text('PASS 처리'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
+              ),
+            ),
+          ],
         ),
-        SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
+        SizedBox(height: 12),
+        // 삭제 버튼
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
             onPressed: _showDeleteDialog,
             icon: Icon(Icons.delete_outline),
-            label: Text('삭제'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            label: Text('점호 기록 삭제'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: BorderSide(color: Colors.red),
+              padding: EdgeInsets.symmetric(vertical: 12),
             ),
           ),
         ),

@@ -2,16 +2,15 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../models/inspection.dart';
 import '../api/dio_client.dart';
-import '../api/api_config.dart';
 
 /// 점호 관련 API 서비스 (DioClient 기반)
-/// ✅ 상세 조회 및 반려 기능 추가
-/// ✅ 파일 업로드 timeout 개선
+/// ✅ 수정: 상세 조회, 반려, 수동 FAIL/PASS 처리 기능 추가
 class InspectionService {
   /// ⭐ 기존 코드와의 호환성을 위해 남겨둠 (실제로는 사용되지 않음)
   /// DioClient가 자동으로 토큰을 관리하므로 이 메서드는 아무 동작도 하지 않음
   void setAuthToken(String token) {
     print('[DEBUG] InspectionService.setAuthToken() 호출됨 (DioClient가 자동 관리)');
+    // DioClient가 자동으로 토큰을 헤더에 포함하므로 별도 설정 불필요
   }
 
   /// 점호 제출 (Uint8List를 MultipartFile로 변환하여 업로드)
@@ -19,7 +18,6 @@ class InspectionService {
       String roomNumber, Uint8List imageBytes, String fileName) async {
     try {
       print('[DEBUG] 점호 제출 시작 - 방번호: $roomNumber, 파일명: $fileName');
-      print('[DEBUG] 이미지 크기: ${(imageBytes.length / 1024).toStringAsFixed(2)} KB');
 
       // Uint8List를 MultipartFile로 변환
       final multipartFile = MultipartFile.fromBytes(
@@ -34,39 +32,24 @@ class InspectionService {
         'image': multipartFile,
       });
 
-      print('[DEBUG] 서버로 요청 전송 중... (timeout: ${ApiConfig.uploadTimeout.inSeconds}초)');
+      print('[DEBUG] 서버로 요청 전송 중...');
 
-      // ✅ 파일 업로드용 긴 timeout 적용
-      final response = await DioClient.postWithTimeout(
+      // ✅ DioClient.post 사용
+      final response = await DioClient.post(
         '/inspections/submit',
         data: formData,
-        timeout: ApiConfig.uploadTimeout,
       );
 
       print('[DEBUG] 서버 응답: ${response.data}');
 
+      // InspectionResponse.fromJson이 알아서 파싱
       return InspectionResponse.fromJson(response.data);
 
     } catch (e) {
       print('[ERROR] 점호 제출 중 예외 발생: $e');
-
-      // ✅ timeout 에러 메시지 개선
-      String errorMessage = '점호 제출 중 오류가 발생했습니다';
-      if (e is DioException) {
-        if (e.type == DioExceptionType.connectionTimeout) {
-          errorMessage = '서버 연결 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
-        } else if (e.type == DioExceptionType.receiveTimeout) {
-          errorMessage = 'AI 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-        } else if (e.type == DioExceptionType.sendTimeout) {
-          errorMessage = '이미지 업로드 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
-        } else if (e.message != null) {
-          errorMessage = e.message!;
-        }
-      }
-
       return InspectionResponse(
         success: false,
-        error: errorMessage,
+        error: '점호 제출 중 오류가 발생했습니다: $e',
       );
     }
   }
@@ -77,6 +60,7 @@ class InspectionService {
       print('[DEBUG] 내 점호 기록 조회');
       final response = await DioClient.get('/inspections/my');
 
+      // InspectionListResponse.fromJson이 ApiResponse 구조 처리
       return InspectionListResponse.fromJson(response.data);
 
     } catch (e) {
@@ -91,6 +75,7 @@ class InspectionService {
       print('[DEBUG] 오늘 점호 상태 확인');
       final response = await DioClient.get('/inspections/today');
 
+      // TodayInspectionResponse.fromJson이 ApiResponse 구조 처리
       return TodayInspectionResponse.fromJson(response.data);
 
     } catch (e) {
@@ -104,7 +89,6 @@ class InspectionService {
       String roomNumber, Uint8List imageBytes, String fileName) async {
     try {
       print('[DEBUG] 재검 점호 제출 - 방번호: $roomNumber');
-      print('[DEBUG] 이미지 크기: ${(imageBytes.length / 1024).toStringAsFixed(2)} KB');
 
       // Uint8List를 MultipartFile로 변환
       final multipartFile = MultipartFile.fromBytes(
@@ -119,36 +103,18 @@ class InspectionService {
         'image': multipartFile,
       });
 
-      print('[DEBUG] 서버로 재검 요청 전송 중... (timeout: ${ApiConfig.uploadTimeout.inSeconds}초)');
-
-      // ✅ 파일 업로드용 긴 timeout 적용
-      final response = await DioClient.postWithTimeout(
+      final response = await DioClient.post(
         '/inspections/resubmit',
         data: formData,
-        timeout: ApiConfig.uploadTimeout,
       );
 
       return InspectionResponse.fromJson(response.data);
 
     } catch (e) {
       print('[ERROR] 재검 점호 제출 실패: $e');
-
-      String errorMessage = '재검 점호 제출 실패';
-      if (e is DioException) {
-        if (e.type == DioExceptionType.connectionTimeout) {
-          errorMessage = '서버 연결 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
-        } else if (e.type == DioExceptionType.receiveTimeout) {
-          errorMessage = 'AI 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-        } else if (e.type == DioExceptionType.sendTimeout) {
-          errorMessage = '이미지 업로드 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.';
-        } else if (e.message != null) {
-          errorMessage = e.message!;
-        }
-      }
-
       return InspectionResponse(
         success: false,
-        error: errorMessage,
+        error: '재검 점호 제출 실패: $e',
       );
     }
   }
@@ -265,7 +231,7 @@ class InspectionService {
     }
   }
 
-  /// ✅ 점호 반려 (관리자)
+  /// ✅ 점호 반려 (관리자) - 삭제 처리
   Future<InspectionRejectResponse> rejectInspection(
       int inspectionId, String rejectReason) async {
     try {
@@ -296,7 +262,87 @@ class InspectionService {
     }
   }
 
-  /// ✅ 점호 통계 조회 (관리자) - getInspectionStatistics
+  /// ✅ 신규 추가: 점호 수동 FAIL 처리 (관리자)
+  Future<AdminInspectionDetailResponse> manualFailInspection(
+      int inspectionId, String? adminComment) async {
+    try {
+      print('[DEBUG] 점호 수동 FAIL 처리: ID $inspectionId');
+
+      final response = await DioClient.post(
+        '/inspections/admin/$inspectionId/manual-fail',
+        data: adminComment != null && adminComment.isNotEmpty
+            ? {'adminComment': adminComment}
+            : null,
+      );
+
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final inspectionData = data['data'];
+        if (inspectionData != null) {
+          return AdminInspectionDetailResponse(
+            success: true,
+            inspection: AdminInspectionModel.fromJson(inspectionData),
+            message: data['message'],
+          );
+        }
+      }
+
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: data['message'] ?? '점호 수동 FAIL 처리 실패',
+      );
+
+    } catch (e) {
+      print('[ERROR] 점호 수동 FAIL 처리 실패: $e');
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: '점호 수동 FAIL 처리 실패: $e',
+      );
+    }
+  }
+
+  /// ✅ 신규 추가: 점호 수동 PASS 처리 (관리자)
+  Future<AdminInspectionDetailResponse> manualPassInspection(
+      int inspectionId, String? adminComment) async {
+    try {
+      print('[DEBUG] 점호 수동 PASS 처리: ID $inspectionId');
+
+      final response = await DioClient.post(
+        '/inspections/admin/$inspectionId/manual-pass',
+        data: adminComment != null && adminComment.isNotEmpty
+            ? {'adminComment': adminComment}
+            : null,
+      );
+
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final inspectionData = data['data'];
+        if (inspectionData != null) {
+          return AdminInspectionDetailResponse(
+            success: true,
+            inspection: AdminInspectionModel.fromJson(inspectionData),
+            message: data['message'],
+          );
+        }
+      }
+
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: data['message'] ?? '점호 수동 PASS 처리 실패',
+      );
+
+    } catch (e) {
+      print('[ERROR] 점호 수동 PASS 처리 실패: $e');
+      return AdminInspectionDetailResponse(
+        success: false,
+        message: '점호 수동 PASS 처리 실패: $e',
+      );
+    }
+  }
+
+  /// 점호 통계 조회 (관리자)
   Future<InspectionStatisticsResponse> getInspectionStatistics({DateTime? date}) async {
     try {
       String endpoint = '/inspections/statistics';
@@ -309,6 +355,7 @@ class InspectionService {
       print('[DEBUG] 점호 통계 조회: $endpoint');
       final response = await DioClient.get(endpoint);
 
+      // InspectionStatisticsResponse.fromJson이 ApiResponse 구조 처리
       return InspectionStatisticsResponse.fromJson(response.data);
 
     } catch (e) {
@@ -317,8 +364,27 @@ class InspectionService {
     }
   }
 
-  /// ✅ 기숙사별 점호 현황 조회 (관리자)
-  Future<Map<String, dynamic>> getBuildingInspectionStatus(
+  /// 기숙사 동 목록 조회 (관리자)
+  Future<List<String>> getBuildingList() async {
+    try {
+      print('[DEBUG] 기숙사 동 목록 조회');
+      final response = await DioClient.get('/inspections/admin/buildings');
+      final data = response.data;
+
+      if (data['success'] == true && data['data'] != null) {
+        return List<String>.from(data['data']);
+      }
+
+      return [];
+
+    } catch (e) {
+      print('[ERROR] 기숙사 동 목록 조회 실패: $e');
+      return [];
+    }
+  }
+
+  /// 기숙사별 점호 현황 조회 (관리자)
+  Future<Map<String, dynamic>?> getBuildingInspectionStatus(
       String building, {DateTime? date}) async {
     try {
       String endpoint = '/inspections/admin/building-status/$building';
@@ -330,42 +396,22 @@ class InspectionService {
 
       print('[DEBUG] 기숙사별 점호 현황 조회: $endpoint');
       final response = await DioClient.get(endpoint);
+      final data = response.data;
 
-      if (response.data['success'] == true && response.data['data'] != null) {
-        return response.data['data'];
+      if (data['success'] == true && data['data'] != null) {
+        return data['data'] as Map<String, dynamic>;
       }
 
-      return {};
+      return null;
 
     } catch (e) {
       print('[ERROR] 기숙사별 점호 현황 조회 실패: $e');
-      return {};
-    }
-  }
-
-  /// ✅ 기숙사 동 목록 조회 (관리자)
-  Future<List<String>> getBuildings() async {
-    try {
-      print('[DEBUG] 기숙사 동 목록 조회');
-      final response = await DioClient.get('/inspections/admin/buildings');
-
-      if (response.data['success'] == true && response.data['data'] != null) {
-        final data = response.data['data'];
-        if (data['buildings'] != null && data['buildings'] is List) {
-          return List<String>.from(data['buildings']);
-        }
-      }
-
-      return [];
-
-    } catch (e) {
-      print('[ERROR] 기숙사 동 목록 조회 실패: $e');
-      return [];
+      return null;
     }
   }
 }
 
-/// ✅ 점호 상세 조회 응답 모델
+/// 점호 상세 조회 응답 모델
 class AdminInspectionDetailResponse {
   final bool success;
   final AdminInspectionModel? inspection;
@@ -378,7 +424,7 @@ class AdminInspectionDetailResponse {
   });
 }
 
-/// ✅ 점호 반려 응답 모델
+/// 점호 반려 응답 모델
 class InspectionRejectResponse {
   final bool success;
   final String? message;
@@ -391,4 +437,31 @@ class InspectionRejectResponse {
     required this.inspectionId,
     required this.rejectReason,
   });
+}
+
+/// 점호 수정 요청 모델
+class InspectionUpdateRequest {
+  final int? score;
+  final String? status;
+  final String? geminiFeedback;
+  final String? adminComment;
+  final bool? isReInspection;
+
+  InspectionUpdateRequest({
+    this.score,
+    this.status,
+    this.geminiFeedback,
+    this.adminComment,
+    this.isReInspection,
+  });
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    if (score != null) data['score'] = score;
+    if (status != null) data['status'] = status;
+    if (geminiFeedback != null) data['geminiFeedback'] = geminiFeedback;
+    if (adminComment != null) data['adminComment'] = adminComment;
+    if (isReInspection != null) data['isReInspection'] = isReInspection;
+    return data;
+  }
 }
